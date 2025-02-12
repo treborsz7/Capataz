@@ -86,7 +86,7 @@ fun BarcodeScannerScreen(
     }
 }
 
-// Components/CameraPreview.kt
+
 @Composable
 fun CameraPreview(viewModel: BarCodeScannerViewModel) {
     val context = LocalContext.current
@@ -156,7 +156,6 @@ fun CameraPreview(viewModel: BarCodeScannerViewModel) {
                                 Log.d("CameraPreview", "Error: ${e.localizedMessage}")
                             }
 
-                            // Shutdown executor when view lifecycle is destroyed
                             lifecycleOwner.lifecycle.addObserver(object : DefaultLifecycleObserver {
                                 override fun onDestroy(owner: LifecycleOwner) {
                                     cameraExecutor.shutdown()
@@ -190,22 +189,41 @@ fun CameraPreview(viewModel: BarCodeScannerViewModel) {
                 }
             }
             is BarScanState.ScanSuccess -> {
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text("Invoice Id: ${barScanState.barStateModel.invoiceNumber}")
-                    Text("Name: ${barScanState.barStateModel.client.name}")
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text("Purchases:", style = MaterialTheme.typography.titleMedium)
-                    barScanState.barStateModel.purchase.forEach { item ->
-                        Text("${item.item}: ${item.quantity} x $${item.price}")
+                if (barScanState.barStateModel != null) {
+                    // JSON QR Code result
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text("Invoice Id: ${barScanState.barStateModel.invoiceNumber}")
+                        Text("Name: ${barScanState.barStateModel.client.name}")
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("Purchases:", style = MaterialTheme.typography.titleMedium)
+                        barScanState.barStateModel.purchase.forEach { item ->
+                            Text("${item.item}: ${item.quantity} x $${item.price}")
+                        }
+                        Text("Total Amount: $${barScanState.barStateModel.totalAmount}")
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(onClick = { viewModel.resetState() }) {
+                            Text("Scan Another")
+                        }
                     }
-                    Text("Total Amount: $${barScanState.barStateModel.totalAmount}")
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Button(onClick = { viewModel.resetState() }) {
-                        Text("Scan Another")
+                } else {
+                    // Regular barcode result
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text("Format: ${barScanState.format}",
+                            style = MaterialTheme.typography.titleMedium)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("Value: ${barScanState.rawValue}")
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(onClick = { viewModel.resetState() }) {
+                            Text("Scan Another")
+                        }
                     }
                 }
             }
@@ -222,6 +240,37 @@ fun CameraPreview(viewModel: BarCodeScannerViewModel) {
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun ScanResultContent(scanSuccess: BarScanState.ScanSuccess, onRescan: () -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        if (scanSuccess.barStateModel != null) {
+            // Display JSON content
+            Text("Invoice Id: ${scanSuccess.barStateModel.invoiceNumber}")
+            Text("Name: ${scanSuccess.barStateModel.client.name}")
+            Spacer(modifier = Modifier.height(8.dp))
+            Text("Purchases:", style = MaterialTheme.typography.titleMedium)
+            scanSuccess.barStateModel.purchase.forEach { item ->
+                Text("${item.item}: ${item.quantity} x $${item.price}")
+            }
+            Text("Total Amount: $${scanSuccess.barStateModel.totalAmount}")
+        } else {
+            // Display raw barcode content
+            Text("Format: ${scanSuccess.format}", style = MaterialTheme.typography.titleMedium)
+            Spacer(modifier = Modifier.height(8.dp))
+            Text("Value: ${scanSuccess.rawValue}")
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+        Button(onClick = onRescan) {
+            Text("Scan Another")
         }
     }
 }
