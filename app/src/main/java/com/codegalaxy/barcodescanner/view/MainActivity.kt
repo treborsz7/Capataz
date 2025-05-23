@@ -3,6 +3,7 @@ package com.codegalaxy.barcodescanner.view
 import BarcodeScannerScreen
 import EstivacionScreen
 import MainScreen
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -82,8 +83,7 @@ class MainActivity : ComponentActivity() {
                         ) {
                             MainScreen(
                                 onStockearClick = {
-                                    showEstivacion = true
-                                    navigationDirection = 1
+                                    startActivity(Intent(this@MainActivity, EstivacionActivity::class.java))
                                 }
                             )
                         }
@@ -99,18 +99,7 @@ class MainActivity : ComponentActivity() {
                                 animationSpec = tween(durationMillis = 500)
                             ) + fadeOut(animationSpec = tween(500))
                         ) {
-                            EstivacionScreen(
-                                onBack = {
-                                    showEstivacion = false
-                                    navigationDirection = -1
-                                },
-                                onStockearClick = {
-                                    showScanner = true
-                                    navigationDirection = 1
-                                    scannerKey++ // Cambia la clave para forzar el remount
-                                },
-                                scanResult = scanResult
-                            )
+
                         }
                         // BarcodeScannerScreen
                         if (showScanner) {

@@ -46,7 +46,10 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.DisposableEffect
-
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.systemBars
 
 @Composable
 fun BarcodeScannerScreen(
@@ -55,12 +58,10 @@ fun BarcodeScannerScreen(
     onScanResult: (String) -> Unit = {},
     scannerKey: Int,
 ) {
-    // Llama a resetState() cada vez que cambia scannerKey
     LaunchedEffect(scannerKey) {
         viewModel.resetState()
     }
 
-    val key = 0
     val context = LocalContext.current
     var hasCameraPermission by remember {
         mutableStateOf(
@@ -83,30 +84,18 @@ fun BarcodeScannerScreen(
         }
     }
 
-
-    Box(modifier = Modifier.fillMaxSize()) {
-        if (hasCameraPermission) {
-            CameraPreview(
-                viewModel = viewModel,
-                onScanResult = onScanResult
-            )
-        } else {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text("Camera permission is required for scanning barcodes")
-                Button(onClick = { launcher.launch(android.Manifest.permission.CAMERA) }) {
-                    Text("Grant Permission")
-                }
-            }
-        }
+    // Estructura principal: columna con botón arriba y cámara debajo
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(WindowInsets.systemBars.asPaddingValues())
+    ) {
         // Botón de volver arriba a la izquierda
         Box(
             modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(16.dp)
+                .fillMaxWidth()
+                .padding(start = 16.dp, top = 8.dp, bottom = 8.dp),
+            contentAlignment = Alignment.TopStart
         ) {
             Button(
                 onClick = onBack,
@@ -119,6 +108,35 @@ fun BarcodeScannerScreen(
                     contentDescription = "Volver",
                     tint = Color.White
                 )
+            }
+        }
+        // Cámara y contenido debajo del botón de back
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f) // Ocupa el resto de la pantalla
+        ) {
+            if (hasCameraPermission) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    CameraPreview(
+                        viewModel = viewModel,
+                        onScanResult = onScanResult
+                    )
+                }
+            } else {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text("Camera permission is required for scanning barcodes")
+                    Button(onClick = { launcher.launch(android.Manifest.permission.CAMERA) }) {
+                        Text("Grant Permission")
+                    }
+                }
             }
         }
     }

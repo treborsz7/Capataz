@@ -2,6 +2,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.DeployedCode
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -65,14 +66,14 @@ fun MainScreen(
                 verticalArrangement = Arrangement.Center
             ) {
                 Icon(
-                    imageVector = Icons.Default.Home,
-                    contentDescription = "Stockear",
+                    imageVector = Icons.Outlined.Box,
+                    contentDescription = "Estibar",
                     tint = Color.White,
                     modifier = Modifier.size(80.dp)
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "Stockear",
+                    text = "Estibar",
                     color = Color.White,
                     fontSize = 28.sp
                 )

@@ -23,10 +23,19 @@
             android:theme="@style/Theme.BarCodeScanner">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".view.EstivacionActivity"
+            android:exported="false"
+            android:label="Estivacion"
+            android:theme="@style/Theme.BarCodeScanner" />
+        <activity
+            android:name=".view.BarcodeScannerActivity"
+            android:exported="false"
+            android:label="Escanear"
+            android:theme="@style/Theme.BarCodeScanner" />
     </application>
 
 </manifest>

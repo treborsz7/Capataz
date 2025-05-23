@@ -20,13 +20,18 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Send
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.systemBars
 
 
 @Composable
 fun EstivacionScreen(
     onBack: () -> Unit = {},
-    onStockearClick: () -> Unit = {},
-    scanResult: String?
+    onStockearClick: (boton: String) -> Unit = {},
+    producto: String?,
+    ubicacion: String?
 ) {
     val context = LocalContext.current
     var hasCameraPermission by remember {
@@ -42,12 +47,13 @@ fun EstivacionScreen(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
         hasCameraPermission = isGranted
-        if (isGranted) onStockearClick()
+        if (isGranted) onStockearClick("")
     }
 
     Box(
         modifier = Modifier
-            .fillMaxSize(),
+            .fillMaxSize()
+            .padding(WindowInsets.systemBars.asPaddingValues()), // <-- Respeta la status bar
         contentAlignment = Alignment.Center
     ) {
         // Botón de volver en la esquina superior izquierda
@@ -78,7 +84,7 @@ fun EstivacionScreen(
             Button(
                 onClick = {
                     if (hasCameraPermission) {
-                        onStockearClick()
+                        onStockearClick("producto")
                     } else {
                         launcher.launch(android.Manifest.permission.CAMERA)
                     }
@@ -111,7 +117,7 @@ fun EstivacionScreen(
             Button(
                 onClick = {
                     if (hasCameraPermission) {
-                        onStockearClick()
+                        onStockearClick("ubicacion")
                     } else {
                         launcher.launch(android.Manifest.permission.CAMERA)
                     }
@@ -140,6 +146,46 @@ fun EstivacionScreen(
                         fontSize = 28.sp
                     )
                 }
+            }
+            // Aquí debajo de los botones
+            Column(Modifier.padding(16.dp)) {
+                Text("Producto: ${producto ?: "-"}")
+                Text("Ubicación: ${ubicacion ?: "-"}")
+            }
+        }
+        // Botón de enviar en la esquina inferior derecha
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(24.dp)
+        ) {
+            val enabled = !producto.isNullOrBlank() && !ubicacion.isNullOrBlank()
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Button(
+                    onClick = { /* Acción de enviar */ },
+                    enabled = enabled,
+                    shape = RoundedCornerShape(50),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (enabled) Color(0xFF1976D2) else Color.Gray
+                    ),
+                    modifier = Modifier.size(64.dp),
+                    contentPadding = PaddingValues(0.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Send,
+                        contentDescription = "Enviar",
+                        tint = Color.White,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Enviar",
+                    color = if (enabled) Color(0xFF1976D2) else Color.Gray,
+                    fontSize = 14.sp
+                )
             }
         }
     }
