@@ -25,6 +25,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
@@ -34,20 +35,32 @@ import com.codegalaxy.barcodescanner.model.BarCodeAnalyzer
 import com.codegalaxy.barcodescanner.viewmodel.BarCodeScannerViewModel
 import com.codegalaxy.barcodescanner.BarScanState
 import com.google.common.util.concurrent.ListenableFuture
-import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
-import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.lifecycle.DefaultLifecycleObserver
-import androidx.lifecycle.LifecycleOwner
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.runtime.DisposableEffect
 
 
 @Composable
 fun BarcodeScannerScreen(
-    viewModel: BarCodeScannerViewModel
+    viewModel: BarCodeScannerViewModel,
+    onBack: () -> Unit = {},
+    onScanResult: (String) -> Unit = {},
+    scannerKey: Int,
 ) {
+    // Llama a resetState() cada vez que cambia scannerKey
+    LaunchedEffect(scannerKey) {
+        viewModel.resetState()
+    }
+
+    val key = 0
     val context = LocalContext.current
     var hasCameraPermission by remember {
         mutableStateOf(
@@ -70,35 +83,72 @@ fun BarcodeScannerScreen(
         }
     }
 
-    if (hasCameraPermission) {
-        CameraPreview(viewModel)
-    } else {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (hasCameraPermission) {
+            CameraPreview(
+                viewModel = viewModel,
+                onScanResult = onScanResult
+            )
+        } else {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text("Camera permission is required for scanning barcodes")
+                Button(onClick = { launcher.launch(android.Manifest.permission.CAMERA) }) {
+                    Text("Grant Permission")
+                }
+            }
+        }
+        // Botón de volver arriba a la izquierda
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(16.dp)
         ) {
-            Text("Camera permission is required for scanning barcodes")
-            Button(onClick = { launcher.launch(android.Manifest.permission.CAMERA) }) {
-                Text("Grant Permission")
+            Button(
+                onClick = onBack,
+                shape = RoundedCornerShape(50),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2)),
+                modifier = Modifier.size(48.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ArrowBack,
+                    contentDescription = "Volver",
+                    tint = Color.White
+                )
             }
         }
     }
 }
 
-
 @Composable
-fun CameraPreview(viewModel: BarCodeScannerViewModel) {
+fun CameraPreview(
+    viewModel: BarCodeScannerViewModel,
+    onScanResult: (String) -> Unit = {}
+) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     var preview by remember { mutableStateOf<Preview?>(null) }
     var cameraProvider by remember { mutableStateOf<ProcessCameraProvider?>(null) }
     val barScanState = viewModel.barScanState
+    val cameraExecutor = remember { Executors.newSingleThreadExecutor() }
 
-    // Effect to unbind camera use cases when scan is successful
+    // Detener la cámara solo cuando se detecta un código
     LaunchedEffect(barScanState) {
         if (barScanState is BarScanState.ScanSuccess) {
             cameraProvider?.unbindAll()
+            // Quitar: onScanResult(value)
+        }
+    }
+
+    // Liberar recursos al salir del Composable
+    DisposableEffect(Unit) {
+        onDispose {
+            cameraProvider?.unbindAll()
+            cameraExecutor.shutdown()
         }
     }
 
@@ -108,6 +158,7 @@ fun CameraPreview(viewModel: BarCodeScannerViewModel) {
                 .size(400.dp)
                 .padding(16.dp)
         ) {
+            // Mantener la cámara activa hasta detectar un código
             if (barScanState !is BarScanState.ScanSuccess) {
                 AndroidView(
                     factory = { androidViewContext ->
@@ -125,7 +176,6 @@ fun CameraPreview(viewModel: BarCodeScannerViewModel) {
                         val cameraSelector = CameraSelector.Builder()
                             .requireLensFacing(CameraSelector.LENS_FACING_BACK)
                             .build()
-                        val cameraExecutor: ExecutorService = Executors.newSingleThreadExecutor()
                         val cameraProviderFuture: ListenableFuture<ProcessCameraProvider> =
                             ProcessCameraProvider.getInstance(context)
 
@@ -155,12 +205,6 @@ fun CameraPreview(viewModel: BarCodeScannerViewModel) {
                             } catch (e: Exception) {
                                 Log.d("CameraPreview", "Error: ${e.localizedMessage}")
                             }
-
-                            lifecycleOwner.lifecycle.addObserver(object : DefaultLifecycleObserver {
-                                override fun onDestroy(owner: LifecycleOwner) {
-                                    cameraExecutor.shutdown()
-                                }
-                            })
                         }, ContextCompat.getMainExecutor(context))
                     }
                 )
@@ -177,6 +221,7 @@ fun CameraPreview(viewModel: BarCodeScannerViewModel) {
                     Text("Position the barcode in front of the camera.")
                 }
             }
+
             is BarScanState.Loading -> {
                 Column(
                     modifier = Modifier.fillMaxSize(),
@@ -189,56 +234,37 @@ fun CameraPreview(viewModel: BarCodeScannerViewModel) {
                 }
             }
             is BarScanState.ScanSuccess -> {
-                if (barScanState.barStateModel != null) {
-                    // JSON QR Code result
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text("Invoice Id: ${barScanState.barStateModel.invoiceNumber}")
-                        Text("Name: ${barScanState.barStateModel.client.name}")
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("Purchases:", style = MaterialTheme.typography.titleMedium)
-                        barScanState.barStateModel.purchase.forEach { item ->
-                            Text("${item.item}: ${item.quantity} x $${item.price}")
-                        }
-                        Text("Total Amount: $${barScanState.barStateModel.totalAmount}")
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = { viewModel.resetState() }) {
-                            Text("Scan Another")
-                        }
-                    }
-                } else {
-                    // Regular barcode result
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text("Format: ${barScanState.format}",
-                            style = MaterialTheme.typography.titleMedium)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("Value: ${barScanState.rawValue}")
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = { viewModel.resetState() }) {
-                            Text("Scan Another")
-                        }
-                    }
-                }
-            }
-            is BarScanState.Error -> {
+                val value = barScanState.rawValue ?: "Sin valor"
                 Column(
                     modifier = Modifier.fillMaxSize(),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    Text("Error: ${barScanState.error}")
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Button(onClick = { viewModel.resetState() }) {
-                        Text("Try Again")
+                    Text(
+                        text = "Valor escaneado:",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = value,
+                        color = Color(0xFF1976D2),
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Button(onClick = { onScanResult(value) }) {
+                            Text("Usar este valor")
+                        }
+                        Button(onClick = { viewModel.resetState() }) {
+                            Text("Escanear nuevamente")
+                        }
                     }
                 }
+            }
+            is BarScanState.Error -> {
+
             }
         }
     }

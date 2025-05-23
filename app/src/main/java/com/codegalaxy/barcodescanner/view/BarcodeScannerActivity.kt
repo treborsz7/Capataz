@@ -32,7 +32,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.runtime.key
 
-class MainActivity : ComponentActivity() {
+class BarcodeScannerActivity : ComponentActivity() {
 
     private val viewModel: BarCodeScannerViewModel by viewModels()
 
