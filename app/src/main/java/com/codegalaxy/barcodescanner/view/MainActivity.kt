@@ -42,11 +42,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             BarCodeScannerTheme {
-                Surface(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(WindowInsets.systemBars.asPaddingValues()),
-                    color = MaterialTheme.colorScheme.background
+               Surface(
+                    modifier = Modifier.fillMaxSize(),
                 ) {
                     var showEstivacion by remember { mutableStateOf(false) }
                     var showScanner by remember { mutableStateOf(false) }

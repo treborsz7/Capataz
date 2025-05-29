@@ -2,10 +2,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Send
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -17,13 +18,12 @@ import androidx.core.content.ContextCompat
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Send
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.systemBars
+import android.app.Activity
+import android.content.Intent
+import com.codegalaxy.barcodescanner.view.EstivacionSuccessActivity
 
 
 @Composable
@@ -47,7 +47,7 @@ fun EstivacionScreen(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
         hasCameraPermission = isGranted
-        if (isGranted) onStockearClick("")
+
     }
 
     Box(
@@ -164,7 +164,11 @@ fun EstivacionScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Button(
-                    onClick = { /* Acción de enviar */ },
+                    onClick = {
+                        context.startActivity(Intent(context, EstivacionSuccessActivity::class.java))
+                        // Si quieres cerrar la activity actual:
+                        (context as? Activity)?.finish()
+                    },
                     enabled = enabled,
                     shape = RoundedCornerShape(50),
                     colors = ButtonDefaults.buttonColors(

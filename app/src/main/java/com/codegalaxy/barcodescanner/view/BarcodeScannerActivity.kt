@@ -36,7 +36,7 @@ class BarcodeScannerActivity : ComponentActivity() {
                             setResult(Activity.RESULT_OK, intent)
                             finish()
                         },
-                        scannerKey = 0 // Puedes quitar esto si no lo necesitas
+                        scannerKey = 0
                     )
                 }
             }

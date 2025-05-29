@@ -36,6 +36,11 @@
             android:exported="false"
             android:label="Escanear"
             android:theme="@style/Theme.BarCodeScanner" />
+        <activity
+            android:name=".view.EstivacionSuccessActivity"
+            android:exported="false"
+            android:label="Success"
+            android:theme="@style/Theme.BarCodeScanner" />
     </application>
 
 </manifest>

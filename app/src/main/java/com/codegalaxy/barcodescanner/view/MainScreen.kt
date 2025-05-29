@@ -2,7 +2,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.DeployedCode
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -19,6 +18,9 @@ import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.outlined.DashboardCustomize
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 
 
 @Composable
@@ -43,8 +45,9 @@ fun MainScreen(
     }
 
     Box(
-        modifier = Modifier
-            .fillMaxSize(),
+         modifier = Modifier
+            .fillMaxSize()
+            .padding(WindowInsets.systemBars.asPaddingValues()), // <-- Respeta la status bar
         contentAlignment = Alignment.Center
     ) {
         Button(
@@ -66,7 +69,7 @@ fun MainScreen(
                 verticalArrangement = Arrangement.Center
             ) {
                 Icon(
-                    imageVector = Icons.Outlined.Box,
+                    imageVector = Icons.Outlined.DashboardCustomize,
                     contentDescription = "Estibar",
                     tint = Color.White,
                     modifier = Modifier.size(80.dp)

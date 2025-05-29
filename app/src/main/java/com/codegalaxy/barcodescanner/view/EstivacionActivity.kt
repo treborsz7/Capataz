@@ -4,6 +4,7 @@ import EstivacionScreen
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -22,9 +23,7 @@ class EstivacionActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             BarCodeScannerTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                ) {
+                Surface(modifier = Modifier.fillMaxSize()) {
                     var producto by rememberSaveable { mutableStateOf<String?>(null) }
                     var ubicacion by rememberSaveable { mutableStateOf<String?>(null) }
                     var tipoScan by rememberSaveable { mutableStateOf<String?>(null) }
@@ -44,15 +43,13 @@ class EstivacionActivity : ComponentActivity() {
                     EstivacionScreen(
                         onBack = { finish() },
                         onStockearClick = { tipo ->
+                            Log.e("tIPO", tipo)
                             tipoScan = tipo
                             scannerLauncher.launch(Intent(this, BarcodeScannerActivity::class.java))
                         },
                         producto = producto,
                         ubicacion = ubicacion
                     )
-
-                    // Si quieres mostrar ambos resultados:
-                    // Puedes agregar un Composable aquí para mostrar producto y ubicacion
                 }
             }
         }
