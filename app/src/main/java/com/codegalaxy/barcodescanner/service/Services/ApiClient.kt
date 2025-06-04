@@ -41,14 +41,15 @@ data class EstivarResponse(
 
 interface ApiService {
     @FormUrlEncoded
-    @POST("/login/Plano")
-    suspend fun loginPlano(
-        @Field("usuario") usuario: String,
-        @Field("contraseña") contraseña: String
-    ): Response<LoginPlanoResponse>
+//@POST("/login/Plano")
+    @POST("auth/login")
+fun loginPlano(
+    @Field("username") usuario: String,
+    @Field("password") contrasena: String
+): retrofit2.Call<LoginPlanoResponse>
 
     @GET("/loginEmpresa/{idEmpresa}")
-    suspend fun loginEmpresa(
+     fun loginEmpresa(
         @Path("idEmpresa") idEmpresa: String
     ): Response<LoginEmpresaResponse>
 
@@ -61,9 +62,9 @@ interface ApiService {
 // --- SINGLETON DE RETROFIT ---
 
 object ApiClient {
-    private const val BASE_URL = "http://server:18001/"
+    private const val BASE_URL = "https://dummyjson.com/"
 
-    val service: ApiService by lazy {
+    val apiService: ApiService by lazy {
         Retrofit.Builder()
             .baseUrl(BASE_URL)
             .addConverterFactory(GsonConverterFactory.create())
