@@ -19,11 +19,15 @@ fun LoginScreen(
     onLoginSuccess: () -> Unit,
     isLoading: Boolean,
     errorMessage: String?,
-    onLogin: (String, String) -> Unit
+    onLogin: (String, String, Boolean) -> Unit,
+    savedUser: String = "",
+    savedPass: String = "",
+    savedRemember: Boolean = false
 ) {
     android.util.Log.d("LoginScreen", "LoginScreen composable is being rendered")
-    var usuario by remember { mutableStateOf("") }
-    var contrasena by remember { mutableStateOf("") }
+    var usuario by remember { mutableStateOf(savedUser) }
+    var contrasena by remember { mutableStateOf(savedPass) }
+    var recordar by remember { mutableStateOf(savedRemember) }
 
     Box(
         modifier = Modifier
@@ -64,6 +68,18 @@ fun LoginScreen(
                 visualTransformation = PasswordVisualTransformation(),
                 modifier = Modifier.fillMaxWidth(0.8f)
             )
+            Spacer(modifier = Modifier.height(16.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth(0.8f)
+            ) {
+                Checkbox(
+                    checked = recordar,
+                    onCheckedChange = { recordar = it }
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Recordar", fontSize = 16.sp)
+            }
             Spacer(modifier = Modifier.height(24.dp))
             if (errorMessage != null) {
                 android.util.Log.d("LoginScreen", "Error message displayed: $errorMessage")
@@ -73,10 +89,9 @@ fun LoginScreen(
             Button(
                 onClick = {
                     android.util.Log.d("LoginScreen", "Login button clicked")
-                    onLogin(usuario, contrasena)
-
+                    onLogin(usuario, contrasena, recordar)
                 },
-                //enabled = !isLoading && usuario.isNotBlank() && contrasena.isNotBlank(),
+                enabled = !isLoading && usuario.isNotBlank(),
                 modifier = Modifier
                     .fillMaxWidth(0.8f)
                     .height(48.dp),

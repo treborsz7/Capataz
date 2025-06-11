@@ -81,6 +81,12 @@ class MainActivity : ComponentActivity() {
                             MainScreen(
                                 onStockearClick = {
                                     startActivity(Intent(this@MainActivity, EstivacionActivity::class.java))
+                                },
+                                onLogout = {
+                                    val intent = Intent(this@MainActivity, LoginActivity::class.java)
+                                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                                    startActivity(intent)
+                                    finish()
                                 }
                             )
                         }
