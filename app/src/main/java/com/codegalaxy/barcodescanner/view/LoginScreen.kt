@@ -76,7 +76,7 @@ fun LoginScreen(
                     onLogin(usuario, contrasena)
 
                 },
-                enabled = !isLoading && usuario.isNotBlank() && contrasena.isNotBlank(),
+                //enabled = !isLoading && usuario.isNotBlank() && contrasena.isNotBlank(),
                 modifier = Modifier
                     .fillMaxWidth(0.8f)
                     .height(48.dp),

@@ -34,18 +34,26 @@ class LoginActivity : ComponentActivity() {
                         },
                         isLoading = false,
                         errorMessage = null,
-                        onLogin = { usuario, contrasena ->
-
-                            android.util.Log.d("LoginActivity", "Login button clicked with user: $usuario")
+                        onLogin = { nombreUsuario, pass ->
+                            android.util.Log.d("LoginActivity", "Login button clicked with user: $nombreUsuario, pass: $pass")
+                            if (nombreUsuario.isBlank()) {
+                                android.util.Log.e("LoginActivity", "Usuario vacío, no se llama a la API")
+                                return@LoginScreen
+                            }
                             android.util.Log.d("LoginActivity", "Calling loginPlano API...")
-                            ApiClient.apiService.loginPlano(usuario, contrasena).enqueue(object : retrofit2.Callback<LoginPlanoResponse> {
+                            ApiClient.apiService.loginPlano(nombreUsuario = nombreUsuario, pass = pass).enqueue(object : retrofit2.Callback<okhttp3.ResponseBody> {
                                 override fun onResponse(
-                                    call: retrofit2.Call<LoginPlanoResponse>,
-                                    response: retrofit2.Response<LoginPlanoResponse>
+                                    call: retrofit2.Call<okhttp3.ResponseBody>,
+                                    response: retrofit2.Response<okhttp3.ResponseBody>
                                 ) {
-                                    android.util.Log.d("LoginActivity", "loginPlano onResponse: isSuccessful=${response.isSuccessful}, code=${response.code()}, body=${response.body()}")
-                                    if (response.isSuccessful && response.body()?.token != null) {
-                                        android.util.Log.d("LoginActivity", "Login successful, token: ${response.body()?.token}")
+                                    val rawBody = response.body()?.string()
+                                    val errorBody = response.errorBody()?.string()
+                                    android.util.Log.d("LoginActivity", "loginPlano onResponse: isSuccessful=${response.isSuccessful}, code=${response.code()}, rawBody=$rawBody, errorBody=$errorBody")
+                                    if (response.isSuccessful && rawBody != null) {
+                                        // Guardar el rawBody como token en el store
+                                        val prefs = getSharedPreferences("QRCodeScannerPrefs", MODE_PRIVATE)
+                                        prefs.edit().putString("token", rawBody).apply()
+                                        android.util.Log.d("LoginActivity", "Token guardado en SharedPreferences: $rawBody")
                                         // Login exitoso, navega a MainActivity
                                         runOnUiThread {
                                             val intent = Intent(this@LoginActivity, MainActivity::class.java)
@@ -54,17 +62,15 @@ class LoginActivity : ComponentActivity() {
                                             finish()
                                         }
                                     } else {
-                                        android.util.Log.e("LoginActivity", "Login failed: ${response.errorBody()?.string()} or token null")
-                                        // Maneja error de login
+                                        android.util.Log.e("LoginActivity", "Login failed: $errorBody or token not found in response")
                                         runOnUiThread {
                                             // Muestra mensaje de error
                                         }
                                     }
                                 }
 
-                                override fun onFailure(call: retrofit2.Call<LoginPlanoResponse>, t: Throwable) {
+                                override fun onFailure(call: retrofit2.Call<okhttp3.ResponseBody>, t: Throwable) {
                                     android.util.Log.e("LoginActivity", "loginPlano onFailure: ${t.message}", t)
-                                    // Maneja error de red
                                     runOnUiThread {
                                         // Muestra mensaje de error
                                     }

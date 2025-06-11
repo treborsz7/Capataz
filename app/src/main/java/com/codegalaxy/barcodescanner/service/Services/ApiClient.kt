@@ -40,20 +40,18 @@ data class EstivarResponse(
 // --- INTERFAZ DE LA API ---
 
 interface ApiService {
-    @FormUrlEncoded
-//@POST("/login/Plano")
-    @POST("auth/login")
-fun loginPlano(
-    @Field("username") usuario: String,
-    @Field("password") contrasena: String
-): retrofit2.Call<LoginPlanoResponse>
+    @POST("Login/Plano")
+    fun loginPlano(
+        @Header("nombreUsuario") nombreUsuario: String,
+        @Header("pass") pass: String
+    ): retrofit2.Call<okhttp3.ResponseBody>
 
-    @GET("/loginEmpresa/{idEmpresa}")
+    @GET("loginEmpresa/{idEmpresa}")
      fun loginEmpresa(
         @Path("idEmpresa") idEmpresa: String
     ): Response<LoginEmpresaResponse>
 
-    @POST("/stakUbi/estivar")
+    @POST("StkUbi/Estibar")
     suspend fun estivar(
         @Body body: EstivarRequest
     ): Response<EstivarResponse>
@@ -62,7 +60,7 @@ fun loginPlano(
 // --- SINGLETON DE RETROFIT ---
 
 object ApiClient {
-    private const val BASE_URL = "https://dummyjson.com/"
+    private const val BASE_URL = "http://191.235.41.83:18001/"
 
     val apiService: ApiService by lazy {
         Retrofit.Builder()
