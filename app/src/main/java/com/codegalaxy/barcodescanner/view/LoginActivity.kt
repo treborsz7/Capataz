@@ -71,8 +71,8 @@ class LoginActivity : ComponentActivity() {
                         },
                         isLoading = false,
                         errorMessage = null,
-                        onLogin = { nombreUsuario, pass, recordar ->
-                            android.util.Log.d("LoginActivity", "Login button clicked with user: $nombreUsuario, pass: $pass, recordar: $recordar")
+                        onLogin = { nombreUsuario, pass, recordar, empresa ->
+                            android.util.Log.d("LoginActivity", "Login button clicked with user: $nombreUsuario, pass: $pass, recordar: $recordar, empresa: $empresa")
                             if (nombreUsuario.isBlank()) {
                                 android.util.Log.e("LoginActivity", "Usuario vacío, no se llama a la API")
                                 return@LoginScreen
@@ -90,9 +90,10 @@ class LoginActivity : ComponentActivity() {
                                             prefs.edit().putString("savedUser", nombreUsuario)
                                                 .putString("savedPass", pass)
                                                 .putBoolean("savedRemember", true)
+                                                .putString("savedEmpresa", empresa)
                                                 .apply()
                                         } else {
-                                            prefs.edit().remove("savedUser").remove("savedPass").putBoolean("savedRemember", false).apply()
+                                            prefs.edit().remove("savedUser").remove("savedPass").remove("savedEmpresa").putBoolean("savedRemember", false).apply()
                                         }
                                         android.util.Log.d("LoginActivity", "Token guardado en SharedPreferences: $rawBody")
                                         runOnUiThread {
@@ -110,7 +111,8 @@ class LoginActivity : ComponentActivity() {
                         },
                         savedUser = savedUser,
                         savedPass = savedPass,
-                        savedRemember = savedRemember
+                        savedRemember = savedRemember,
+                        savedEmpresa = getSharedPreferences("QRCodeScannerPrefs", MODE_PRIVATE).getString("savedEmpresa", "31") ?: "31"
                     )
                 }
             }

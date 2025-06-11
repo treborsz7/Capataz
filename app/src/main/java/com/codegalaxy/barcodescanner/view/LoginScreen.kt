@@ -19,15 +19,17 @@ fun LoginScreen(
     onLoginSuccess: () -> Unit,
     isLoading: Boolean,
     errorMessage: String?,
-    onLogin: (String, String, Boolean) -> Unit,
+    onLogin: (String, String, Boolean, String) -> Unit,
     savedUser: String = "",
     savedPass: String = "",
-    savedRemember: Boolean = false
+    savedRemember: Boolean = false,
+    savedEmpresa: String = "31"
 ) {
     android.util.Log.d("LoginScreen", "LoginScreen composable is being rendered")
     var usuario by remember { mutableStateOf(savedUser) }
     var contrasena by remember { mutableStateOf(savedPass) }
     var recordar by remember { mutableStateOf(savedRemember) }
+    var empresa by remember { mutableStateOf(savedEmpresa) }
 
     Box(
         modifier = Modifier
@@ -69,6 +71,17 @@ fun LoginScreen(
                 modifier = Modifier.fillMaxWidth(0.8f)
             )
             Spacer(modifier = Modifier.height(16.dp))
+            OutlinedTextField(
+                value = empresa,
+                onValueChange = {
+                    empresa = it
+                    android.util.Log.d("LoginScreen", "Empresa input updated: $empresa")
+                },
+                label = { Text("ID Empresa") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(0.8f)
+            )
+            Spacer(modifier = Modifier.height(16.dp))
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth(0.8f)
@@ -89,7 +102,7 @@ fun LoginScreen(
             Button(
                 onClick = {
                     android.util.Log.d("LoginScreen", "Login button clicked")
-                    onLogin(usuario, contrasena, recordar)
+                    onLogin(usuario, contrasena, recordar, empresa)
                 },
                 enabled = !isLoading && usuario.isNotBlank(),
                 modifier = Modifier
