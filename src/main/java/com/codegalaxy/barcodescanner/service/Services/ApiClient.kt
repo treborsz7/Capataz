@@ -6,6 +6,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.*
 import retrofit2.Response
+import java.util.Date
 
 // --- MODELOS DE DATOS ---
 
@@ -36,9 +37,22 @@ data class EstivarRequest(
     val partidas: List<Partida>
 )
 
+data class ArmacenarRequest(
+    var idEmp: String,
+    val fechaHora: String,
+    val codDeposito: String,
+    val partidas: List<Partida>
+)
+
 data class EstivarResponse(
     val success: Boolean,
-    val message: String?
+    val message: String?,
+
+    var partidas: Array<Partida>,
+
+    val fechaHora: Date,
+    val codDeposito: String,
+    val observacion: String
 )
 
 // --- INTERFAZ DE LA API ---
@@ -56,9 +70,16 @@ interface ApiService {
         @Header("Authorization") authorization: String
     ): retrofit2.Call<LoginEmpresaResponse>
 
-    @POST("StkUbi/Estibar")
+    @POST("UB090/EstibarPartidas")
     suspend fun estivar(
-        @Body body: EstivarRequest
+        @Header("idEmp") idEmp: Number,
+    ): Response<EstivarResponse>
+
+    @POST("UB082/RecolectarPedido")
+    suspend fun recolectar(
+        @Header("idEmp") idEmp: Number,
+        @Header("avisosComoError") avisosComoError: Boolean,
+
     ): Response<EstivarResponse>
 }
 

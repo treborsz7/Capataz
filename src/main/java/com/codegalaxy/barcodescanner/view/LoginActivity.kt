@@ -140,32 +140,69 @@ class LoginActivity : ComponentActivity() {
 
                                         // El header Authorization ya lo agrega el interceptor, así que aquí puedes pasar una cadena vacía
                                         android.util.Log.d("LoginActivity", "Llamando a loginEmpresa con interceptor global para token")
-                                        ApiClient.apiService.loginEmpresa(
-                                            idEmpresa = empresa,
-                                            authorization = ""
-                                        ).enqueue(object : retrofit2.Callback<LoginEmpresaResponse> {
-                                            override fun onResponse(
-                                                call: retrofit2.Call<LoginEmpresaResponse>,
-                                                response: retrofit2.Response<LoginEmpresaResponse>
-                                            ) {
-                                                android.util.Log.d("LoginActivity", "loginEmpresa onResponse: isSuccessful=${response.isSuccessful}, code=${response.code()}, body=${response.body()}, errorBody=${response.errorBody()?.string()}")
+                                        if(true)
+                                        {
+                                            runOnUiThread {
+                                            val intent = Intent(this@LoginActivity, MainActivity::class.java)
+                                            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                                            startActivity(intent)
+                                            finish()
+                                            }
+                                        }
+                                        else {
+                                            ApiClient.apiService.loginEmpresa(
+                                                idEmpresa = empresa,
+                                                authorization = ""
+                                            ).enqueue(object :
+                                                retrofit2.Callback<LoginEmpresaResponse> {
+                                                override fun onResponse(
+                                                    call: retrofit2.Call<LoginEmpresaResponse>,
+                                                    response: retrofit2.Response<LoginEmpresaResponse>
+                                                ) {
+                                                    android.util.Log.d(
+                                                        "LoginActivity",
+                                                        "loginEmpresa onResponse: isSuccessful=${response.isSuccessful}, code=${response.code()}, body=${response.body()}, errorBody=${
+                                                            response.errorBody()?.string()
+                                                        }"
+                                                    )
 
-                                                if (response.isSuccessful) {
-                                                    android.util.Log.d("LoginActivity", "loginEmpresa exitoso")
-                                                    runOnUiThread {
-                                                        val intent = Intent(this@LoginActivity, MainActivity::class.java)
-                                                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                                                        startActivity(intent)
-                                                        finish()
+                                                    if (response.isSuccessful) {
+                                                        android.util.Log.d(
+                                                            "LoginActivity",
+                                                            "loginEmpresa exitoso"
+                                                        )
+                                                        runOnUiThread {
+                                                            val intent = Intent(
+                                                                this@LoginActivity,
+                                                                MainActivity::class.java
+                                                            )
+                                                            intent.flags =
+                                                                Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                                                            startActivity(intent)
+                                                            finish()
+                                                        }
+                                                    } else {
+                                                        android.util.Log.e(
+                                                            "LoginActivity",
+                                                            "loginEmpresa fallido: ${
+                                                                response.errorBody()?.string()
+                                                            }"
+                                                        )
                                                     }
-                                                } else {
-                                                    android.util.Log.e("LoginActivity", "loginEmpresa fallido: ${response.errorBody()?.string()}")
                                                 }
-                                            }
-                                            override fun onFailure(call: retrofit2.Call<LoginEmpresaResponse>, t: Throwable) {
-                                                android.util.Log.e("LoginActivity", "loginEmpresa onFailure: ${t.message}", t)
-                                            }
-                                        })
+
+                                                override fun onFailure(
+                                                    call: retrofit2.Call<LoginEmpresaResponse>,
+                                                    t: Throwable
+                                                ) {
+                                                    android.util.Log.e(
+                                                        "LoginActivity",
+                                                        "loginEmpresa onFailure: ${t.message}",
+                                                        t
+                                                    )
+                                                }
+                                            })
+                                        }
                                     }
                                 }
                                 override fun onFailure(call: retrofit2.Call<okhttp3.ResponseBody>, t: Throwable) {

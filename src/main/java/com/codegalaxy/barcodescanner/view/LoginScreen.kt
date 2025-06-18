@@ -1,6 +1,7 @@
 // src/main/java/com/codegalaxy/barcodescanner/view/LoginScreen.kt
 package com.codegalaxy.barcodescanner.view
 
+import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -13,6 +14,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.tooling.preview.Preview
+import com.codegalaxy.barcodescanner.ui.theme.BarCodeScannerTheme
 
 @Composable
 fun LoginScreen(
@@ -50,13 +53,32 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(32.dp))
             OutlinedTextField(
                 value = usuario,
+                colors = OutlinedTextFieldDefaults.colors(
+                    // Color del texto cuando el campo está enfocado y sin error
+                    focusedTextColor = Color.Black,
+                    // Color del texto cuando el campo no está enfocado y sin error
+                    unfocusedTextColor = Color.Black,
+                    // Color del texto cuando el campo está deshabilitado
+                    disabledTextColor = Color.Gray,
+                    // Color del texto cuando hay un error
+                    errorTextColor = Color.Red, // Puedes mantener el color de error o cambiarlo también
+
+                    // También puedes personalizar otros colores aquí si lo necesitas:
+                    // focusedBorderColor = ...,
+                    // unfocusedBorderColor = ...,
+                    // focusedLabelColor = ...,
+                    // unfocusedLabelColor = ...,
+                    // cursorColor = ...,
+                ),
                 onValueChange = {
                     usuario = it
                     android.util.Log.d("LoginScreen", "User input updated: $usuario")
                 },
                 label = { Text("Usuario") },
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth(0.8f)
+                modifier = Modifier.fillMaxWidth(0.8f),
+
+
             )
             Spacer(modifier = Modifier.height(16.dp))
             OutlinedTextField(
@@ -118,5 +140,57 @@ fun LoginScreen(
                 }
             }
         }
+    }
+}
+
+@Preview(name = "Login Screen - Light", showBackground = true)
+@Preview(name = "Login Screen - Dark", showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Composable
+fun LoginScreenPreview() {
+    BarCodeScannerTheme {
+        LoginScreen(
+            onLoginSuccess = {},
+            isLoading = false,
+            errorMessage = null,
+            onLogin = { _, _, _, _ -> },
+            savedUser = "usuario",
+            savedPass = "contraseña",
+            savedRemember = true,
+            savedEmpresa = "31"
+        )
+    }
+}
+
+@Preview(name = "Login Screen - Loading", showBackground = true)
+@Composable
+fun LoginScreenLoadingPreview() {
+    BarCodeScannerTheme {
+        LoginScreen(
+            onLoginSuccess = {},
+            isLoading = true,
+            errorMessage = null,
+            onLogin = { _, _, _, _ -> },
+            savedUser = "usuario",
+            savedPass = "contraseña",
+            savedRemember = true,
+            savedEmpresa = "31"
+        )
+    }
+}
+
+@Preview(name = "Login Screen - Error", showBackground = true)
+@Composable
+fun LoginScreenErrorPreview() {
+    BarCodeScannerTheme {
+        LoginScreen(
+            onLoginSuccess = {},
+            isLoading = false,
+            errorMessage = "Usuario o contraseña incorrectos",
+            onLogin = { _, _, _, _ -> },
+            savedUser = "usuario",
+            savedPass = "contraseña",
+            savedRemember = true,
+            savedEmpresa = "31"
+        )
     }
 }
