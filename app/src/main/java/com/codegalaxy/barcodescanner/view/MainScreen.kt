@@ -18,16 +18,17 @@ import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.outlined.DashboardCustomize
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material3.IconButton
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
+import com.codegalaxy.barcodescanner.model.OperationType
 
 
 @Composable
 fun MainScreen(
-    onStockearClick: () -> Unit = {},
+    onScanRequest: (OperationType) -> Unit = {},
     onLogout: () -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -39,12 +40,11 @@ fun MainScreen(
             ) == PackageManager.PERMISSION_GRANTED
         )
     }
-
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
         hasCameraPermission = isGranted
-        if (isGranted) onStockearClick()
+        if (isGranted) onScanRequest(OperationType.ESTIVAR)
     }
 
     Box(
@@ -75,34 +75,107 @@ fun MainScreen(
         Button(
             onClick = {
                 if (hasCameraPermission) {
-                    onStockearClick()
+                    onScanRequest(OperationType.ESTIVAR)
                 } else {
                     launcher.launch(android.Manifest.permission.CAMERA)
                 }
             },
-            modifier = Modifier
-                .size(200.dp)
-                .background(Color(0xFF1976D2), shape = RoundedCornerShape(24.dp)),
-            shape = RoundedCornerShape(24.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2))
+        modifier = Modifier
+            .size(200.dp)
+            .background(Color(0xFF1976D2), shape = RoundedCornerShape(24.dp))
+            .padding(8.dp),
+        shape = RoundedCornerShape(24.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2))
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.DashboardCustomize,
-                    contentDescription = "Estibar",
-                    tint = Color.White,
-                    modifier = Modifier.size(80.dp)
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "Estibar",
-                    color = Color.White,
-                    fontSize = 28.sp
-                )
-            }
+            Icon(
+                imageVector = Icons.Outlined.DashboardCustomize,
+                contentDescription = "Estibar",
+                tint = Color.White,
+                modifier = Modifier.size(64.dp)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Estibar",
+                color = Color.White,
+                fontSize = 24.sp
+            )
         }
+    }
+    
+    // Botón Pickear
+    Spacer(modifier = Modifier.height(16.dp))
+    Button(
+        onClick = {
+            if (hasCameraPermission) {
+                onScanRequest(OperationType.PICKEAR)
+            } else {
+                launcher.launch(android.Manifest.permission.CAMERA)
+            }
+        },
+        modifier = Modifier
+            .size(200.dp)
+            .background(Color(0xFF1976D2), shape = RoundedCornerShape(24.dp))
+            .padding(8.dp),
+        shape = RoundedCornerShape(24.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2))
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.LocalShipping,
+                contentDescription = "Pickear",
+                tint = Color.White,
+                modifier = Modifier.size(64.dp)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Pickear",
+                color = Color.White,
+                fontSize = 24.sp
+            )
+        }
+    }
+    
+    // Botón Recolectar
+    Spacer(modifier = Modifier.height(16.dp))
+    Button(
+        onClick = {
+            if (hasCameraPermission) {
+                onScanRequest(OperationType.RECOLECTAR)
+            } else {
+                launcher.launch(android.Manifest.permission.CAMERA)
+            }
+        },
+        modifier = Modifier
+            .size(200.dp)
+            .background(Color(0xFF1976D2), shape = RoundedCornerShape(24.dp))
+            .padding(8.dp),
+        shape = RoundedCornerShape(24.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2))
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Inventory,
+                contentDescription = "Recolectar Pedido",
+                tint = Color.White,
+                modifier = Modifier.size(64.dp)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Recolectar",
+                color = Color.White,
+                fontSize = 24.sp
+            )
+        }
+    }
     }
 }

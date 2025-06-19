@@ -4,6 +4,7 @@ import BarcodeScannerScreen
 import EstivacionScreen
 import MainScreen
 import android.content.Intent
+import com.codegalaxy.barcodescanner.model.OperationType
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -77,10 +78,23 @@ class MainActivity : ComponentActivity() {
                                 targetOffsetX = { -navigationDirection * it },
                                 animationSpec = tween(durationMillis = 500)
                             ) + fadeOut(animationSpec = tween(500))
-                        ) {
-                            MainScreen(
-                                onStockearClick = {
-                                    startActivity(Intent(this@MainActivity, EstivacionActivity::class.java))
+                        ) {                            MainScreen(
+                                onScanRequest = { operationType ->
+                                    when (operationType) {
+                                        OperationType.ESTIVAR -> {
+                                            startActivity(Intent(this@MainActivity, EstivacionActivity::class.java))
+                                        }
+                                        OperationType.PICKEAR -> {
+                                            // TODO: Implementar la lógica para pickear
+                                            showScanner = true
+                                            navigationDirection = 1
+                                        }
+                                        OperationType.RECOLECTAR -> {
+                                            // TODO: Implementar la lógica para recolectar
+                                            showScanner = true
+                                            navigationDirection = 1
+                                        }
+                                    }
                                 },
                                 onLogout = {
                                     val intent = Intent(this@MainActivity, LoginActivity::class.java)
