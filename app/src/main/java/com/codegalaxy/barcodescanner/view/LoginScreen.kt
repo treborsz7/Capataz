@@ -24,6 +24,8 @@ fun LoginScreen(
     empresas: List<Pair<String, String>> = emptyList(),
     empresaSeleccionada: String = "",
     onEmpresaSeleccionada: (String) -> Unit = {},
+    deposito: String = "",
+    onDepositoChange: (String) -> Unit = {},
     onLogin: (String, String, Boolean, String) -> Unit,
     savedUser: String = "",
     savedPass: String = "",
@@ -112,7 +114,7 @@ fun LoginScreen(
                         value = empresas.find { it.first == empresa }?.second ?: "Selecciona empresa",
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Empresa",  color= Color.Black) },
+                        label = { Text("Empresa", color = Color.Black) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                         modifier = Modifier.menuAnchor().fillMaxWidth()
                     )
@@ -132,7 +134,28 @@ fun LoginScreen(
                         }
                     }
                 }
+                /*Spacer(modifier = Modifier.height(16.dp))
+                // Campo de texto para Depósito
+                OutlinedTextField(
+                    value = deposito,
+                    onValueChange = { onDepositoChange(it) },
+                    label = { Text("Depósito") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(0.8f)
+                )*/
                 Spacer(modifier = Modifier.height(16.dp))
+                // Checkbox Recordar
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth(0.8f)
+                ) {
+                    Checkbox(
+                        checked = recordar,
+                        onCheckedChange = { recordar = it }
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Recordar", fontSize = 16.sp)
+                }
                 Button(
                     onClick = {
                         android.util.Log.d("LoginScreen", "Ingresar button clicked")

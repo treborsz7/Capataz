@@ -22,10 +22,21 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.systemBars
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import com.codegalaxy.barcodescanner.view.EstivacionSuccessActivity
+import androidx.compose.ui.tooling.preview.Preview
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.DropdownMenuItem
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 
-
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EstivacionScreen(
     onBack: () -> Unit = {},
@@ -42,18 +53,29 @@ fun EstivacionScreen(
             ) == PackageManager.PERMISSION_GRANTED
         )
     }
+    // Recordar depósito entre pantallas
+    val prefs = context.getSharedPreferences("QRCodeScannerPrefs", Context.MODE_PRIVATE)
+    var deposito by remember { mutableStateOf(prefs.getString("savedDeposito", "") ?: "") }
+    // Guardar depósito cada vez que cambia
+    LaunchedEffect(deposito) {
+        prefs.edit().putString("savedDeposito", deposito).apply()
+    }
+    // Estado para ubicaciones
+    var ubicaciones by remember { mutableStateOf(listOf<UbicacionResponse>()) }
+    var ubicacionSeleccionada by remember { mutableStateOf<String?>(null) }
+    var expandedUbicaciones by remember { mutableStateOf(false) }
 
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
         hasCameraPermission = isGranted
-
     }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(WindowInsets.systemBars.asPaddingValues()), // <-- Respeta la status bar
+            .background(Color.White)
+            .padding(WindowInsets.systemBars.asPaddingValues()),
         contentAlignment = Alignment.Center
     ) {
         // Botón de volver en la esquina superior izquierda
@@ -75,16 +97,49 @@ fun EstivacionScreen(
                 )
             }
         }
-        // Botones principales en columna centrada
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(32.dp),
             modifier = Modifier.align(Alignment.Center)
         ) {
+            // Campo depósito
+            OutlinedTextField(
+                value = deposito,
+                onValueChange = { deposito = it },
+                label = { Text("Depósito", color = Color.Black) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(0.8f),
+                textStyle = LocalTextStyle.current.copy(color = Color.Black)
+            )
+            // Botón escanear producto
             Button(
                 onClick = {
                     if (hasCameraPermission) {
                         onStockearClick("producto")
+                        // Llamar a UbicacionesParaEstibar tras escanear producto
+                        if (!producto.isNullOrBlank() && deposito.isNotBlank()) {
+                            CoroutineScope(Dispatchers.IO).launch {
+                                try {
+                                    val response = ApiClient.apiService.ubicacionesParaEstibar(
+                                        //idEmp = prefs.getString("savedEmpresa", "")?.toIntOrNull() ?: 0,
+                                        codDeposi = deposito,
+                                        codArticu = producto,
+                                        optimizaRecorrido = false
+                                    ).execute()
+                                    if (response.isSuccessful && response.body() != null) {
+                                        val json = response.body()!!.string()
+                                        val gson = Gson()
+                                        val type = object : TypeToken<List<UbicacionResponse>>() {}.type
+                                        val ubicacionesList: List<UbicacionResponse> = gson.fromJson(json, type)
+                                        withContext(Dispatchers.Main) {
+                                            ubicaciones = ubicacionesList
+                                        }
+                                    }
+                                } catch (e: Exception) {
+                                    // Manejo de error opcional
+                                }
+                            }
+                        }
                     } else {
                         launcher.launch(android.Manifest.permission.CAMERA)
                     }
@@ -114,6 +169,38 @@ fun EstivacionScreen(
                     )
                 }
             }
+            // Dropdown de ubicaciones
+            if (ubicaciones.isNotEmpty()) {
+                ExposedDropdownMenuBox(
+                    expanded = expandedUbicaciones,
+                    onExpandedChange = { expandedUbicaciones = !expandedUbicaciones },
+                    modifier = Modifier.fillMaxWidth(0.8f)
+                ) {
+                    OutlinedTextField(
+                        value = ubicaciones.find { it.numero.toString() == ubicacionSeleccionada }?.nombre ?: "Selecciona ubicación",
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Ubicación disponible") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedUbicaciones) },
+                        modifier = Modifier.menuAnchor().fillMaxWidth()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = expandedUbicaciones,
+                        onDismissRequest = { expandedUbicaciones = false }
+                    ) {
+                        ubicaciones.forEach {(nombre, numero) ->
+                            DropdownMenuItem(
+                                text = { nombre },
+                                onClick = {
+                                    ubicacionSeleccionada = numero.toString()
+                                    expandedUbicaciones = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+            // Botón escanear ubicación
             Button(
                 onClick = {
                     if (hasCameraPermission) {
@@ -193,4 +280,15 @@ fun EstivacionScreen(
             }
         }
     }
+}
+
+@Preview(showBackground = true, name = "EstivacionScreen Preview")
+@Composable
+fun EstivacionScreenPreview() {
+    EstivacionScreen(
+        onBack = {},
+        onStockearClick = {},
+        producto = "123456789",
+        ubicacion = "A-01"
+    )
 }

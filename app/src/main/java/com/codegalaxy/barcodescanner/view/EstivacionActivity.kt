@@ -24,7 +24,7 @@ class EstivacionActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             BarCodeScannerTheme {
-                Surface(modifier = Modifier.fillMaxSize()) {
+                Surface(modifier = Modifier.fillMaxSize(), color = androidx.compose.ui.graphics.Color.White) {
                     var producto by rememberSaveable { mutableStateOf<String?>(null) }
                     var ubicacion by rememberSaveable { mutableStateOf<String?>(null) }
                     var tipoScan by rememberSaveable { mutableStateOf<String?>(null) }
@@ -40,7 +40,7 @@ class EstivacionActivity : ComponentActivity() {
                             }
                             if(tipoScan == "producto")
                             {
-                                ApiClient.apiService.ubicacionesParaEstibar(codArticu = producto, idEmp= 17, codDeposi = "01", optimizaRecorrido= true)
+                                ApiClient.apiService.ubicacionesParaEstibar(codArticu = producto, codDeposi = "01", optimizaRecorrido= true)
                                     .enqueue(object : retrofit2.Callback<okhttp3.ResponseBody> {
                                     override fun onResponse(
                                         call: retrofit2.Call<okhttp3.ResponseBody>,

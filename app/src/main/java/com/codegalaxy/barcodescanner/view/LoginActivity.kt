@@ -28,7 +28,58 @@ class LoginActivity : ComponentActivity() {
         val savedPass = prefs.getString("savedPass", "") ?: ""
         val savedRemember = prefs.getBoolean("savedRemember", false)
         val savedEmpresa = prefs.getString("savedEmpresa", "") ?: ""
-        mostrarPantallaLogin(savedUser, savedPass, savedRemember, savedEmpresa)
+        if (savedRemember && savedUser.isNotBlank() && savedPass.isNotBlank()) {
+            // Llamar automáticamente a loginPlano
+            ApiClient.apiService.loginPlano(nombreUsuario = savedUser, pass = savedPass).enqueue(object : retrofit2.Callback<okhttp3.ResponseBody> {
+                override fun onResponse(
+                    call: retrofit2.Call<okhttp3.ResponseBody>,
+                    response: retrofit2.Response<okhttp3.ResponseBody>
+                ) {
+                    val rawBody = response.body()?.string()
+                    if (response.isSuccessful && rawBody != null) {
+                        prefs.edit()
+                            .putString("token", rawBody)
+                            .putString("savedUser", savedUser)
+                            .putString("savedPass", savedPass)
+                            .putBoolean("savedRemember", savedRemember)
+                            .putString("savedEmpresa", savedEmpresa)
+                            .apply()
+                        // Llamar a EmpresasGet
+                        ApiClient.apiService.EmpresasGet().enqueue(object : retrofit2.Callback<List<LoginEmpresaResponse>> {
+                            override fun onResponse(
+                                call: retrofit2.Call<List<LoginEmpresaResponse>>,
+                                response: retrofit2.Response<List<LoginEmpresaResponse>>
+                            ) {
+                                if (response.isSuccessful && response.body() != null) {
+                                    val empresasResponse = response.body()!!
+                                    // Guardar empresas y navegar si ya hay empresa seleccionada
+                                    if (savedEmpresa.isNotBlank()) {
+                                        val intent = Intent(this@LoginActivity, MainActivity::class.java)
+                                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                                        startActivity(intent)
+                                        finish()
+                                    } else {
+                                        mostrarPantallaLogin(savedUser, savedPass, savedRemember, savedEmpresa)
+                                    }
+                                } else {
+                                    mostrarPantallaLogin(savedUser, savedPass, savedRemember, savedEmpresa)
+                                }
+                            }
+                            override fun onFailure(call: retrofit2.Call<List<LoginEmpresaResponse>>, t: Throwable) {
+                                mostrarPantallaLogin(savedUser, savedPass, savedRemember, savedEmpresa)
+                            }
+                        })
+                    } else {
+                        mostrarPantallaLogin(savedUser, savedPass, savedRemember, savedEmpresa)
+                    }
+                }
+                override fun onFailure(call: retrofit2.Call<okhttp3.ResponseBody>, t: Throwable) {
+                    mostrarPantallaLogin(savedUser, savedPass, savedRemember, savedEmpresa)
+                }
+            })
+        } else {
+            mostrarPantallaLogin(savedUser, savedPass, savedRemember, savedEmpresa)
+        }
     }
 
     private fun mostrarPantallaLogin(savedUser: String, savedPass: String, savedRemember: Boolean, savedEmpresa: String) {
@@ -37,14 +88,17 @@ class LoginActivity : ComponentActivity() {
             var errorMessage by remember { mutableStateOf<String?>(null) }
             var empresas by remember { mutableStateOf<List<Pair<String, String>>>(emptyList()) }
             var empresaSeleccionada by remember { mutableStateOf(savedEmpresa) }
+            var deposito by remember { mutableStateOf("") }
 
             BarCodeScannerTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     LoginScreen(
                         onLoginSuccess = {
-                            // Guardar el id de la empresa seleccionada antes de navegar
                             val prefs = getSharedPreferences("QRCodeScannerPrefs", MODE_PRIVATE)
-                            prefs.edit().putString("savedEmpresa", empresaSeleccionada).apply()
+                            prefs.edit()
+                                .putString("savedEmpresa", empresaSeleccionada)
+                                .putBoolean("savedRemember", savedRemember)
+                                .apply()
                             android.util.Log.d("LoginActivity", "Login successful, navigating to MainActivity")
                             val intent = Intent(this, MainActivity::class.java)
                             intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
@@ -56,6 +110,8 @@ class LoginActivity : ComponentActivity() {
                         empresas = empresas,
                         empresaSeleccionada = empresaSeleccionada,
                         onEmpresaSeleccionada = { empresaSeleccionada = it },
+                        deposito = deposito,
+                        onDepositoChange = { deposito = it },
                         onLogin = { nombreUsuario, pass, recordar, _ ->
                             isLoading = true
                             errorMessage = null
@@ -72,7 +128,13 @@ class LoginActivity : ComponentActivity() {
                                 ) {
                                     val rawBody = response.body()?.string()
                                     if (response.isSuccessful && rawBody != null) {
-                                        prefs.edit().putString("token", rawBody).apply()
+                                        prefs.edit()
+                                            .putString("token", rawBody)
+                                            .putString("savedUser", nombreUsuario)
+                                            .putString("savedPass", pass)
+                                            .putBoolean("savedRemember", recordar)
+                                            .putString("savedEmpresa", empresaSeleccionada)
+                                            .apply()
                                         // Llamar a EmpresasGet
                                         ApiClient.apiService.EmpresasGet().enqueue(object : retrofit2.Callback<List<LoginEmpresaResponse>> {
                                             override fun onResponse(

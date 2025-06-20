@@ -83,7 +83,6 @@ interface ApiService {
 
     @GET("UB090/UbicacionesParaEstibar")
      fun ubicacionesParaEstibar(
-        @Header ("idEmp") idEmp : Number,
         @Header ("codDeposi") codDeposi : String,
         @Header ("codArticu") codArticu : String?,
         @Header ("optimizaRecorrido") optimizaRecorrido: Boolean
@@ -103,19 +102,21 @@ object ApiClient {
 
     private val authInterceptor = Interceptor { chain ->
         val originalRequest: Request = chain.request()
-        // No agregar token si es loginPlano
+        // No agregar token ni idEmp si es loginPlano
         if (originalRequest.url().encodedPath().endsWith("/Login/Plano")) {
             return@Interceptor chain.proceed(originalRequest)
         }
         val prefs = context?.getSharedPreferences("QRCodeScannerPrefs", Context.MODE_PRIVATE)
         val token = prefs?.getString("token", null)
-        val newRequest = if (!token.isNullOrBlank()) {
-            originalRequest.newBuilder()
-                .addHeader("Authorization", "Bearer $token")
-                .build()
-        } else {
-            originalRequest
+        val idEmp = prefs?.getString("savedEmpresa", null)
+        val builder = originalRequest.newBuilder()
+        if (!token.isNullOrBlank()) {
+            builder.addHeader("Authorization", "Bearer $token")
         }
+        if (!idEmp.isNullOrBlank()) {
+            builder.addHeader("idEmp", idEmp)
+        }
+        val newRequest = builder.build()
         chain.proceed(newRequest)
     }
 
