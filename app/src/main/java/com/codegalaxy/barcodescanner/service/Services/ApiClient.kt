@@ -20,6 +20,12 @@ data class LoginPlanoResponse(
     val message: String?
 )
 
+data class EmpresasObtenidaResponse(
+    val idEmp: String
+)
+
+
+
 data class LoginEmpresaResponse(
     val success: Boolean,
     val message: String?,
@@ -61,7 +67,11 @@ interface ApiService {
         @Header("pass") pass: String
     ): retrofit2.Call<okhttp3.ResponseBody>
 
-    @GET("loginEmpresa/{idEmpresa}")
+    @GET("Empresa/Get")
+    fun EmpresasGet(): retrofit2.Call<List<LoginEmpresaResponse>>
+
+
+    @POST("loginEmpresa/{idEmpresa}")
      fun loginEmpresa(
         @Path("idEmp ") idEmp : String
     ): retrofit2.Call<LoginEmpresaResponse>
