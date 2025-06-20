@@ -18,7 +18,10 @@ data class LoginPlanoResponse(
 
 data class LoginEmpresaResponse(
     val success: Boolean,
-    val message: String?
+    val message: String?,
+    val id : Number,
+    val nombre: String,
+    val descripcion : String,
 )
 
 data class Partida(
@@ -37,6 +40,14 @@ data class EstivarResponse(
     val message: String?
 )
 
+data class UbicacionResponse(
+    val numero: Number,
+    val nombre: String,
+    val alias: String,
+    var orden: Number,
+    val codArticulo: String
+)
+
 // --- INTERFAZ DE LA API ---
 
 interface ApiService {
@@ -48,13 +59,21 @@ interface ApiService {
 
     @GET("loginEmpresa/{idEmpresa}")
      fun loginEmpresa(
-        @Path("idEmpresa") idEmpresa: String
-    ): Response<LoginEmpresaResponse>
+        @Path("idEmp ") idEmp : String
+    ): retrofit2.Call<LoginEmpresaResponse>
 
-    @POST("StkUbi/Estibar")
+    @POST("UB090/EstibarPartidas")
     suspend fun estivar(
         @Body body: EstivarRequest
-    ): Response<EstivarResponse>
+    ): retrofit2.Call<EstivarResponse>
+
+    @GET("UB090/UbicacionesParaEstibar")
+     fun ubicacionesParaEstibar(
+        @Header ("idEmp") idEmp : Number,
+        @Header ("codDeposi") codDeposi : String,
+        @Header ("codArticu") codArticu : String?,
+        @Header ("optimizaRecorrido") optimizaRecorrido: Boolean
+    ): retrofit2.Call<okhttp3.ResponseBody>
 }
 
 // --- SINGLETON DE RETROFIT ---

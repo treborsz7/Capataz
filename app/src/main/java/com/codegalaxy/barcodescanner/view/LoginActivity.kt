@@ -25,6 +25,7 @@ class LoginActivity : ComponentActivity() {
         // Si recordar está activo y hay usuario y pass, intenta login automático
         if (savedRemember && savedUser.isNotBlank()) {
             android.util.Log.d("LoginActivity", "Intentando login automático con usuario guardado: $savedUser")
+
             ApiClient.apiService.loginPlano(nombreUsuario = savedUser, pass = savedPass).enqueue(object : retrofit2.Callback<okhttp3.ResponseBody> {
                 override fun onResponse(
                     call: retrofit2.Call<okhttp3.ResponseBody>,

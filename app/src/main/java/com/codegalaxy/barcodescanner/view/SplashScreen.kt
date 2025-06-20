@@ -9,11 +9,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
 import androidx.lifecycle.lifecycleScope
-import com.codegalaxy.barcodescanner.R
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+//import com.codegalaxy.barcodescanner.R
+//import kotlinx.coroutines.Dispatchers
+//import kotlinx.coroutines.delay
+//import kotlinx.coroutines.launch
+//import kotlinx.coroutines.withContext
 
 class SplashScreen : ComponentActivity() {
 
@@ -25,14 +26,16 @@ class SplashScreen : ComponentActivity() {
             }
         }
 
-        lifecycleScope.launch {
+       /* lifecycleScope.launch {
             delay(3000) // 3 seconds delay
             android.util.Log.d("LoginActivity", "LoginActivity is being created")
 
-            val intent = Intent(this@SplashScreen, LoginActivity::class.java)
-            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            startActivity(intent)
-            finish() // Ensure SplashScreen finishes after starting LoginActivity
-        }
+            withContext(Dispatchers.Main) {
+                val intent = Intent(this@SplashScreen, LoginActivity::class.java)
+                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                startActivity(intent)
+                finish() // Ensure SplashScreen finishes after starting LoginActivity
+            }
+        }*/
     }
 }
