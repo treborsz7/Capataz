@@ -4,7 +4,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -41,7 +43,7 @@ import com.google.gson.reflect.TypeToken
 fun EstivacionScreen(
     onBack: () -> Unit = {},
     onStockearClick: (boton: String) -> Unit = {},
-    producto: String?,
+    producto: String? = null,
     ubicacion: String?
 ) {
     val context = LocalContext.current
@@ -56,9 +58,16 @@ fun EstivacionScreen(
     // Recordar depósito entre pantallas
     val prefs = context.getSharedPreferences("QRCodeScannerPrefs", Context.MODE_PRIVATE)
     var deposito by remember { mutableStateOf(prefs.getString("savedDeposito", "") ?: "") }
-    // Guardar depósito cada vez que cambia
     LaunchedEffect(deposito) {
         prefs.edit().putString("savedDeposito", deposito).apply()
+    }
+    // Estado para productos (lista)
+    var productos by remember { mutableStateOf(listOf<String>()) }
+    // Si viene un producto por parámetro (de la cámara), agregarlo a la lista
+    LaunchedEffect(producto) {
+        if (!producto.isNullOrBlank() && !productos.contains(producto)) {
+            productos = productos + producto
+        }
     }
     // Estado para ubicaciones
     var ubicaciones by remember { mutableStateOf(listOf<UbicacionResponse>()) }
@@ -111,62 +120,85 @@ fun EstivacionScreen(
                 modifier = Modifier.fillMaxWidth(0.8f),
                 textStyle = LocalTextStyle.current.copy(color = Color.Black)
             )
-            // Botón escanear producto
-            Button(
-                onClick = {
-                    if (hasCameraPermission) {
-                        onStockearClick("producto")
-                        // Llamar a UbicacionesParaEstibar tras escanear producto
-                        if (!producto.isNullOrBlank() && deposito.isNotBlank()) {
-                            CoroutineScope(Dispatchers.IO).launch {
-                                try {
-                                    val response = ApiClient.apiService.ubicacionesParaEstibar(
-                                        //idEmp = prefs.getString("savedEmpresa", "")?.toIntOrNull() ?: 0,
-                                        codDeposi = deposito,
-                                        codArticu = producto,
-                                        optimizaRecorrido = false
-                                    ).execute()
-                                    if (response.isSuccessful && response.body() != null) {
-                                        val json = response.body()!!.string()
-                                        val gson = Gson()
-                                        val type = object : TypeToken<List<UbicacionResponse>>() {}.type
-                                        val ubicacionesList: List<UbicacionResponse> = gson.fromJson(json, type)
-                                        withContext(Dispatchers.Main) {
-                                            ubicaciones = ubicacionesList
-                                        }
-                                    }
-                                } catch (e: Exception) {
-                                    // Manejo de error opcional
-                                }
+            // Si la lista de productos está vacía, mostrar botón escanear producto
+            if (productos.isEmpty()) {
+                Button(
+                    onClick = {
+                        if (hasCameraPermission) {
+                            onStockearClick("producto")
+                        } else {
+                            launcher.launch(android.Manifest.permission.CAMERA)
+                        }
+                    },
+                    modifier = Modifier
+                        .size(200.dp)
+                        .background(Color(0xFF1976D2), shape = RoundedCornerShape(24.dp)),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2))
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxHeight(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Add,
+                            contentDescription = "Stockear",
+                            tint = Color.White,
+                            modifier = Modifier.size(80.dp)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "Escanear Partida",
+                            color = Color.White,
+                            fontSize = 28.sp
+                        )
+                    }
+                }
+            } else {
+                // Mostrar lista de productos
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth(0.8f)
+                        .background(Color(0xFFF5F5F5), RoundedCornerShape(12.dp))
+                        .padding(8.dp)
+
+                ) {
+                    Text("Partidas")
+                    productos.forEach { prod ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(prod, modifier = Modifier.weight(1f))
+                            IconButton(onClick = {
+                                productos = productos.filter { it != prod }
+                            }) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Eliminar producto",
+                                    tint = Color.Red
+                                )
                             }
                         }
-                    } else {
-                        launcher.launch(android.Manifest.permission.CAMERA)
                     }
-                },
-                modifier = Modifier
-                    .size(200.dp)
-                    .background(Color(0xFF1976D2), shape = RoundedCornerShape(24.dp)),
-                shape = RoundedCornerShape(24.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2))
-            ) {
-                Column(
-                    modifier = Modifier.fillMaxHeight(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                }
+
+                // Botón para agregar más productos
+                Button(
+                    onClick = {
+                        if (hasCameraPermission) {
+                            onStockearClick("producto")
+                        } else {
+                            launcher.launch(android.Manifest.permission.CAMERA)
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth(0.8f)
+                        .height(48.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2))
                 ) {
-                    Icon(
-                        imageVector = Icons.Filled.Add,
-                        contentDescription = "Stockear",
-                        tint = Color.White,
-                        modifier = Modifier.size(80.dp)
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "Escanear producto",
-                        color = Color.White,
-                        fontSize = 28.sp
-                    )
+                    Text("Agregar Partida", color = Color.White)
                 }
             }
             // Dropdown de ubicaciones
@@ -200,38 +232,68 @@ fun EstivacionScreen(
                     }
                 }
             }
-            // Botón escanear ubicación
-            Button(
-                onClick = {
-                    if (hasCameraPermission) {
-                        onStockearClick("ubicacion")
-                    } else {
-                        launcher.launch(android.Manifest.permission.CAMERA)
-                    }
-                },
-                modifier = Modifier
-                    .size(200.dp)
-                    .background(Color(0xFF1976D2), shape = RoundedCornerShape(24.dp)),
-                shape = RoundedCornerShape(24.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2))
-            ) {
-                Column(
-                    modifier = Modifier.fillMaxHeight(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // Botón escanear ubicación o mostrar ubicación escaneada con refrescar
+            if (ubicacion.isNullOrBlank()) {
+                Button(
+                    onClick = {
+                        if (hasCameraPermission) {
+                            onStockearClick("ubicacion")
+                        } else {
+                            launcher.launch(android.Manifest.permission.CAMERA)
+                        }
+                    },
+                    modifier = Modifier
+                        .size(200.dp)
+                        .background(Color(0xFF1976D2), shape = RoundedCornerShape(24.dp)),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2))
                 ) {
-                    Icon(
-                        imageVector = Icons.Filled.LocationOn,
-                        contentDescription = "Stockear",
-                        tint = Color.White,
-                        modifier = Modifier.size(80.dp)
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "Escanear ubicacion",
-                        color = Color.White,
-                        fontSize = 28.sp
-                    )
+                    Column(
+                        modifier = Modifier.fillMaxHeight(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.LocationOn,
+                            contentDescription = "Stockear",
+                            tint = Color.White,
+                            modifier = Modifier.size(80.dp)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "Escanear ubicacion",
+                            color = Color.White,
+                            fontSize = 28.sp
+                        )
+                    }
+                }
+            } else {
+                // Mostrar ubicación escaneada y botón refrescar
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth(0.8f)
+                        .background(Color(0xFFF5F5F5), RoundedCornerShape(12.dp))
+                        .padding(8.dp)
+                ) {
+                    Text(ubicacion ?: "-", modifier = Modifier.weight(1f))
+                    IconButton(onClick = {
+                        // Refrescar: volver a abrir la pantalla de escanear
+                        if (hasCameraPermission) {
+                            onStockearClick("ubicacion")
+                        } else {
+                            launcher.launch(android.Manifest.permission.CAMERA)
+                        }
+                    }) {
+                        Icon(
+                            imageVector = Icons.Filled.Refresh,
+                            contentDescription = "Refrescar ubicación",
+                            tint = Color(0xFF1976D2)
+                        )
+                    }
                 }
             }
             // Aquí debajo de los botones
@@ -289,6 +351,6 @@ fun EstivacionScreenPreview() {
         onBack = {},
         onStockearClick = {},
         producto = "123456789",
-        ubicacion = "A-01"
+        ubicacion = "A-01",
     )
 }

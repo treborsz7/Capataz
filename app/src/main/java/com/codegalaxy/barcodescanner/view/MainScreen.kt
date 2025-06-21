@@ -52,6 +52,7 @@ fun MainScreen(
     Box(
          modifier = Modifier
             .fillMaxSize()
+            .background(Color.White)
             .padding(WindowInsets.systemBars.asPaddingValues()), // <-- Respeta la status bar
         contentAlignment = Alignment.Center
     ) {
