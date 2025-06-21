@@ -58,6 +58,17 @@ data class UbicacionResponse(
     val codArticulo: String
 )
 
+data class EstibarPartida(
+    val nombreUbicacion: String,
+    val numPartida: String
+)
+data class EstibarPartidasRequest(
+    val partidas: List<EstibarPartida>,
+    val fechaHora: String,
+    val codDeposito: String,
+    val observacion: String? = null
+)
+
 // --- INTERFAZ DE LA API ---
 
 interface ApiService {
@@ -87,6 +98,11 @@ interface ApiService {
         @Header ("codArticu") codArticu : String?,
         @Header ("optimizaRecorrido") optimizaRecorrido: Boolean
 
+    ): retrofit2.Call<okhttp3.ResponseBody>
+
+    @POST("UB090/EstibarPartidas")
+    fun estibarPartidas(
+        @Body body: EstibarPartidasRequest
     ): retrofit2.Call<okhttp3.ResponseBody>
 }
 

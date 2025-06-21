@@ -1,4 +1,5 @@
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -32,11 +33,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.DropdownMenuItem
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,8 +72,10 @@ fun EstivacionScreen(
     }
     // Estado para ubicaciones
     var ubicaciones by remember { mutableStateOf(listOf<UbicacionResponse>()) }
-    var ubicacionSeleccionada by remember { mutableStateOf<String?>(null) }
+    //var ubicacionSeleccionada by remember { mutableStateOf<String?>(null) }
     var expandedUbicaciones by remember { mutableStateOf(false) }
+    var observacion by remember { mutableStateOf("") }
+    var ubicacionSeleccionada by remember { mutableStateOf<String?>(null) }
 
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -201,33 +204,34 @@ fun EstivacionScreen(
                     Text("Agregar Partida", color = Color.White)
                 }
             }
-            // Dropdown de ubicaciones
+            // Listado de ubicaciones (no dropdown)
             if (ubicaciones.isNotEmpty()) {
-                ExposedDropdownMenuBox(
-                    expanded = expandedUbicaciones,
-                    onExpandedChange = { expandedUbicaciones = !expandedUbicaciones },
-                    modifier = Modifier.fillMaxWidth(0.8f)
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth(0.8f)
+                        .background(Color(0xFFF5F5F5), RoundedCornerShape(12.dp))
+                        .padding(8.dp)
                 ) {
-                    OutlinedTextField(
-                        value = ubicaciones.find { it.numero.toString() == ubicacionSeleccionada }?.nombre ?: "Selecciona ubicación",
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Ubicación disponible") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedUbicaciones) },
-                        modifier = Modifier.menuAnchor().fillMaxWidth()
-                    )
-                    ExposedDropdownMenu(
-                        expanded = expandedUbicaciones,
-                        onDismissRequest = { expandedUbicaciones = false }
-                    ) {
-                        ubicaciones.forEach {(nombre, numero) ->
-                            DropdownMenuItem(
-                                text = { nombre },
-                                onClick = {
-                                    ubicacionSeleccionada = numero.toString()
-                                    expandedUbicaciones = false
-                                }
-                            )
+                    ubicaciones.forEach { ubic ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(
+                                    if (ubicacionSeleccionada == ubic.numero.toString()) Color(0xFFD1E9FF) else Color.Transparent,
+                                    RoundedCornerShape(8.dp)
+                                )
+                                .padding(vertical = 4.dp)
+                                .clickable { ubicacionSeleccionada = ubic.numero.toString() }
+                        ) {
+                            Text(ubic.nombre, modifier = Modifier.weight(1f))
+                            if (ubicacionSeleccionada == ubic.numero.toString()) {
+                                Icon(
+                                    imageVector = Icons.Filled.LocationOn,
+                                    contentDescription = "Ubicación seleccionada",
+                                    tint = Color(0xFF1976D2)
+                                )
+                            }
                         }
                     }
                 }
@@ -279,6 +283,8 @@ fun EstivacionScreen(
                         .background(Color(0xFFF5F5F5), RoundedCornerShape(12.dp))
                         .padding(8.dp)
                 ) {
+                    Text("ubicaciòn", modifier = Modifier.weight(1f))
+
                     Text(ubicacion ?: "-", modifier = Modifier.weight(1f))
                     IconButton(onClick = {
                         // Refrescar: volver a abrir la pantalla de escanear
@@ -296,11 +302,18 @@ fun EstivacionScreen(
                     }
                 }
             }
-            // Aquí debajo de los botones
-            Column(Modifier.padding(16.dp)) {
-                Text("Producto: ${producto ?: "-"}")
-                Text("Ubicación: ${ubicacion ?: "-"}")
-            }
+
+
+           if(!productos.isNotEmpty() && !ubicacion.isNullOrBlank())
+           {// Campo editable para observación
+            OutlinedTextField(
+                value = observacion,
+                onValueChange = { observacion = it },
+                label = { Text("Observación") },
+                singleLine = false,
+                modifier = Modifier.fillMaxWidth(0.8f)
+            )
+           }
         }
         // Botón de enviar en la esquina inferior derecha
         Box(
@@ -308,37 +321,67 @@ fun EstivacionScreen(
                 .align(Alignment.BottomEnd)
                 .padding(24.dp)
         ) {
-            val enabled = !producto.isNullOrBlank() && !ubicacion.isNullOrBlank()
+            val enabled = productos.isNotEmpty() && !ubicacion.isNullOrBlank()
+            var errorEnvio by remember { mutableStateOf<String?>(null) }
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Button(
-                    onClick = {
-                        context.startActivity(Intent(context, EstivacionSuccessActivity::class.java))
-                        // Si quieres cerrar la activity actual:
-                        (context as? Activity)?.finish()
-                    },
-                    enabled = enabled,
-                    shape = RoundedCornerShape(50),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (enabled) Color(0xFF1976D2) else Color.Gray
-                    ),
-                    modifier = Modifier.size(64.dp),
-                    contentPadding = PaddingValues(0.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Send,
-                        contentDescription = "Enviar",
-                        tint = Color.White,
-                        modifier = Modifier.size(32.dp)
-                    )
+                // Aquí el botón de enviar
+                if (productos.isNotEmpty() && !ubicacion.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(
+                        onClick = {
+                            errorEnvio = null
+                            val partidas = productos.map { prod ->
+                                EstibarPartida(
+                                    nombreUbicacion = ubicacion ?: "",
+                                    numPartida = prod
+                                )
+                            }
+                            val fechaHora = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault()).format(Date())
+                            val usuario = prefs.getString("savedUser", "") ?: ""
+                            val obsFinal = if (observacion.isNotBlank()) "$usuario: $observacion" else usuario
+                            val request = EstibarPartidasRequest(
+                                partidas = partidas,
+                                fechaHora = fechaHora,
+                                codDeposito = deposito,
+                                observacion = obsFinal
+                            )
+                            CoroutineScope(Dispatchers.IO).launch {
+                                try {
+                                    val response = ApiClient.apiService.estibarPartidas(request).execute()
+                                    if (response.isSuccessful) {
+                                        withContext(Dispatchers.Main) {
+                                            context.startActivity(Intent(context, EstivacionSuccessActivity::class.java))
+                                            (context as? Activity)?.finish()
+                                        }
+                                    } else {
+                                        val errorBody = response.errorBody()?.string() ?: "Error desconocido"
+                                        withContext(Dispatchers.Main) {
+                                            errorEnvio = errorBody
+                                        }
+                                    }
+                                } catch (e: Exception) {
+                                    withContext(Dispatchers.Main) {
+                                        errorEnvio = e.message ?: "Error desconocido"
+                                    }
+                                }
+                            }
+                        },
+                        enabled = true,
+                        shape = RoundedCornerShape(24.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2)),
+                        modifier = Modifier
+                            .fillMaxWidth(0.8f)
+                            .height(48.dp)
+                    ) {
+                        Text("Enviar", color = Color.White)
+                    }
+                    if (errorEnvio != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(errorEnvio ?: "", color = Color.Red, modifier = Modifier.fillMaxWidth(0.8f))
+                    }
                 }
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Enviar",
-                    color = if (enabled) Color(0xFF1976D2) else Color.Gray,
-                    fontSize = 14.sp
-                )
             }
         }
     }
