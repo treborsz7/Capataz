@@ -53,6 +53,11 @@
             android:exported="false"
             android:label="Splash"
             android:theme="@style/Theme.BarCodeScanner" />
+        <activity
+            android:name=".view.RecolectarActivity"
+            android:exported="false"
+            android:label="Recolectar"
+            android:theme="@style/Theme.BarCodeScanner" />
     </application>
 
 </manifest>

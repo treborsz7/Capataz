@@ -127,11 +127,8 @@ fun MainScreen(
             ) {
                 Button(
                     onClick = {
-                        if (hasCameraPermission) {
-                            onScanRequest(OperationType.RECOLECTAR)
-                        } else {
-                            launcher.launch(android.Manifest.permission.CAMERA)
-                        }
+                        val intent = android.content.Intent(context, com.codegalaxy.barcodescanner.view.RecolectarActivity::class.java)
+                        context.startActivity(intent)
                     },
                     modifier = Modifier
                         .size(200.dp)

@@ -104,6 +104,11 @@ interface ApiService {
     fun estibarPartidas(
         @Body body: EstibarPartidasRequest
     ): retrofit2.Call<okhttp3.ResponseBody>
+
+    @POST("UB082/RecolectarPedido")
+    fun recolectarPedido(
+        //@Body body: okhttp3.RequestBody
+    ): retrofit2.Call<okhttp3.ResponseBody>
 }
 
 // --- SINGLETON DE RETROFIT ---
