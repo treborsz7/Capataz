@@ -2,7 +2,9 @@ import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
@@ -16,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.codegalaxy.barcodescanner.model.RecolectarItem
@@ -68,18 +71,25 @@ fun RecolectarScreen(
             .padding(WindowInsets.systemBars.asPaddingValues()),
         contentAlignment = Alignment.Center
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(24.dp),
-            modifier = Modifier.align(Alignment.Center)
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(16.dp)
         ) {
-            // Botón volver
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onBack) {
                     Icon(Icons.Filled.ArrowBack, contentDescription = "Volver", tint = Color(0xFF1976D2))
                 }
                 Spacer(Modifier.weight(1f))
             }
+        }
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(24.dp),
+            modifier = Modifier.verticalScroll(rememberScrollState())
+        ) {
+
+
             // Campo depósito
             OutlinedTextField(
                 value = deposito,
@@ -93,14 +103,20 @@ fun RecolectarScreen(
             if (scanStep == "producto") {
                 Button(
                     onClick = { onStockearClick("producto") },
-                    modifier = Modifier.size(200.dp),
-                    shape = RoundedCornerShape(24.dp),
+                    modifier = Modifier
+                        .fillMaxWidth(0.8f)
+                        .height(48.dp),
+                    shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2))
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Filled.Add, contentDescription = "Escanear producto", tint = Color.White, modifier = Modifier.size(80.dp))
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text("Escanear producto", color = Color.White, fontSize = 28.sp)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Filled.Add, contentDescription = "Escanear producto", tint = Color.White, modifier = Modifier.size(32.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Escanear producto", color = Color.White, fontSize = 18.sp)
                     }
                 }
             } else if (scanStep == "ubicacion") {
@@ -115,14 +131,20 @@ fun RecolectarScreen(
                 }
                 Button(
                     onClick = { onStockearClick("ubicacion") },
-                    modifier = Modifier.size(200.dp),
-                    shape = RoundedCornerShape(24.dp),
+                    modifier = Modifier
+                        .fillMaxWidth(0.8f)
+                        .height(48.dp),
+                    shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2))
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Filled.LocationOn, contentDescription = "Escanear ubicación", tint = Color.White, modifier = Modifier.size(80.dp))
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text("Escanear ubicación", color = Color.White, fontSize = 28.sp)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Filled.LocationOn, contentDescription = "Escanear ubicación", tint = Color.White, modifier = Modifier.size(32.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Escanear ubicación", color = Color.White, fontSize = 18.sp)
                     }
                 }
             } else if (scanStep == "cantidad") {
@@ -283,3 +305,16 @@ fun RecolectarScreen(
         }
     }
 }
+
+
+@Preview(showBackground = true, name = "RecolectarScreen Preview")
+@Composable
+fun RecolectarScreenPreview() {
+    RecolectarScreen(
+        onBack = {},
+        onStockearClick = {},
+        producto = "123456789",
+        ubicacion = "A-01"
+    )
+}
+

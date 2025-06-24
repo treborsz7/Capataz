@@ -66,7 +66,9 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    Box(Modifier.fillMaxSize()) {
+                    Box(Modifier.fillMaxSize()
+                        .padding(WindowInsets.systemBars.asPaddingValues()),
+                    ) {
                         // MainScreen
                         AnimatedVisibility(
                             visible = !showEstivacion && !showScanner,

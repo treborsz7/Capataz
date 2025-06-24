@@ -62,8 +62,20 @@ data class EstibarPartida(
     val nombreUbicacion: String,
     val numPartida: String
 )
+
+data class ReubicarPartida(
+    val nombreUbiOrigen: String,
+    val nombreUbiDestino: String,
+    val numPartida: String
+)
 data class EstibarPartidasRequest(
     val partidas: List<EstibarPartida>,
+    val fechaHora: String,
+    val codDeposito: String,
+    val observacion: String? = null
+)
+data class ReubicarPartidasRequest(
+    val reubicaciones: List<ReubicarPartida>,
     val fechaHora: String,
     val codDeposito: String,
     val observacion: String? = null
@@ -108,6 +120,11 @@ interface ApiService {
     @POST("UB082/RecolectarPedido")
     fun recolectarPedido(
         //@Body body: okhttp3.RequestBody
+    ): retrofit2.Call<okhttp3.ResponseBody>
+
+    @POST("UB090/ReubicarPartidas")
+    fun reubicarPartidas(
+        @Body body: ReubicarPartidasRequest
     ): retrofit2.Call<okhttp3.ResponseBody>
 }
 

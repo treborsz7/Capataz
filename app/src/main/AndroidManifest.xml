@@ -58,6 +58,11 @@
             android:exported="false"
             android:label="Recolectar"
             android:theme="@style/Theme.BarCodeScanner" />
+        <activity
+            android:name=".view.ReubicacionActivity"
+            android:exported="false"
+            android:label="Reubicacion"
+            android:theme="@style/Theme.BarCodeScanner" />
     </application>
 
 </manifest>
