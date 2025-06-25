@@ -1,3 +1,5 @@
+import android.app.Activity
+import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -26,6 +28,7 @@ import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.tooling.preview.Preview
+import com.codegalaxy.barcodescanner.view.EstivacionSuccessActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -33,6 +36,9 @@ import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import okhttp3.RequestBody
+import okhttp3.ResponseBody
+import retrofit2.Call
+import retrofit2.Response
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,17 +69,15 @@ fun ReubicacionScreen(
     LaunchedEffect(deposito) {
         prefs.edit().putString("savedDeposito", deposito).apply()
     }
-    var productos by remember { mutableStateOf(listOf<String>()) }
+    var productoActual by remember { mutableStateOf<String?>(null) }
     var ubicacionOrigenActual by remember { mutableStateOf<String?>(null) }
     var ubicacionDestinoActual by remember { mutableStateOf<String?>(null) }
-    var observacion by remember { mutableStateOf("") }
     var errorEnvio by remember { mutableStateOf<String?>(null) }
-    var reubicaciones by remember { mutableStateOf(listOf<Triple<String, String, String>>()) }
-
+ var observacion:String = ""
     // Manejo de escaneo
     LaunchedEffect(producto) {
-        if (!producto.isNullOrBlank() && !productos.contains(producto)) {
-            productos = productos + producto
+        if (!producto.isNullOrBlank()) {
+            productoActual = producto
         }
     }
     LaunchedEffect(ubicacionOrigen) {
@@ -123,8 +127,8 @@ fun ReubicacionScreen(
                 modifier = Modifier.fillMaxWidth(0.8f),
                 textStyle = LocalTextStyle.current.copy(color = Color.Black)
             )
-            // Botón escanear producto
-            if (productos.isEmpty()) {
+            // Botón escanear producto o mostrar producto escaneado
+            if (productoActual.isNullOrBlank()) {
                 Button(
                     onClick = {
                         if (hasCameraPermission) {
@@ -146,7 +150,7 @@ fun ReubicacionScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Filled.Add,
-                            contentDescription = "Agregar producto",
+                            contentDescription = "Escanear producto",
                             tint = Color.White,
                             modifier = Modifier.size(32.dp)
                         )
@@ -159,50 +163,31 @@ fun ReubicacionScreen(
                     }
                 }
             } else {
-                Column(
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .fillMaxWidth(0.8f)
                         .background(Color(0xFFF5F5F5), RoundedCornerShape(12.dp))
                         .padding(8.dp)
                 ) {
-                    Text("Productos")
-                    productos.forEach { prod ->
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(prod, modifier = Modifier.weight(1f))
-                            IconButton(onClick = {
-                                productos = productos.filter { it != prod }
-                            }) {
-                                Icon(
-                                    imageVector = Icons.Filled.Close,
-                                    contentDescription = "Eliminar producto",
-                                    tint = Color.Red
-                                )
-                            }
-                        }
-                    }
-                }
-                Button(
-                    onClick = {
+                    Text(productoActual ?: "-", modifier = Modifier.weight(1f))
+                    IconButton(onClick = {
                         if (hasCameraPermission) {
                             onReubicarClick("producto")
                         } else {
                             launcher.launch(android.Manifest.permission.CAMERA)
                         }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth(0.8f)
-                        .height(40.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2))
-                ) {
-                    Text("Agregar Producto", color = Color.White, fontSize = 16.sp)
+                    }) {
+                        Icon(
+                            imageVector = Icons.Filled.Refresh,
+                            contentDescription = "Refrescar producto",
+                            tint = Color(0xFF1976D2)
+                        )
+                    }
                 }
             }
-            // Botón escanear ubicación origen
-            if (ubicacionOrigenActual.isNullOrBlank()) {
+            // Botón escanear ubicación origen o mostrar ubicación origen escaneada
+            if (!productoActual.isNullOrBlank() && ubicacionOrigenActual.isNullOrBlank()) {
                 Button(
                     onClick = {
                         if (hasCameraPermission) {
@@ -236,7 +221,7 @@ fun ReubicacionScreen(
                         )
                     }
                 }
-            } else {
+            } else if (!productoActual.isNullOrBlank() && !ubicacionOrigenActual.isNullOrBlank()) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
@@ -244,7 +229,6 @@ fun ReubicacionScreen(
                         .background(Color(0xFFF5F5F5), RoundedCornerShape(12.dp))
                         .padding(8.dp)
                 ) {
-                    Text("Ubicación Origen", modifier = Modifier.weight(1f))
                     Text(ubicacionOrigenActual ?: "-", modifier = Modifier.weight(1f))
                     IconButton(onClick = {
                         if (hasCameraPermission) {
@@ -261,8 +245,8 @@ fun ReubicacionScreen(
                     }
                 }
             }
-            // Botón escanear ubicación destino
-            if (ubicacionDestinoActual.isNullOrBlank()) {
+            // Botón escanear ubicación destino o mostrar ubicación destino escaneada
+            if (!productoActual.isNullOrBlank() && !ubicacionOrigenActual.isNullOrBlank() && ubicacionDestinoActual.isNullOrBlank()) {
                 Button(
                     onClick = {
                         if (hasCameraPermission) {
@@ -296,7 +280,7 @@ fun ReubicacionScreen(
                         )
                     }
                 }
-            } else {
+            } else if (!productoActual.isNullOrBlank() && !ubicacionOrigenActual.isNullOrBlank() && !ubicacionDestinoActual.isNullOrBlank()) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
@@ -304,7 +288,6 @@ fun ReubicacionScreen(
                         .background(Color(0xFFF5F5F5), RoundedCornerShape(12.dp))
                         .padding(8.dp)
                 ) {
-                    Text("Ubicación Destino", modifier = Modifier.weight(1f))
                     Text(ubicacionDestinoActual ?: "-", modifier = Modifier.weight(1f))
                     IconButton(onClick = {
                         if (hasCameraPermission) {
@@ -321,51 +304,6 @@ fun ReubicacionScreen(
                     }
                 }
             }
-            // Botón agregar reubicación
-            Button(
-                onClick = {
-                    if (!productos.isNullOrEmpty() && !ubicacionOrigenActual.isNullOrBlank() && !ubicacionDestinoActual.isNullOrBlank()) {
-                        reubicaciones = reubicaciones + Triple(ubicacionOrigenActual!!, ubicacionDestinoActual!!, productos.first())
-                        productos = listOf()
-                        ubicacionOrigenActual = null
-                        ubicacionDestinoActual = null
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth(0.8f)
-                    .height(40.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2))
-            ) {
-                Text("Agregar Reubicación", color = Color.White, fontSize = 16.sp)
-            }
-            // Listado de reubicaciones
-            if (reubicaciones.isNotEmpty()) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth(0.8f)
-                        .background(Color(0xFFF5F5F5), RoundedCornerShape(12.dp))
-                        .padding(8.dp)
-                ) {
-                    reubicaciones.forEach { (origen, destino, partida) ->
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("$partida: $origen → $destino", modifier = Modifier.weight(1f))
-                            IconButton(onClick = {
-                                reubicaciones = reubicaciones.filterNot { it == Triple(origen, destino, partida) }
-                            }) {
-                                Icon(
-                                    imageVector = Icons.Filled.Close,
-                                    contentDescription = "Eliminar reubicación",
-                                    tint = Color.Red
-                                )
-                            }
-                        }
-                    }
-                }
-            }
             // Campo observación
             OutlinedTextField(
                 value = observacion,
@@ -374,70 +312,62 @@ fun ReubicacionScreen(
                 singleLine = false,
                 modifier = Modifier.fillMaxWidth(0.8f)
             )
-        }
-        // Botón de enviar en la esquina inferior derecha
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(24.dp)
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                if (reubicaciones.isNotEmpty() && deposito.isNotBlank()) {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Button(
-                        onClick = {
-                            errorEnvio = null
-                            val fechaHora = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.getDefault()).format(java.util.Date())
-                            val json = JSONObject()
-                            val arr = JSONArray()
-                            val partidas = reubicaciones.map { (origen, destino, partida) ->
-                                ReubicarPartida(
-                                    nombreUbiOrigen = origen ?: "",
-                                    nombreUbiDestino= destino ?: "",
-                                    numPartida = partida
-                                )
-                            }
-                            val request = ReubicarPartidasRequest(
-                                reubicaciones = partidas,
-                                fechaHora = fechaHora,
-                                codDeposito = deposito,
-                                observacion = ""
+            // Botón de enviar solo si los tres campos están cargados
+            if (!productoActual.isNullOrBlank() && !ubicacionOrigenActual.isNullOrBlank() && !ubicacionDestinoActual.isNullOrBlank() && deposito.isNotBlank()) {
+                Button(
+                    onClick = {
+                        errorEnvio = null
+                        val fechaHora = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.getDefault()).format(java.util.Date())
+                       
+                        
+                        val reubicacion = ReubicarPartida(
+                                nombreUbiOrigen = ubicacionOrigenActual ?: "",
+                                nombreUbiDestino= ubicacionDestinoActual ?: "",
+                                numPartida = productoActual!!
                             )
-                           // val body = RequestBody.create("application/json".toMediaTypeOrNull(), json.toString())
-                            CoroutineScope(Dispatchers.IO).launch {
-                                try {
-                                    val response = ApiClient.apiService.reubicarPartidas(request).execute()
-                                    if (response.isSuccessful) {
-                                        withContext(Dispatchers.Main) {
-                                            reubicaciones = listOf()
-                                            errorEnvio = null
-                                        }
-                                    } else {
-                                        val errorBody = response.errorBody()?.string() ?: "Error desconocido"
-                                        withContext(Dispatchers.Main) {
-                                            errorEnvio = errorBody
-                                        }
-                                    }
-                                } catch (e: Exception) {
-                                    withContext(Dispatchers.Main) {
-                                        errorEnvio = e.message ?: "Error desconocido"
-                                    }
+
+                        val request = ReubicarPartidasRequest(
+                            reubicaciones = mutableListOf<ReubicarPartida>(reubicacion) ,
+                            fechaHora = fechaHora,
+                            codDeposito = deposito,
+                            observacion = ""
+                        )
+                        ApiClient.apiService.reubicarPartidas(request).enqueue(object : retrofit2.Callback<okhttp3.ResponseBody> {
+
+
+                            override fun onResponse(
+                                call: Call<ResponseBody>,
+                                response: Response<ResponseBody>
+                            ) {
+                                val rawBody = response.body()?.string()
+                                if (response.isSuccessful && rawBody != null) {
+                                    context.startActivity(Intent(context, EstivacionSuccessActivity::class.java))
+                                    (context as? Activity)?.finish()
+                                } else{
+
+                                    errorEnvio = "Error al intentar reubicar :" + rawBody
                                 }
                             }
-                        },
-                        enabled = true,
-                        shape = RoundedCornerShape(24.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2)),
-                        modifier = Modifier
-                            .fillMaxWidth(0.8f)
-                            .height(48.dp)
-                    ) {
-                        Text("Enviar", color = Color.White)
-                    }
-                    if (errorEnvio != null) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(errorEnvio ?: "", color = Color.Red, modifier = Modifier.fillMaxWidth(0.8f))
-                    }
+
+                            override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
+                                errorEnvio = "Error al intentar reubicar :" + t.message
+                            }
+
+                        })
+
+                    },
+                    enabled = true,
+                    shape = RoundedCornerShape(24.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2)),
+                    modifier = Modifier
+                        .fillMaxWidth(0.8f)
+                        .height(48.dp)
+                ) {
+                    Text("Enviar", color = Color.White)
+                }
+                if (errorEnvio != null) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(errorEnvio ?: "", color = Color.Red, modifier = Modifier.fillMaxWidth(0.8f))
                 }
             }
         }

@@ -1,10 +1,9 @@
 // src/main/java/com/codegalaxy/barcodescanner/view/LoginActivity.kt
 package com.codegalaxy.barcodescanner.view
 
-import ApiService
 import LoginEmpresaResponse
-import LoginPlanoResponse
 import android.content.Intent
+import android.content.SharedPreferences
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -59,52 +58,68 @@ class LoginActivity : ComponentActivity() {
                                         startActivity(intent)
                                         finish()
                                     } else {
-                                        mostrarPantallaLogin(savedUser, savedPass, savedRemember, savedEmpresa)
+                                        mostrarPantallaLogin(savedUser, savedPass, savedRemember, savedEmpresa,prefs)
                                     }
                                 } else {
-                                    mostrarPantallaLogin(savedUser, savedPass, savedRemember, savedEmpresa)
+                                    mostrarPantallaLogin(savedUser, savedPass, savedRemember, savedEmpresa,prefs)
                                 }
                             }
                             override fun onFailure(call: retrofit2.Call<List<LoginEmpresaResponse>>, t: Throwable) {
-                                mostrarPantallaLogin(savedUser, savedPass, savedRemember, savedEmpresa)
+                                mostrarPantallaLogin(
+                                    savedUser,
+                                    savedPass,
+                                    savedRemember,
+                                    savedEmpresa,
+                                    prefs
+                                )
                             }
                         })
                     } else {
-                        mostrarPantallaLogin(savedUser, savedPass, savedRemember, savedEmpresa)
+                        mostrarPantallaLogin(
+                            savedUser,
+                            savedPass,
+                            savedRemember,
+                            savedEmpresa,
+                            prefs
+                        )
                     }
                 }
                 override fun onFailure(call: retrofit2.Call<okhttp3.ResponseBody>, t: Throwable) {
-                    mostrarPantallaLogin(savedUser, savedPass, savedRemember, savedEmpresa)
+                    mostrarPantallaLogin(savedUser, savedPass, savedRemember, savedEmpresa, prefs)
                 }
             })
         } else {
-            mostrarPantallaLogin(savedUser, savedPass, savedRemember, savedEmpresa)
+            mostrarPantallaLogin(savedUser, savedPass, savedRemember, savedEmpresa, prefs)
         }
     }
 
-    private fun mostrarPantallaLogin(savedUser: String, savedPass: String, savedRemember: Boolean, savedEmpresa: String) {
+    private fun mostrarPantallaLogin(
+        savedUser: String,
+        savedPass: String,
+        savedRemember: Boolean,
+        savedEmpresa: String,
+        prefs: SharedPreferences
+    ) {
         setContent {
             var isLoading by remember { mutableStateOf(false) }
             var errorMessage by remember { mutableStateOf<String?>(null) }
             var empresas by remember { mutableStateOf<List<Pair<String, String>>>(emptyList()) }
             var empresaSeleccionada by remember { mutableStateOf(savedEmpresa) }
+            var recordar by remember { mutableStateOf(savedRemember) }
             var deposito by remember { mutableStateOf("") }
-
+            var prefs by remember { mutableStateOf(prefs) }
             BarCodeScannerTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     LoginScreen(
                         onLoginSuccess = {
-                            val prefs = getSharedPreferences("QRCodeScannerPrefs", MODE_PRIVATE)
-                            prefs.edit()
-                                .putString("savedEmpresa", empresaSeleccionada)
-                                .putBoolean("savedRemember", savedRemember)
-                                .apply()
+
                             android.util.Log.d("LoginActivity", "Login successful, navigating to MainActivity")
                             val intent = Intent(this, MainActivity::class.java)
                             intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                             startActivity(intent)
                             finish()
                         },
+                        prefs = prefs,
                         isLoading = isLoading,
                         errorMessage = errorMessage,
                         empresas = empresas,

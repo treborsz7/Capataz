@@ -35,7 +35,7 @@ fun EstivacionSuccessScreen(
             ) {
                 CircularProgressIndicator(color = Color(0xFF1976D2))
                 Spacer(modifier = Modifier.height(24.dp))
-                Text("Guardando estivación...", color = Color.Black)
+                Text("Guardando Exitoso...", color = Color.Black)
             }
         } else {
             Column(

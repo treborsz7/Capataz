@@ -1,6 +1,7 @@
 // src/main/java/com/codegalaxy/barcodescanner/view/LoginScreen.kt
 package com.codegalaxy.barcodescanner.view
 
+import android.content.SharedPreferences
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -9,7 +10,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -30,7 +30,8 @@ fun LoginScreen(
     savedUser: String = "",
     savedPass: String = "",
     savedRemember: Boolean = false,
-    savedEmpresa: String = "31"
+    savedEmpresa: String = "31",
+    prefs: SharedPreferences?
 ) {
     android.util.Log.d("LoginScreen", "LoginScreen composable is being rendered")
     var usuario by remember { mutableStateOf(savedUser) }
@@ -159,6 +160,13 @@ fun LoginScreen(
                 Button(
                     onClick = {
                         android.util.Log.d("LoginScreen", "Ingresar button clicked")
+
+                        if (prefs != null) {
+                            prefs.edit()
+                                .putString("savedEmpresa", empresaSeleccionada)
+                                .putBoolean("savedRemember", recordar)
+                                .apply()
+                        }
                         onLoginSuccess()
                     },
                     enabled = empresa.isNotBlank(),
@@ -188,6 +196,7 @@ fun LoginScreenPreview() {
         savedUser = "usuario",
         savedPass = "",
         savedRemember = false,
-        savedEmpresa = "1"
+        savedEmpresa = "1",
+        prefs = null
     )
 }

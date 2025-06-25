@@ -122,7 +122,7 @@ interface ApiService {
         //@Body body: okhttp3.RequestBody
     ): retrofit2.Call<okhttp3.ResponseBody>
 
-    @POST("UB090/ReubicarPartidas")
+    @POST("UB091/ReubicarPartidas")
     fun reubicarPartidas(
         @Body body: ReubicarPartidasRequest
     ): retrofit2.Call<okhttp3.ResponseBody>

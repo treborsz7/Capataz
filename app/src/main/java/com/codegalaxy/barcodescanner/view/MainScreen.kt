@@ -119,7 +119,7 @@ fun MainScreen(
                 }
             }
             Spacer(modifier = Modifier.height(16.dp))
-
+/*
             Row(
                 horizontalArrangement = Arrangement.Center,
                 modifier = Modifier.fillMaxWidth()
@@ -155,6 +155,8 @@ fun MainScreen(
                     }
                 }
             }
+
+ */
             Spacer(modifier = Modifier.height(16.dp))
             Row(
                 horizontalArrangement = Arrangement.Center,
