@@ -252,7 +252,11 @@ fun CameraPreview(
                 }
             }
             is BarScanState.ScanSuccess -> {
-                val value = barScanState.rawValue ?: "Sin valor"
+                // Limpiar el valor escaneado usando el mismo regex que en la Activity
+                val raw = barScanState.rawValue ?: "Sin valor"
+                val cleaned = raw
+                    .replace(Regex("\\s+"), " ")
+                    .replace(Regex("\\]?C1", RegexOption.IGNORE_CASE), "")
                 Column(
                     modifier = Modifier.fillMaxSize(),
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -264,7 +268,7 @@ fun CameraPreview(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = value,
+                        text = cleaned,
                         color = Color(0xFF1976D2),
                         style = MaterialTheme.typography.titleLarge
                     )
@@ -272,7 +276,7 @@ fun CameraPreview(
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        Button(onClick = { onScanResult(value) }) {
+                        Button(onClick = { onScanResult(cleaned) }) {
                             Text("Usar este valor")
                         }
                         Button(onClick = { viewModel.resetState() }) {

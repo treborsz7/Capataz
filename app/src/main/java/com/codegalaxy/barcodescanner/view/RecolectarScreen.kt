@@ -97,7 +97,15 @@ fun RecolectarScreen(
                 label = { Text("Depósito", color = Color.Black) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(0.8f),
-                textStyle = LocalTextStyle.current.copy(color = Color.Black)
+                textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                colors = TextFieldDefaults.outlinedTextFieldColors(
+                    //textColor = Color.Black,
+                    cursorColor = Color.Black,
+                    focusedBorderColor = Color(0xFF1976D2),
+                    unfocusedBorderColor = Color(0xFF1976D2),
+                    focusedLabelColor = Color.Black,
+                    unfocusedLabelColor = Color.Black
+                )
             )
             // Proceso de escaneo y carga
             if (scanStep == "producto") {
@@ -175,8 +183,16 @@ fun RecolectarScreen(
                         onValueChange = { cantidadActual = it.filter { c -> c.isDigit() } },
                         label = { Text("Cantidad") },
                         singleLine = true,
-                        //keyboardOptions = androidx.compose.ui.text.input.KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                        colors = TextFieldDefaults.outlinedTextFieldColors(
+                            //textColor = Color.Black,
+                            cursorColor = Color.Black,
+                            focusedBorderColor = Color(0xFF1976D2),
+                            unfocusedBorderColor = Color(0xFF1976D2),
+                            focusedLabelColor = Color.Black,
+                            unfocusedLabelColor = Color.Black
+                        )
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Box {
@@ -185,7 +201,16 @@ fun RecolectarScreen(
                             onValueChange = {},
                             readOnly = true,
                             label = { Text("Unidad") },
-                            modifier = Modifier.width(80.dp).clickable { expandedUnidad = true }
+                            modifier = Modifier.width(80.dp).clickable { expandedUnidad = true },
+                            textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                            colors = TextFieldDefaults.outlinedTextFieldColors(
+                                //textColor = Color.Black,
+                                cursorColor = Color.Black,
+                                focusedBorderColor = Color(0xFF1976D2),
+                                unfocusedBorderColor = Color(0xFF1976D2),
+                                focusedLabelColor = Color.Black,
+                                unfocusedLabelColor = Color.Black
+                            )
                         )
                         DropdownMenu(
                             expanded = expandedUnidad,

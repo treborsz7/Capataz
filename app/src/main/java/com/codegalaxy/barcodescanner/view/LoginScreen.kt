@@ -67,7 +67,15 @@ fun LoginScreen(
                 },
                 label = { Text("Usuario",  color= Color.Black) },
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth(0.8f)
+                modifier = Modifier.fillMaxWidth(0.8f),
+                textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                colors = TextFieldDefaults.outlinedTextFieldColors(
+                    cursorColor = Color.Black,
+                    focusedBorderColor = Color(0xFF1976D2),
+                    unfocusedBorderColor = Color(0xFF1976D2),
+                    focusedLabelColor = Color.Black,
+                    unfocusedLabelColor = Color.Black
+                )
             )
             Spacer(modifier = Modifier.height(16.dp))
             OutlinedTextField(
@@ -80,7 +88,15 @@ fun LoginScreen(
                 label = { Text("Contraseña",  color= Color.Black) },
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation(),
-                modifier = Modifier.fillMaxWidth(0.8f)
+                modifier = Modifier.fillMaxWidth(0.8f),
+                textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                colors = TextFieldDefaults.outlinedTextFieldColors(
+                    cursorColor = Color.Black,
+                    focusedBorderColor = Color(0xFF1976D2),
+                    unfocusedBorderColor = Color(0xFF1976D2),
+                    focusedLabelColor = Color.Black,
+                    unfocusedLabelColor = Color.Black
+                )
             )
             Spacer(modifier = Modifier.height(16.dp))
             // Mostrar botón Identificar solo si no hay empresas cargadas
@@ -117,7 +133,15 @@ fun LoginScreen(
                         readOnly = true,
                         label = { Text("Empresa", color = Color.Black) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                        modifier = Modifier.menuAnchor().fillMaxWidth()
+                        modifier = Modifier.menuAnchor().fillMaxWidth(),
+                        textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                        colors = TextFieldDefaults.outlinedTextFieldColors(
+                            cursorColor = Color.Black,
+                            focusedBorderColor = Color(0xFF1976D2),
+                            unfocusedBorderColor = Color(0xFF1976D2),
+                            focusedLabelColor = Color.Black,
+                            unfocusedLabelColor = Color.Black
+                        )
                     )
                     ExposedDropdownMenu(
                         expanded = expanded,
@@ -152,10 +176,11 @@ fun LoginScreen(
                 ) {
                     Checkbox(
                         checked = recordar,
-                        onCheckedChange = { recordar = it }
+                        onCheckedChange = { recordar = it },
+
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Recordar", fontSize = 16.sp)
+                    Text("Recordar", fontSize = 16.sp, color= Color.Black)
                 }
                 Button(
                     onClick = {

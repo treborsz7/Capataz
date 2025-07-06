@@ -43,7 +43,7 @@ class ReubicacionActivity : ComponentActivity() {
                         onReubicarClick = { tipo ->
                             tipoScan = tipo
                             val intent = Intent(this, BarcodeScannerActivity::class.java)
-                            intent.putExtra("modo", "reubicacion")
+                            intent.putExtra("modo", tipo)
                             scannerLauncher.launch(intent)
                         },
                         producto = producto,

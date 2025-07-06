@@ -78,7 +78,8 @@ data class ReubicarPartidasRequest(
     val reubicaciones: List<ReubicarPartida>,
     val fechaHora: String,
     val codDeposito: String,
-    val observacion: String? = null
+    val observacion: String? = null,
+    val reubicacion: Number
 )
 
 // --- INTERFAZ DE LA API ---

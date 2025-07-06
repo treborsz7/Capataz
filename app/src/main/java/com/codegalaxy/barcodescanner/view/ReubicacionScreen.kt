@@ -39,6 +39,9 @@ import okhttp3.RequestBody
 import okhttp3.ResponseBody
 import retrofit2.Call
 import retrofit2.Response
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -73,7 +76,7 @@ fun ReubicacionScreen(
     var ubicacionOrigenActual by remember { mutableStateOf<String?>(null) }
     var ubicacionDestinoActual by remember { mutableStateOf<String?>(null) }
     var errorEnvio by remember { mutableStateOf<String?>(null) }
- var observacion:String = ""
+    var observacion:String = ""
     // Manejo de escaneo
     LaunchedEffect(producto) {
         if (!producto.isNullOrBlank()) {
@@ -125,7 +128,15 @@ fun ReubicacionScreen(
                 label = { Text("Depósito", color = Color.Black) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(0.8f),
-                textStyle = LocalTextStyle.current.copy(color = Color.Black)
+                textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                colors = TextFieldDefaults.outlinedTextFieldColors(
+                    //textColor = Color.Black,
+                    cursorColor = Color.Black,
+                    focusedBorderColor = Color(0xFF1976D2),
+                    unfocusedBorderColor = Color(0xFF1976D2),
+                    focusedLabelColor = Color.Black,
+                    unfocusedLabelColor = Color.Black
+                )
             )
             // Botón escanear producto o mostrar producto escaneado
             if (productoActual.isNullOrBlank()) {
@@ -170,7 +181,7 @@ fun ReubicacionScreen(
                         .background(Color(0xFFF5F5F5), RoundedCornerShape(12.dp))
                         .padding(8.dp)
                 ) {
-                    Text(productoActual ?: "-", modifier = Modifier.weight(1f))
+                    Text(productoActual ?: "-", modifier = Modifier.weight(1f), color=Color.Black)
                     IconButton(onClick = {
                         if (hasCameraPermission) {
                             onReubicarClick("producto")
@@ -229,7 +240,7 @@ fun ReubicacionScreen(
                         .background(Color(0xFFF5F5F5), RoundedCornerShape(12.dp))
                         .padding(8.dp)
                 ) {
-                    Text(ubicacionOrigenActual ?: "-", modifier = Modifier.weight(1f))
+                    Text(ubicacionOrigenActual ?: "-", modifier = Modifier.weight(1f), color=Color.Black)
                     IconButton(onClick = {
                         if (hasCameraPermission) {
                             onReubicarClick("ubicacion_origen")
@@ -288,7 +299,7 @@ fun ReubicacionScreen(
                         .background(Color(0xFFF5F5F5), RoundedCornerShape(12.dp))
                         .padding(8.dp)
                 ) {
-                    Text(ubicacionDestinoActual ?: "-", modifier = Modifier.weight(1f))
+                    Text(ubicacionDestinoActual ?: "-", modifier = Modifier.weight(1f), color=Color.Black)
                     IconButton(onClick = {
                         if (hasCameraPermission) {
                             onReubicarClick("ubicacion_destino")
@@ -310,50 +321,64 @@ fun ReubicacionScreen(
                 onValueChange = { observacion = it },
                 label = { Text("Observación") },
                 singleLine = false,
-                modifier = Modifier.fillMaxWidth(0.8f)
+                modifier = Modifier.fillMaxWidth(0.8f),
+                textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                colors = TextFieldDefaults.outlinedTextFieldColors(
+                    //textColor = Color.Black,
+                    cursorColor = Color.Black,
+                    focusedBorderColor = Color(0xFF1976D2),
+                    unfocusedBorderColor = Color(0xFF1976D2),
+                    focusedLabelColor = Color.Black,
+                    unfocusedLabelColor = Color.Black
+                )
             )
             // Botón de enviar solo si los tres campos están cargados
             if (!productoActual.isNullOrBlank() && !ubicacionOrigenActual.isNullOrBlank() && !ubicacionDestinoActual.isNullOrBlank() && deposito.isNotBlank()) {
                 Button(
                     onClick = {
                         errorEnvio = null
-                        val fechaHora = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.getDefault()).format(java.util.Date())
-                       
-                        
+                        val fechaHora = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault()).format(
+                            Date()
+                        )
+
+                        val usuario = prefs.getString("savedUser", "") ?: ""
+                        val obsFinal = if (observacion.isNotBlank()) "$usuario: $observacion" else usuario
+
                         val reubicacion = ReubicarPartida(
                                 nombreUbiOrigen = ubicacionOrigenActual ?: "",
                                 nombreUbiDestino= ubicacionDestinoActual ?: "",
                                 numPartida = productoActual!!
                             )
 
+
                         val request = ReubicarPartidasRequest(
-                            reubicaciones = mutableListOf<ReubicarPartida>(reubicacion) ,
+                            reubicaciones = mutableListOf(reubicacion),
                             fechaHora = fechaHora,
                             codDeposito = deposito,
-                            observacion = ""
+                            observacion = obsFinal,
+                            reubicacion = 0
                         )
-                        ApiClient.apiService.reubicarPartidas(request).enqueue(object : retrofit2.Callback<okhttp3.ResponseBody> {
 
-
-                            override fun onResponse(
-                                call: Call<ResponseBody>,
-                                response: Response<ResponseBody>
-                            ) {
-                                val rawBody = response.body()?.string()
-                                if (response.isSuccessful && rawBody != null) {
-                                    context.startActivity(Intent(context, EstivacionSuccessActivity::class.java))
-                                    (context as? Activity)?.finish()
-                                } else{
-
-                                    errorEnvio = "Error al intentar reubicar :" + rawBody
+                        CoroutineScope(Dispatchers.IO).launch {
+                            try {
+                                val response = ApiClient.apiService.reubicarPartidas(request).execute()
+                                if (response.isSuccessful) {
+                                    withContext(Dispatchers.Main) {
+                                        context.startActivity(Intent(context, EstivacionSuccessActivity::class.java))
+                                        (context as? Activity)?.finish()
+                                    }
+                                } else {
+                                    val errorBody = response.errorBody()?.string() ?: "Error desconocido"
+                                    withContext(Dispatchers.Main) {
+                                        errorEnvio = errorBody
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                withContext(Dispatchers.Main) {
+                                    errorEnvio = e.message ?: "Error desconocido"
                                 }
                             }
-
-                            override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
-                                errorEnvio = "Error al intentar reubicar :" + t.message
-                            }
-
-                        })
+                        }
 
                     },
                     enabled = true,

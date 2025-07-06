@@ -40,7 +40,7 @@ class EstivacionActivity : ComponentActivity() {
                             }
                             if(tipoScan == "producto")
                             {
-                                ApiClient.apiService.ubicacionesParaEstibar(codArticu = producto, codDeposi = "01", optimizaRecorrido= true)
+                                ApiClient.apiService.ubicacionesParaEstibar(codArticu = producto, codDeposi = "2B", optimizaRecorrido= true)
                                     .enqueue(object : retrofit2.Callback<okhttp3.ResponseBody> {
                                     override fun onResponse(
                                         call: retrofit2.Call<okhttp3.ResponseBody>,
@@ -78,7 +78,9 @@ class EstivacionActivity : ComponentActivity() {
                         onStockearClick = { tipo ->
                             Log.e("tIPO", tipo)
                             tipoScan = tipo
-                            scannerLauncher.launch(Intent(this, BarcodeScannerActivity::class.java))
+                            val intent = Intent(this, BarcodeScannerActivity::class.java)
+                            intent.putExtra("modo", tipo)
+                            scannerLauncher.launch(intent)
                         },
                         producto = producto,
                         ubicacion = ubicacion

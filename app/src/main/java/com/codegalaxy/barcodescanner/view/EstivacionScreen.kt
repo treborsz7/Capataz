@@ -117,7 +117,14 @@ fun EstivacionScreen(
                 label = { Text("Depósito", color = Color.Black) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(0.8f),
-                textStyle = LocalTextStyle.current.copy(color = Color.Black)
+                textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                colors = TextFieldDefaults.outlinedTextFieldColors(
+                    cursorColor = Color.Black,
+                    focusedBorderColor = Color(0xFF1976D2),
+                    unfocusedBorderColor = Color(0xFF1976D2),
+                    focusedLabelColor = Color.Black,
+                    unfocusedLabelColor = Color.Black
+                )
             )
             // Si la lista de productos está vacía, mostrar botón escanear producto
             if (productos.isEmpty()) {
@@ -308,7 +315,16 @@ fun EstivacionScreen(
                 onValueChange = { observacion = it },
                 label = { Text("Observación") },
                 singleLine = false,
-                modifier = Modifier.fillMaxWidth(0.8f)
+                modifier = Modifier.fillMaxWidth(0.8f),
+                textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                colors = TextFieldDefaults.outlinedTextFieldColors(
+
+                    cursorColor = Color.Black,
+                    focusedBorderColor = Color(0xFF1976D2),
+                    unfocusedBorderColor = Color(0xFF1976D2),
+                    focusedLabelColor = Color.Black,
+                    unfocusedLabelColor = Color.Black
+                )
             )
            }
         }

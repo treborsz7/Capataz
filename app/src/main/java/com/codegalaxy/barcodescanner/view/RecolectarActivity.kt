@@ -45,7 +45,9 @@ class RecolectarActivity : ComponentActivity() {
                         onStockearClick = { tipo ->
                             Log.e("tIPO", tipo)
                             tipoScan = tipo
-                            scannerLauncher.launch(Intent(this, BarcodeScannerActivity::class.java))
+                            val intent = Intent(this, BarcodeScannerActivity::class.java)
+                            intent.putExtra("modo", tipo)
+                            scannerLauncher.launch(intent)
                         },
                         producto = producto,
                         ubicacion = ubicacion
