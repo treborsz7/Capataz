@@ -79,9 +79,8 @@ fun EstivacionScreen(
     var observacion by remember { mutableStateOf("") }
     var ubicacionSeleccionada by remember { mutableStateOf<String?>(null) }
 
-    val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted: Boolean ->
+    val launcher = rememberLauncherForActivityResult(contract = ActivityResultContracts.RequestPermission())
+    { isGranted: Boolean ->
         hasCameraPermission = isGranted
     }
 

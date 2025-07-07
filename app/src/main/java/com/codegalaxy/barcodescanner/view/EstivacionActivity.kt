@@ -41,6 +41,7 @@ class EstivacionActivity : ComponentActivity() {
                             if(tipoScan == "producto")
                             {
                                 ApiClient.apiService.ubicacionesParaEstibar(codArticu = producto, codDeposi = "2B", optimizaRecorrido= true)
+
                                     .enqueue(object : retrofit2.Callback<okhttp3.ResponseBody> {
                                     override fun onResponse(
                                         call: retrofit2.Call<okhttp3.ResponseBody>,

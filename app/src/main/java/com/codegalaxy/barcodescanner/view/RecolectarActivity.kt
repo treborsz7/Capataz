@@ -24,6 +24,7 @@ class RecolectarActivity : ComponentActivity() {
         setContent {
             BarCodeScannerTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
+                    val ordenTrabajo = intent.getSerializableExtra("ordenTrabajo") as? com.codegalaxy.barcodescanner.model.OrdenTrabajo
                     var producto by rememberSaveable { mutableStateOf<String?>(null) }
                     var ubicacion by rememberSaveable { mutableStateOf<String?>(null) }
                     var tipoScan by rememberSaveable { mutableStateOf<String?>(null) }
@@ -50,7 +51,8 @@ class RecolectarActivity : ComponentActivity() {
                             scannerLauncher.launch(intent)
                         },
                         producto = producto,
-                        ubicacion = ubicacion
+                        ubicacion = ubicacion,
+                        ordenTrabajo = ordenTrabajo
                     )
                 }
             }

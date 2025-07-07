@@ -36,7 +36,8 @@ fun RecolectarScreen(
     onBack: () -> Unit = {},
     onStockearClick: (boton: String) -> Unit = {},
     producto: String? = null,
-    ubicacion: String? = null
+    ubicacion: String? = null,
+    ordenTrabajo: com.codegalaxy.barcodescanner.model.OrdenTrabajo? = null
 ) {
     val context = LocalContext.current
     var recolectarItems by remember { mutableStateOf(listOf<RecolectarItem>()) }
@@ -326,6 +327,18 @@ fun RecolectarScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(errorEnvio ?: "", color = Color.Red, modifier = Modifier.fillMaxWidth(0.8f))
                 }
+            }
+            // Mostrar info de la orden si existe
+            if (ordenTrabajo != null) {
+                Text("Orden N°: ${ordenTrabajo.nroorden}", color = Color(0xFF1976D2), fontSize = 18.sp)
+                Text("Fecha: ${ordenTrabajo.fechahora}", color = Color.Gray, fontSize = 14.sp)
+                Text("Estado: ${ordenTrabajo.estado}", color = Color.Gray, fontSize = 14.sp)
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("Partidas:", color = Color(0xFF1976D2), fontSize = 16.sp)
+                ordenTrabajo.listadoitems.forEach { item ->
+                    Text("- ${item.nropartida} (${item.ubicacion}) x${item.cantidad}", color = Color.Black, fontSize = 14.sp)
+                }
+                Spacer(modifier = Modifier.height(16.dp))
             }
         }
     }

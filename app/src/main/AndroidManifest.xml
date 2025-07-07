@@ -63,6 +63,11 @@
             android:exported="false"
             android:label="Reubicacion"
             android:theme="@style/Theme.BarCodeScanner" />
+        <activity
+            android:name=".view.ListadoOrdenesActivity"
+            android:exported="false"
+            android:label="Listado de Órdenes"
+            android:theme="@style/Theme.BarCodeScanner" />
     </application>
 
 </manifest>

@@ -80,57 +80,18 @@ fun MainScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Row(
+
+               Row(
                 horizontalArrangement = Arrangement.Center,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Button(
                     onClick = {
-                        if (hasCameraPermission) {
-                            onScanRequest(OperationType.ESTIVAR)
-                        } else {
-                            launcher.launch(android.Manifest.permission.CAMERA)
-                        }
-                    },
-                    modifier = Modifier
-                        .size(200.dp)
-                        .background(Color(0xFF1976D2), shape = RoundedCornerShape(24.dp))
-                        .padding(8.dp),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2))
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.DashboardCustomize,
-                            contentDescription = "Estibar",
-                            tint = Color.White,
-                            modifier = Modifier.size(64.dp)
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Estibar",
-                            color = Color.White,
-                            fontSize = 24.sp
-                        )
-                    }
-                }
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-/*
-            Row(
-                horizontalArrangement = Arrangement.Center,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Button(
-                    onClick = {
-                        val intent = android.content.Intent(context, com.codegalaxy.barcodescanner.view.RecolectarActivity::class.java)
+                        val intent = android.content.Intent(context, com.codegalaxy.barcodescanner.view.ListadoOrdenesActivity::class.java)
                         context.startActivity(intent)
                     },
                     modifier = Modifier
-                        .size(200.dp)
+                        .size(150.dp)
                         .background(Color(0xFF1976D2), shape = RoundedCornerShape(24.dp))
                         .padding(8.dp),
                     shape = RoundedCornerShape(24.dp),
@@ -144,31 +105,35 @@ fun MainScreen(
                             imageVector = Icons.Outlined.Inventory,
                             contentDescription = "Recolectar Pedido",
                             tint = Color.White,
-                            modifier = Modifier.size(64.dp)
+                            modifier = Modifier.size(40.dp)
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = "Recolectar",
                             color = Color.White,
-                            fontSize = 24.sp
+                            fontSize = 14.sp
                         )
                     }
                 }
             }
 
- */
-            Spacer(modifier = Modifier.height(16.dp))
+             Spacer(modifier = Modifier.height(16.dp))
+
+
             Row(
                 horizontalArrangement = Arrangement.Center,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Button(
                     onClick = {
-                        val intent = android.content.Intent(context, com.codegalaxy.barcodescanner.view.ReubicacionActivity::class.java)
-                        context.startActivity(intent)
+                        if (hasCameraPermission) {
+                            onScanRequest(OperationType.ESTIVAR)
+                        } else {
+                            launcher.launch(android.Manifest.permission.CAMERA)
+                        }
                     },
                     modifier = Modifier
-                        .size(200.dp)
+                        .size(180.dp)
                         .background(Color(0xFF1976D2), shape = RoundedCornerShape(24.dp))
                         .padding(8.dp),
                     shape = RoundedCornerShape(24.dp),
@@ -179,16 +144,51 @@ fun MainScreen(
                         verticalArrangement = Arrangement.Center
                     ) {
                         Icon(
+                            imageVector = Icons.Outlined.DashboardCustomize,
+                            contentDescription = "Estibar",
+                            tint = Color.White,
+                            modifier = Modifier.size(32.dp)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Estibar",
+                            color = Color.White,
+                            fontSize = 14.sp
+                        )
+                    }
+                }
+            
+            Spacer(modifier = Modifier.width(16.dp))
+
+
+           
+                Button(
+                    onClick = {
+                        val intent = android.content.Intent(context, com.codegalaxy.barcodescanner.view.ReubicacionActivity::class.java)
+                        context.startActivity(intent)
+                    },
+                    modifier = Modifier
+                        .size(110.dp)
+                        .background(Color(0xFF1976D2), shape = RoundedCornerShape(18.dp))
+                        .padding(0.dp),
+                    shape = RoundedCornerShape(18.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2))
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
                             imageVector = Icons.Outlined.SwapHoriz,
                             contentDescription = "Reubicar",
                             tint = Color.White,
-                            modifier = Modifier.size(64.dp)
+                            modifier = Modifier.size(32.dp)
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = "Reubicar",
                             color = Color.White,
-                            fontSize = 24.sp
+                            fontSize = 14.sp
                         )
                     }
                 }
