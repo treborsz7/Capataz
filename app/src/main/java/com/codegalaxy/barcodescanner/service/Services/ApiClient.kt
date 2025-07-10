@@ -2,6 +2,7 @@ import android.content.Context
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import org.json.JSONObject
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.*
@@ -126,6 +127,8 @@ interface ApiService {
     @POST("UB091/ReubicarPartidas")
     fun reubicarPartidas(
         @Body body: ReubicarPartidasRequest
+        //@Body body: JSONObject
+
     ): retrofit2.Call<okhttp3.ResponseBody>
 }
 
@@ -162,6 +165,9 @@ object ApiClient {
     private val okHttpClient: OkHttpClient by lazy {
         OkHttpClient.Builder()
             .addInterceptor(authInterceptor)
+            .connectTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+            .writeTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
             .build()
     }
 

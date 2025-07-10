@@ -358,6 +358,22 @@ fun ReubicacionScreen(
                             observacion = obsFinal,
                             reubicacion = 0
                         )
+                        // val json = JSONObject()
+                        // json.put("fechaHora", request.fechaHora)
+                        // json.put("codDeposito", request.codDeposito)
+                        // json.put("observacion", request.observacion)
+                        // json.put("codDeposito", request.codDeposito)
+
+                        // val itemsArray = JSONArray()
+                        // request.reubicaciones.forEach { item ->
+                        //     val itemObj = JSONObject()
+                        //     itemObj.put("nombreUbiOrigen", item.nombreUbiOrigen)
+                        //     itemObj.put("nombreUbiDestino", item.nombreUbiDestino)
+                        //     itemObj.put("numPartida", item.numPartida)
+                        //     itemsArray.put(itemObj)
+                        // }
+
+                        // json.put("items", itemsArray)
 
                         CoroutineScope(Dispatchers.IO).launch {
                             try {

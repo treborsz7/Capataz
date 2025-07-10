@@ -86,16 +86,16 @@ fun MainScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Button(
+                    enabled=false,
                     onClick = {
                         val intent = android.content.Intent(context, com.codegalaxy.barcodescanner.view.ListadoOrdenesActivity::class.java)
                         context.startActivity(intent)
                     },
                     modifier = Modifier
                         .size(150.dp)
-                        .background(Color(0xFF1976D2), shape = RoundedCornerShape(24.dp))
+                        .background(Color.Gray, shape = RoundedCornerShape(24.dp))
                         .padding(8.dp),
                     shape = RoundedCornerShape(24.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2))
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,

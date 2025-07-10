@@ -292,6 +292,7 @@ fun RecolectarScreen(
                             itemsArray.put(itemObj)
                         }
                         json.put("items", itemsArray)
+
                         //val body = RequestBody.create("application/json", json.toString())
                         CoroutineScope(Dispatchers.IO).launch {
                             try {
