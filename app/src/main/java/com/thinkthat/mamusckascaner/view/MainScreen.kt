@@ -1,3 +1,5 @@
+package com.thinkthat.mamusckascaner.view
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -23,10 +25,9 @@ import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material3.IconButton
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
-import com.codegalaxy.barcodescanner.model.OperationType
+import com.thinkthat.mamusckascaner.model.OperationType
 import androidx.compose.ui.tooling.preview.Preview
-import com.codegalaxy.barcodescanner.ui.theme.BarCodeScannerTheme
-
+import com.thinkthat.mamusckascaner.ui.theme.BarCodeScannerTheme
 
 @Composable
 fun MainScreen(
@@ -60,9 +61,6 @@ fun MainScreen(
         Box(modifier = Modifier.fillMaxSize()) {
             IconButton(
                 onClick = {
-                    // Eliminar recordar del store y volver a login
-                    val prefs = context.getSharedPreferences("QRCodeScannerPrefs", android.content.Context.MODE_PRIVATE)
-                    prefs.edit().remove("savedUser").remove("savedPass").putBoolean("savedRemember", false).apply()
                     onLogout()
                 },
                 modifier = Modifier.align(Alignment.TopEnd).padding(16.dp)
@@ -86,15 +84,15 @@ fun MainScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Button(
-                    enabled=false,
+                    enabled=true,
                     onClick = {
-                        val intent = android.content.Intent(context, com.codegalaxy.barcodescanner.view.ListadoOrdenesActivity::class.java)
-                        context.startActivity(intent)
+                        onScanRequest(OperationType.RECOLECTAR)
                     },
                     modifier = Modifier
                         .size(150.dp)
-                        .background(Color.Gray, shape = RoundedCornerShape(24.dp))
+                        .background(Color(0xFF1976D2), shape = RoundedCornerShape(24.dp))
                         .padding(8.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2)),
                     shape = RoundedCornerShape(24.dp),
                 ) {
                     Column(
@@ -118,7 +116,6 @@ fun MainScreen(
             }
 
              Spacer(modifier = Modifier.height(16.dp))
-
 
             Row(
                 horizontalArrangement = Arrangement.Center,
@@ -160,11 +157,9 @@ fun MainScreen(
             
             Spacer(modifier = Modifier.width(16.dp))
 
-
-           
                 Button(
                     onClick = {
-                        val intent = android.content.Intent(context, com.codegalaxy.barcodescanner.view.ReubicacionActivity::class.java)
+                        val intent = android.content.Intent(context, ReubicacionActivity::class.java)
                         context.startActivity(intent)
                     },
                     modifier = Modifier
@@ -196,9 +191,6 @@ fun MainScreen(
         }
     }
 }
-
-
-
 
 @Preview(showBackground = true, name = "Main Screen - Height 800dp", heightDp = 800)
 @Composable

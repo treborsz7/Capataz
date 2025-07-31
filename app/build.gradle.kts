@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "com.codegalaxy.barcodescanner"
+    namespace = "com.thinkthat.mamusckascaner"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.codegalaxy.barcodescanner"
+        applicationId = "com.thinkthat.mamusckascaner"
         minSdk = 26
         targetSdk = 34
         versionCode = 1
@@ -51,6 +51,7 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.media3.common.ktx)
+    implementation(libs.androidx.core.splashscreen)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
