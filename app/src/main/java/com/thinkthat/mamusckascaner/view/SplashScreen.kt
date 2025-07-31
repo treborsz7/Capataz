@@ -10,6 +10,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.lifecycleScope
+import com.thinkthat.mamusckascaner.view.LoginActivity
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
 //import com.codegalaxy.barcodescanner.R
 //import kotlinx.coroutines.Dispatchers
 //import kotlinx.coroutines.delay
@@ -26,7 +32,7 @@ class SplashScreen : ComponentActivity() {
             }
         }
 
-       /* lifecycleScope.launch {
+        lifecycleScope.launch {
             delay(3000) // 3 seconds delay
             android.util.Log.d("LoginActivity", "LoginActivity is being created")
 
@@ -36,6 +42,6 @@ class SplashScreen : ComponentActivity() {
                 startActivity(intent)
                 finish() // Ensure SplashScreen finishes after starting LoginActivity
             }
-        }*/
+        }
     }
 }
