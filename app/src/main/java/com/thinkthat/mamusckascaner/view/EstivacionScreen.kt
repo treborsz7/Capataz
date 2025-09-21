@@ -6,8 +6,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -27,9 +29,14 @@ import androidx.compose.foundation.layout.systemBars
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -65,15 +72,37 @@ fun EstivacionScreen(
     // Recordar depósito entre pantallas
     val prefs = context.getSharedPreferences("QRCodeScannerPrefs", Context.MODE_PRIVATE)
     var deposito by remember { mutableStateOf(prefs.getString("savedDeposito", "") ?: "") }
+    var depositoFieldValue by remember { mutableStateOf(TextFieldValue(deposito)) }
+    var depositoEditable by remember { mutableStateOf(false) }
+    val depositoFocusRequester = remember { FocusRequester() }
+    
     LaunchedEffect(deposito) {
         prefs.edit().putString("savedDeposito", deposito).apply()
     }
+    
     // Estado para productos (lista)
     var productos by remember { mutableStateOf(listOf<String>()) }
+    var productosEditables by remember { mutableStateOf(mapOf<Int, Boolean>()) }
+    var productosFieldValues by remember { mutableStateOf(mapOf<Int, TextFieldValue>()) }
+    
+    // Estado para ubicación editable - usar variable local mutable
+    var ubicacionLocal by remember { mutableStateOf(ubicacion ?: "") }
+    var ubicacionEditable by remember { mutableStateOf(false) }
+    var ubicacionFieldValue by remember { mutableStateOf(TextFieldValue(ubicacion ?: "")) }
+    val ubicacionFocusRequester = remember { FocusRequester() }
+    
     // Si viene un producto por parámetro (de la cámara), agregarlo a la lista
     LaunchedEffect(producto) {
         if (!producto.isNullOrBlank() && !productos.contains(producto)) {
             productos = productos + producto
+        }
+    }
+    
+    // Actualizar ubicacionLocal y ubicacionFieldValue cuando cambie ubicacion
+    LaunchedEffect(ubicacion) {
+        if (ubicacion != null && !ubicacionEditable) {
+            ubicacionLocal = ubicacion
+            ubicacionFieldValue = TextFieldValue(ubicacion)
         }
     }
     // Estado para ubicaciones
@@ -108,27 +137,109 @@ fun EstivacionScreen(
                 Spacer(Modifier.weight(1f))
             }
         }
+        
+        // Título centrado en la parte superior
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 16.dp)
+        ) {
+            Text(
+                text = "Estivación",
+                fontSize = 24.sp,
+                color = Color(0xFF1976D2),
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+        }
+        
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(24.dp),
-            modifier = Modifier.verticalScroll(rememberScrollState())
+            modifier = Modifier
+                .align(Alignment.Center)
+                .padding(top = 60.dp) // Add padding to account for title
+                .verticalScroll(rememberScrollState())
         ) {
-            // Campo depósito
-            OutlinedTextField(
-                value = deposito,
-                onValueChange = { deposito = it },
-                label = { Text("Depósito", color = Color.Black) },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(0.8f),
-                textStyle = LocalTextStyle.current.copy(color = Color.Black),
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    cursorColor = Color.Black,
-                    focusedBorderColor = Color(0xFF1976D2),
-                    unfocusedBorderColor = Color(0xFF1976D2),
-                    focusedLabelColor = Color.Black,
-                    unfocusedLabelColor = Color.Black
-                )
-            )
+            // Campo depósito con ícono de edición o guardado
+            if (!depositoEditable) {
+                // Modo solo lectura - sin bordes, texto gris
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth(0.8f)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .background(Color.Transparent)
+                            .padding(16.dp)
+                    ) {
+                        Text(
+                            text = if (deposito.isBlank()) "Depósito:" else "Depósito: $deposito",
+                            color = Color.Gray,
+                            fontSize = 16.sp
+                        )
+                    }
+                    IconButton(
+                        onClick = { 
+                            depositoEditable = true
+                            depositoFieldValue = TextFieldValue(
+                                text = deposito,
+                                selection = TextRange(0, deposito.length)
+                            )
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Edit,
+                            contentDescription = "Editar depósito",
+                            tint = Color(0xFF1976D2)
+                        )
+                    }
+                }
+            } else {
+                // Modo edición - campo normal con ícono de guardar
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth(0.8f)
+                ) {
+                    OutlinedTextField(
+                        value = depositoFieldValue,
+                        onValueChange = { depositoFieldValue = it },
+                        label = { Text("Depósito", color = Color.Black) },
+                        singleLine = true,
+                        modifier = Modifier
+                            .weight(1f)
+                            .focusRequester(depositoFocusRequester),
+                        textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                        colors = TextFieldDefaults.outlinedTextFieldColors(
+                            cursorColor = Color.Black,
+                            focusedBorderColor = Color(0xFF1976D2),
+                            unfocusedBorderColor = Color(0xFF1976D2),
+                            focusedLabelColor = Color.Black,
+                            unfocusedLabelColor = Color.Black
+                        )
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    IconButton(
+                        onClick = { 
+                            deposito = depositoFieldValue.text
+                            depositoEditable = false
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Save,
+                            contentDescription = "Guardar depósito",
+                            tint = Color(0xFF1976D2)
+                        )
+                    }
+                }
+                
+                // Auto-focus y selección cuando se habilita la edición
+                LaunchedEffect(depositoEditable) {
+                    if (depositoEditable) {
+                        depositoFocusRequester.requestFocus()
+                    }
+                }
+            }
             // Si la lista de productos está vacía, mostrar botón escanear producto
             if (productos.isEmpty()) {
                 Button(
@@ -165,50 +276,107 @@ fun EstivacionScreen(
                     }
                 }
             } else {
-                // Mostrar lista de productos
+                // Mostrar lista de productos con íconos de edición
                 Column(
                     modifier = Modifier
                         .fillMaxWidth(0.8f)
                         .background(Color(0xFFF5F5F5), RoundedCornerShape(12.dp))
-                        .padding(8.dp)
-
+                        .padding(16.dp)
                 ) {
-                    Text("Partidas")
-                    productos.forEach { prod ->
+                    Text(
+                        text = "Partidas:",
+                        color = Color(0xFF1976D2),
+                        fontSize = 16.sp,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    
+                    productos.forEachIndexed { index, prod ->
+                        val isEditable = productosEditables[index] ?: false
+                        val fieldValue = productosFieldValues[index] ?: TextFieldValue(prod)
+                        
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp)
                         ) {
-                            Text(prod, modifier = Modifier.weight(1f))
-                            IconButton(onClick = {
-                                productos = productos.filter { it != prod }
-                            }) {
+                            if (!isEditable) {
+                                // Modo solo lectura
+                                Text(
+                                    text = prod,
+                                    modifier = Modifier.weight(1f),
+                                    color = Color.Black,
+                                    fontSize = 14.sp
+                                )
+                                IconButton(
+                                    onClick = {
+                                        productosEditables = productosEditables + (index to true)
+                                        productosFieldValues = productosFieldValues + (index to TextFieldValue(
+                                            text = prod,
+                                            selection = TextRange(0, prod.length)
+                                        ))
+                                    }
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Edit,
+                                        contentDescription = "Editar partida",
+                                        tint = Color(0xFF1976D2),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            } else {
+                                // Modo edición
+                                OutlinedTextField(
+                                    value = fieldValue,
+                                    onValueChange = { newValue ->
+                                        productosFieldValues = productosFieldValues + (index to newValue)
+                                    },
+                                    singleLine = true,
+                                    modifier = Modifier.weight(1f),
+                                    textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                                        cursorColor = Color.Black,
+                                        focusedBorderColor = Color(0xFF1976D2),
+                                        unfocusedBorderColor = Color(0xFF1976D2)
+                                    )
+                                )
+                                IconButton(
+                                    onClick = {
+                                        // Guardar la edición
+                                        val newProductos = productos.toMutableList()
+                                        newProductos[index] = fieldValue.text
+                                        productos = newProductos
+                                        productosEditables = productosEditables + (index to false)
+                                    }
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Save,
+                                        contentDescription = "Guardar partida",
+                                        tint = Color(0xFF4CAF50),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+                            
+                            // Botón eliminar siempre visible
+                            IconButton(
+                                onClick = {
+                                    productos = productos.filterIndexed { i, _ -> i != index }
+                                    // Limpiar estados relacionados con este índice
+                                    productosEditables = productosEditables.filterKeys { it != index }
+                                    productosFieldValues = productosFieldValues.filterKeys { it != index }
+                                }
+                            ) {
                                 Icon(
                                     imageVector = Icons.Default.Close,
                                     contentDescription = "Eliminar producto",
-                                    tint = Color.Red
+                                    tint = Color.Red,
+                                    modifier = Modifier.size(20.dp)
                                 )
                             }
                         }
                     }
-                }
-
-                // Botón para agregar más productos
-                Button(
-                    onClick = {
-                        if (hasCameraPermission) {
-                            onStockearClick("producto")
-                        } else {
-                            launcher.launch(android.Manifest.permission.CAMERA)
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth(0.8f)
-                        .height(40.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2))
-                ) {
-                    Text("Agregar Partida", color = Color.White, fontSize = 16.sp)
                 }
             }
             // Listado de ubicaciones (no dropdown)
@@ -246,72 +414,142 @@ fun EstivacionScreen(
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            // Botón escanear ubicación o mostrar ubicación escaneada con refrescar
-            if (ubicacion.isNullOrBlank()) {
-                Button(
-                    onClick = {
-                        if (hasCameraPermission) {
-                            onStockearClick("ubicacion")
-                        } else {
-                            launcher.launch(android.Manifest.permission.CAMERA)
+            // Botón escanear ubicación solo aparece cuando hay productos
+            if (productos.isNotEmpty()) {
+                if (ubicacionLocal.isBlank()) {
+                    Button(
+                        onClick = {
+                            if (hasCameraPermission) {
+                                onStockearClick("ubicacion")
+                            } else {
+                                launcher.launch(android.Manifest.permission.CAMERA)
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth(0.8f)
+                            .height(48.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2))
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.LocationOn,
+                                contentDescription = "Stockear",
+                                tint = Color.White,
+                                modifier = Modifier.size(32.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Escanear ubicación",
+                                color = Color.White,
+                                fontSize = 18.sp
+                            )
                         }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth(0.8f)
-                        .height(48.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2))
-                ) {
+                    }
+                } else {
+                    // Mostrar ubicación escaneada con íconos de edición y reescaneo
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth(0.8f)
+                            .background(Color(0xFFF5F5F5), RoundedCornerShape(12.dp))
+                            .padding(16.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Filled.LocationOn,
-                            contentDescription = "Stockear",
-                            tint = Color.White,
-                            modifier = Modifier.size(32.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Escanear ubicacion",
-                            color = Color.White,
-                            fontSize = 18.sp
-                        )
-                    }
-                }
-            } else {
-                // Mostrar ubicación escaneada y botón refrescar
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth(0.8f)
-                        .background(Color(0xFFF5F5F5), RoundedCornerShape(12.dp))
-                        .padding(8.dp)
-                ) {
-                    Text("ubicaciòn", modifier = Modifier.weight(1f))
-
-                    Text(ubicacion ?: "-", modifier = Modifier.weight(1f))
-                    IconButton(onClick = {
-                        // Refrescar: volver a abrir la pantalla de escanear
-                        if (hasCameraPermission) {
-                            onStockearClick("ubicacion")
-                        } else {
-                            launcher.launch(android.Manifest.permission.CAMERA)
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Ubicación:",
+                                color = Color(0xFF1976D2),
+                                fontSize = 14.sp,
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                            )
+                            
+                            if (!ubicacionEditable) {
+                                // Modo solo lectura
+                                Text(
+                                    text = ubicacionLocal,
+                                    color = Color.Black,
+                                    fontSize = 16.sp,
+                                    modifier = Modifier.padding(top = 4.dp)
+                                )
+                            } else {
+                                // Modo edición
+                                OutlinedTextField(
+                                    value = ubicacionFieldValue,
+                                    onValueChange = { ubicacionFieldValue = it },
+                                    singleLine = true,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .focusRequester(ubicacionFocusRequester),
+                                    textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                                        cursorColor = Color.Black,
+                                        focusedBorderColor = Color(0xFF1976D2),
+                                        unfocusedBorderColor = Color(0xFF1976D2)
+                                    )
+                                )
+                                
+                                // Auto-focus cuando se habilita la edición
+                                LaunchedEffect(ubicacionEditable) {
+                                    if (ubicacionEditable) {
+                                        ubicacionFocusRequester.requestFocus()
+                                    }
+                                }
+                            }
                         }
-                    }) {
-                        Icon(
-                            imageVector = Icons.Filled.Refresh,
-                            contentDescription = "Refrescar ubicación",
-                            tint = Color(0xFF1976D2)
-                        )
+                        
+                        Column {
+                            // Botón editar/guardar
+                            IconButton(
+                                onClick = {
+                                    if (!ubicacionEditable) {
+                                        ubicacionEditable = true
+                                        ubicacionFieldValue = TextFieldValue(
+                                            text = ubicacionLocal,
+                                            selection = TextRange(0, ubicacionLocal.length)
+                                        )
+                                    } else {
+                                        // Guardar la edición
+                                        ubicacionLocal = ubicacionFieldValue.text
+                                        ubicacionEditable = false
+                                    }
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = if (ubicacionEditable) Icons.Filled.Save else Icons.Filled.Edit,
+                                    contentDescription = if (ubicacionEditable) "Guardar ubicación" else "Editar ubicación",
+                                    tint = if (ubicacionEditable) Color(0xFF4CAF50) else Color(0xFF1976D2),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            
+                            // Botón reescanear
+                            IconButton(
+                                onClick = {
+                                    if (hasCameraPermission) {
+                                        onStockearClick("ubicacion")
+                                    } else {
+                                        launcher.launch(android.Manifest.permission.CAMERA)
+                                    }
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Refresh,
+                                    contentDescription = "Reescanear ubicación",
+                                    tint = Color(0xFF1976D2),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
                     }
                 }
             }
 
 
-           if(!productos.isNotEmpty() && !ubicacion.isNullOrBlank())
+           if(productos.isNotEmpty() && !ubicacionLocal.isBlank())
            {// Campo editable para observación
             OutlinedTextField(
                 value = observacion,
@@ -337,20 +575,24 @@ fun EstivacionScreen(
                 .align(Alignment.BottomEnd)
                 .padding(24.dp)
         ) {
-            val enabled = productos.isNotEmpty() && !ubicacion.isNullOrBlank()
+            val enabled = productos.isNotEmpty() && !ubicacionLocal.isBlank()
             var errorEnvio by remember { mutableStateOf<String?>(null) }
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 // Aquí el botón de enviar
-                if (productos.isNotEmpty() && !ubicacion.isNullOrBlank()) {
+                if (productos.isNotEmpty() && !ubicacionLocal.isBlank()) {
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(
                         onClick = {
                             errorEnvio = null
+                            val ubicacionLimpia = ubicacionLocal.trim().replace(" ", "")
+                            Log.d("EstivacionScreen", "Ubicación original: '$ubicacionLocal'")
+                            Log.d("EstivacionScreen", "Ubicación procesada (sin espacios): '$ubicacionLimpia'")
+
                             val partidas = productos.map { prod ->
                                 EstibarPartida(
-                                    nombreUbicacion = ubicacion ?: "",
+                                    nombreUbicacion = ubicacionLimpia,
                                     numPartida = prod
                                 )
                             }
@@ -363,21 +605,57 @@ fun EstivacionScreen(
                                 codDeposito = deposito,
                                 observacion = obsFinal
                             )
+                            
+                            // Log detallado del request antes del envío
+                            Log.d("EstivacionScreen", "=== ENVIANDO REQUEST ESTIBAR PARTIDAS ===")
+                            Log.d("EstivacionScreen", "Request completo: $request")
+                            Log.d("EstivacionScreen", "FechaHora: $fechaHora")
+                            Log.d("EstivacionScreen", "CodDeposito: $deposito")
+                            Log.d("EstivacionScreen", "Observacion: $obsFinal")
+                            Log.d("EstivacionScreen", "Cantidad de partidas: ${partidas.size}")
+                            partidas.forEachIndexed { index, partida ->
+                                Log.d("EstivacionScreen", "Partida[$index]: nombreUbicacion='${partida.nombreUbicacion}' (sin espacios internos), numPartida='${partida.numPartida}'")
+                            }
+                            Log.d("EstivacionScreen", "JSON del request: ${Gson().toJson(request)}")
+                            Log.d("EstivacionScreen", "=== INICIANDO LLAMADA A API ===")
+                            
                             CoroutineScope(Dispatchers.IO).launch {
                                 try {
                                     val response = ApiClient.apiService.estibarPartidas(request).execute()
+                                    
+                                    // Log detallado de la respuesta
+                                    Log.d("EstivacionScreen", "=== RESPUESTA RECIBIDA ===")
+                                    Log.d("EstivacionScreen", "Response code: ${response.code()}")
+                                    Log.d("EstivacionScreen", "Response message: ${response.message()}")
+                                    Log.d("EstivacionScreen", "Is successful: ${response.isSuccessful}")
+                                    Log.d("EstivacionScreen", "Response headers: ${response.headers()}")
+                                    
                                     if (response.isSuccessful) {
+                                        val responseBody = response.body()?.string()
+                                        Log.d("EstivacionScreen", "Response body (success): $responseBody")
+                                        Log.d("EstivacionScreen", "=== REQUEST EXITOSO - NAVEGANDO A SUCCESS ===")
+                                        
                                         withContext(Dispatchers.Main) {
                                             context.startActivity(Intent(context, EstivacionSuccessActivity::class.java))
                                             (context as? Activity)?.finish()
                                         }
                                     } else {
                                         val errorBody = response.errorBody()?.string() ?: "Error desconocido"
+                                        Log.e("EstivacionScreen", "Response error body: $errorBody")
+                                        Log.e("EstivacionScreen", "=== REQUEST FALLÓ ===")
+                                        
                                         withContext(Dispatchers.Main) {
                                             errorEnvio = errorBody
                                         }
                                     }
                                 } catch (e: Exception) {
+                                    Log.e("EstivacionScreen", "=== EXCEPCIÓN EN REQUEST ===")
+                                    Log.e("EstivacionScreen", "Exception type: ${e::class.java.simpleName}")
+                                    Log.e("EstivacionScreen", "Exception message: ${e.message}")
+                                    Log.e("EstivacionScreen", "Exception cause: ${e.cause}")
+                                    Log.e("EstivacionScreen", "Stack trace:", e)
+                                    Log.e("EstivacionScreen", "=== FIN EXCEPCIÓN ===")
+                                    
                                     withContext(Dispatchers.Main) {
                                         errorEnvio = e.message ?: "Error desconocido"
                                     }
@@ -394,6 +672,7 @@ fun EstivacionScreen(
                         Text("Enviar", color = Color.White)
                     }
                     if (errorEnvio != null) {
+                        Log.e("CameraPreview", "Error: ${errorEnvio}")
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(errorEnvio ?: "", color = Color.Red, modifier = Modifier.fillMaxWidth(0.8f))
                     }

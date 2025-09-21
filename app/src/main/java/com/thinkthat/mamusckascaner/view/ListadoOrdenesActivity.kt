@@ -25,7 +25,7 @@ class ListadoOrdenesActivity : ComponentActivity() {
                         onBack = { finish() },
                         onTomaOrden = { orden ->
                             val intent = Intent(this, RecolectarActivity::class.java)
-                            intent.putExtra("ordenTrabajo", orden.id)
+                            intent.putExtra("ordenId", orden.id)
                             startActivity(intent)
                         }
                     )

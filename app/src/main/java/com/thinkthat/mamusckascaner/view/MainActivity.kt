@@ -104,10 +104,11 @@ class MainActivity : ComponentActivity() {
                                             .remove("savedPass")
                                             .remove("token")
                                             .remove("savedEmpresa")
+                                            .remove("savedDeposito")
                                             .putBoolean("savedRemember", false)
                                             .apply()
                                         
-                                        android.util.Log.d("MainActivity", "Credentials cleared, navigating to LoginActivity")
+                                        android.util.Log.d("MainActivity", "Credentials and deposito cleared, navigating to LoginActivity")
                                         // Navegar al LoginActivity
                                         val intent = Intent(this@MainActivity,LoginActivity::class.java)
                                         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK

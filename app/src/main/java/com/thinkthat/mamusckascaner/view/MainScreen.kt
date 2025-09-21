@@ -41,6 +41,7 @@ fun MainScreen(
                 context,
                 android.Manifest.permission.CAMERA
             ) == PackageManager.PERMISSION_GRANTED
+
         )
     }
     val launcher = rememberLauncherForActivityResult(
@@ -76,116 +77,126 @@ fun MainScreen(
         // Agrupar los botones en un Column centrado
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier.padding(horizontal = 32.dp)
         ) {
-
-               Row(
-                horizontalArrangement = Arrangement.Center,
-                modifier = Modifier.fillMaxWidth()
+            // Botón Recolectar
+            Button(
+                onClick = {
+                    val intent = android.content.Intent(context, RecolectarByQRActivity::class.java)
+                    context.startActivity(intent)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF1976D2),
+                    contentColor = Color.White
+                ),
+                elevation = ButtonDefaults.buttonElevation(
+                    defaultElevation = 4.dp,
+                    pressedElevation = 8.dp
+                )
             ) {
-                Button(
-                    enabled=true,
-                    onClick = {
-                        onScanRequest(OperationType.RECOLECTAR)
-                    },
-                    modifier = Modifier
-                        .size(150.dp)
-                        .background(Color(0xFF1976D2), shape = RoundedCornerShape(24.dp))
-                        .padding(8.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2)),
-                    shape = RoundedCornerShape(24.dp),
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Inventory,
-                            contentDescription = "Recolectar Pedido",
-                            tint = Color.White,
-                            modifier = Modifier.size(40.dp)
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Recolectar",
-                            color = Color.White,
-                            fontSize = 14.sp
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Outlined.Inventory,
+                        contentDescription = "Recolectar Pedido",
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = "Recolectar Pedido",
+                        color = Color.White,
+                        fontSize = 16.sp
+                    )
                 }
             }
 
-             Spacer(modifier = Modifier.height(16.dp))
-
-            Row(
-                horizontalArrangement = Arrangement.Center,
-                modifier = Modifier.fillMaxWidth()
+            // Botón Estibar
+            Button(
+                onClick = {
+                    if (hasCameraPermission) {
+                        onScanRequest(OperationType.ESTIVAR)
+                    } else {
+                        launcher.launch(android.Manifest.permission.CAMERA)
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF1976D2),
+                    contentColor = Color.White
+                ),
+                elevation = ButtonDefaults.buttonElevation(
+                    defaultElevation = 4.dp,
+                    pressedElevation = 8.dp
+                )
             ) {
-                Button(
-                    onClick = {
-                        if (hasCameraPermission) {
-                            onScanRequest(OperationType.ESTIVAR)
-                        } else {
-                            launcher.launch(android.Manifest.permission.CAMERA)
-                        }
-                    },
-                    modifier = Modifier
-                        .size(180.dp)
-                        .background(Color(0xFF1976D2), shape = RoundedCornerShape(24.dp))
-                        .padding(8.dp),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.DashboardCustomize,
-                            contentDescription = "Estibar",
-                            tint = Color.White,
-                            modifier = Modifier.size(32.dp)
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Estibar",
-                            color = Color.White,
-                            fontSize = 14.sp
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Outlined.DashboardCustomize,
+                        contentDescription = "Estibar",
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = "Estibar Partidas",
+                        color = Color.White,
+                        fontSize = 16.sp
+                    )
                 }
-            
-            Spacer(modifier = Modifier.width(16.dp))
+            }
 
-                Button(
-                    onClick = {
-                        val intent = android.content.Intent(context, ReubicacionActivity::class.java)
-                        context.startActivity(intent)
-                    },
-                    modifier = Modifier
-                        .size(110.dp)
-                        .background(Color(0xFF1976D2), shape = RoundedCornerShape(18.dp))
-                        .padding(0.dp),
-                    shape = RoundedCornerShape(18.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2))
+            // Botón Reubicar
+            Button(
+                onClick = {
+                    val intent = android.content.Intent(context, ReubicacionActivity::class.java)
+                    context.startActivity(intent)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF1976D2),
+                    contentColor = Color.White
+                ),
+                elevation = ButtonDefaults.buttonElevation(
+                    defaultElevation = 4.dp,
+                    pressedElevation = 8.dp
+                )
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.SwapHoriz,
-                            contentDescription = "Reubicar",
-                            tint = Color.White,
-                            modifier = Modifier.size(32.dp)
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Reubicar",
-                            color = Color.White,
-                            fontSize = 14.sp
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Outlined.SwapHoriz,
+                        contentDescription = "Reubicar",
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = "Reubicar Partidas",
+                        color = Color.White,
+                        fontSize = 16.sp
+                    )
                 }
             }
         }

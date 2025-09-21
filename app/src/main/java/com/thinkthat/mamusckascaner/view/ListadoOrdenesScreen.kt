@@ -1,8 +1,10 @@
 package com.codegalaxy.barcodescanner.view
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -21,6 +23,8 @@ import androidx.compose.foundation.layout.systemBars
 import androidx.compose.ui.platform.LocalContext
 import com.thinkthat.mamusckascaner.service.Services.ApiClient
 import com.thinkthat.mamusckascaner.service.Services.OrdenLanzada
+import com.thinkthat.mamusckascaner.view.components.ErrorMessage
+import com.thinkthat.mamusckascaner.view.components.LoadingMessage
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -44,7 +48,7 @@ fun ListadoOrdenesScreen(
         ApiClient.apiService.obtenerOrdenesLanzadas().enqueue(object : Callback<List<OrdenLanzada>> {
             override fun onResponse(call: Call<List<OrdenLanzada>>, response: Response<List<OrdenLanzada>>) {
                 isLoading = false
-                if (response.isSuccessful) {
+                 if (response.isSuccessful) {
                     ordenes = response.body() ?: emptyList()
                 } else {
                     errorMessage = "Error al cargar órdenes: ${response.code()}"
@@ -81,15 +85,18 @@ fun ListadoOrdenesScreen(
         }
         
         // Botón de refrescar en la esquina superior derecha
-        Box(
+        if(!ordenes.isEmpty() && !isLoading)
+            Box(
+
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .padding(16.dp)
-        ) {
-            IconButton(onClick = { cargarOrdenes() }) {
-                Icon(Icons.Filled.Refresh, contentDescription = "Refrescar", tint = Color(0xFF1976D2))
+            ) {
+                IconButton(onClick = { cargarOrdenes() }) {
+                    Icon(Icons.Filled.Refresh, contentDescription = "Refrescar", tint = Color(0xFF1976D2))
+                }
             }
-        }
+
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top,
@@ -108,26 +115,18 @@ fun ListadoOrdenesScreen(
             
             when {
                 isLoading -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier.padding(32.dp),
-                        color = Color(0xFF1976D2)
+                    LoadingMessage(
+                        message = "Cargando órdenes...",
+                        modifier = Modifier.padding(32.dp)
                     )
-                    Text("Cargando órdenes...", color = Color.Gray)
                 }
                 
                 errorMessage != null -> {
-                    Text(
-                        text = errorMessage!!,
-                        color = Color.Red,
-                        modifier = Modifier.padding(16.dp)
+                    ErrorMessage(
+                        message = errorMessage!!,
+                        onRetry = { cargarOrdenes() },
+                        modifier = Modifier.fillMaxWidth(0.8f)
                     )
-                    Button(
-                        onClick = { cargarOrdenes() },
-                        modifier = Modifier.padding(8.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2))
-                    ) {
-                        Text("Reintentar", color = Color.White)
-                    }
                 }
                 
                 ordenes.isEmpty() -> {
@@ -172,12 +171,7 @@ fun ListadoOrdenesScreen(
                                                     fontSize = 18.sp,
                                                     style = MaterialTheme.typography.titleMedium
                                                 )
-                                                Text(
-                                                    text = "Estado: ${orden.estado}",
-                                                    color = Color.Gray,
-                                                    fontSize = 14.sp,
-                                                    modifier = Modifier.padding(top = 4.dp)
-                                                )
+
                                                 Text(
                                                     text = "Producto: ${orden.producto.descripcion}",
                                                     color = Color.Gray,
@@ -194,6 +188,7 @@ fun ListadoOrdenesScreen(
                                                 }
                                             }
                                             Button(
+                                                enabled = true,
                                                 onClick = { onTomaOrden(orden) },
                                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2)),
                                                 modifier = Modifier.height(36.dp)

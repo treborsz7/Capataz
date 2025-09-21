@@ -36,6 +36,8 @@ class SplashScreen : ComponentActivity() {
             delay(3000) // 3 seconds delay
             android.util.Log.d("LoginActivity", "LoginActivity is being created")
 
+
+
             withContext(Dispatchers.Main) {
                 val intent = Intent(this@SplashScreen, LoginActivity::class.java)
                 intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK

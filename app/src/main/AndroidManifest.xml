@@ -68,6 +68,11 @@
             android:exported="false"
             android:label="Listado de Órdenes"
             android:theme="@style/Theme.BarCodeScanner" />
+        <activity
+            android:name=".view.RecolectarByQRActivity"
+            android:exported="false"
+            android:label="Recolectar por QR"
+            android:theme="@style/Theme.BarCodeScanner" />
     </application>
 
 </manifest>

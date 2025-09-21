@@ -37,11 +37,9 @@ class BarcodeScannerActivity : ComponentActivity() {
                                 ?.replace(Regex("\\s+"), " ")
                                 ?.replace(Regex("\\]?C1", RegexOption.IGNORE_CASE), "")
 
-                            val processed = if (modo == "producto" || modo == "reubicacion_producto") {
-                                cleaned?.dropLast(1)
-                            } else {
-                                cleaned
-                            }
+                            // No eliminar el último dígito para ningún modo
+                            val processed = cleaned
+                            
                             val intent = Intent().apply {
                                 putExtra("scanResult", processed)
                             }

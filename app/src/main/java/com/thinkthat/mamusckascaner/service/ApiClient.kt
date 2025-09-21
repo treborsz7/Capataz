@@ -4,6 +4,7 @@ import android.content.Context
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import org.json.JSONObject
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -111,6 +112,28 @@ data class OrdenLanzada(
     val unificadora: Boolean
 )
 
+data class OrdenTrabajoCompleta(
+    val id: Int,
+    val numero: String,
+    val fechaGeneracion: String,
+    val fechaLanzamiento: String,
+    val estado: String,
+    val codEstado: String,
+    val tipoComp: String,
+    val unificadora: Boolean,
+    val producto: ProductoOrden,
+    val articuloEx: List<ItemOrdenCompleto>
+)
+
+data class ItemOrdenCompleto(
+    val id: Int,
+    val nroPartida: String,
+    val ubicacion: String,
+    val cantidad: Int,
+    val cantidadRecolectada: Int?,
+    val estado: String
+)
+
 // --- INTERFAZ DE LA API ---
 
 interface ApiService {
@@ -147,10 +170,6 @@ interface ApiService {
         @Body body: EstibarPartidasRequest
     ): retrofit2.Call<okhttp3.ResponseBody>
 
-    @POST("UB082/RecolectarPedido")
-    fun recolectarPedido(
-        //@Body body: okhttp3.RequestBody
-    ): retrofit2.Call<okhttp3.ResponseBody>
 
     @POST("UB091/ReubicarPartidas")
     fun reubicarPartidas(
@@ -161,6 +180,38 @@ interface ApiService {
 
     @GET("PP090/Lanzadas")
     fun obtenerOrdenesLanzadas(): retrofit2.Call<List<OrdenLanzada>>
+
+    @GET("PP090/{id}")
+    fun obtenerOrdenById(
+        @Path("id") id: Int
+    ): retrofit2.Call<OrdenLanzada>
+
+    @POST("UB082/RecolectarPedido")
+    fun recolectarPedido(
+        @Body body: okhttp3.RequestBody,
+        @Header("avisosComoError") avisosComoError: Boolean = false,
+        @Header("generaRemitoDePic") generaRemitoDePic: Boolean = false
+
+    ): retrofit2.Call<okhttp3.ResponseBody>
+
+    @GET("UB082/UbicacionesParaRecolectar")
+    fun UbicacionesParaRecolectar(
+        @Header("idPed") idPed: Int,
+        @Header("optimizaRecorrido") optimizaRecorrido: Boolean = false,
+        
+    ): retrofit2.Call<List<UbicacionResponse>>
+
+    // Alternate path-style endpoint to handle servers expecting IdOT in the URL path
+    @GET("PP082/UbicacionesParaRecolectar")
+    fun UbicacionesParaRecolectarByPath(
+        @Header("idOT") idOT: Int,
+        @Header("optimizaRecorrido") optimizaRecorrido: Boolean = false
+    ): retrofit2.Call<List<UbicacionResponse>>
+
+    // Alternate query-style endpoint to handle servers expecting IdOT as a query parameter
+
+    // New nested path variant: PP090/{idOT}/UbicacionesParaRecolectar
+
 }
 
 // --- SINGLETON DE RETROFIT ---
@@ -176,7 +227,7 @@ object ApiClient {
     private val authInterceptor = Interceptor { chain ->
         val originalRequest: Request = chain.request()
         // No agregar token ni idEmp si es loginPlano
-        if (originalRequest.url().encodedPath().endsWith("/Login/Plano")) {
+        if (originalRequest.url.encodedPath.endsWith("/Login/Plano")) {
             return@Interceptor chain.proceed(originalRequest)
         }
         val prefs = context?.getSharedPreferences("QRCodeScannerPrefs", Context.MODE_PRIVATE)
@@ -193,9 +244,74 @@ object ApiClient {
         chain.proceed(newRequest)
     }
 
+    private val reAuthInterceptor = Interceptor { chain ->
+        val originalRequest: Request = chain.request()
+        val response = chain.proceed(originalRequest)
+        
+        // Si recibimos 401 (no autorizado) y no es una petición de login
+        if (response.code == 401 && !originalRequest.url.encodedPath.endsWith("/Login/Plano")) {
+            response.close() // Cerrar la respuesta original
+            
+            val prefs = context?.getSharedPreferences("QRCodeScannerPrefs", Context.MODE_PRIVATE)
+            val savedUser = prefs?.getString("savedUser", null)
+            val savedPassword = prefs?.getString("savedPass", null)
+            
+            if (!savedUser.isNullOrBlank() && !savedPassword.isNullOrBlank()) {
+                // Intentar re-autenticación
+                try {
+                    val loginRequest = originalRequest.newBuilder()
+                        .url("${BASE_URL}Login/Plano")
+                        .post(okhttp3.RequestBody.create("text/plain".toMediaTypeOrNull(), ""))
+                        .removeHeader("Authorization")
+                        .removeHeader("idEmp")
+                        .addHeader("nombreUsuario", savedUser)
+                        .addHeader("pass", savedPassword)
+                        .build()
+                    
+                    val loginResponse = chain.proceed(loginRequest)
+                    
+                    if (loginResponse.isSuccessful) {
+                        val responseBody = loginResponse.body?.string()
+                        if (!responseBody.isNullOrBlank()) {
+                            try {
+                                val jsonResponse = JSONObject(responseBody)
+                                val newToken = jsonResponse.optString("token")
+                                
+                                if (!newToken.isNullOrBlank()) {
+                                    // Guardar el nuevo token
+                                    prefs?.edit()?.putString("token", newToken)?.apply()
+                                    
+                                    // Reintentar la petición original con el nuevo token
+                                    val retryRequest = originalRequest.newBuilder()
+                                        .removeHeader("Authorization")
+                                        .addHeader("Authorization", "Bearer $newToken")
+                                        .build()
+                                    
+                                    loginResponse.close()
+                                    return@Interceptor chain.proceed(retryRequest)
+                                }
+                            } catch (e: Exception) {
+                                // Error parseando la respuesta del login
+                            }
+                        }
+                    }
+                    loginResponse.close()
+                } catch (e: Exception) {
+                    // Error durante la re-autenticación
+                }
+            }
+            
+            // Si llegamos aquí, la re-autenticación falló, devolver la respuesta 401 original
+            return@Interceptor chain.proceed(originalRequest)
+        }
+        
+        response
+    }
+
     private val okHttpClient: OkHttpClient by lazy {
         OkHttpClient.Builder()
             .addInterceptor(authInterceptor)
+            .addInterceptor(reAuthInterceptor)
             .connectTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
             .readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
             .writeTimeout(60, java.util.concurrent.TimeUnit.SECONDS)

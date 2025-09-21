@@ -100,13 +100,15 @@ class LoginActivity : ComponentActivity() {
         savedEmpresa: String,
         prefs: SharedPreferences
     ) {
+
+
         setContent {
             var isLoading by remember { mutableStateOf(false) }
             var errorMessage by remember { mutableStateOf<String?>(null) }
             var empresas by remember { mutableStateOf<List<Pair<String, String>>>(emptyList()) }
             var empresaSeleccionada by remember { mutableStateOf(savedEmpresa) }
             var recordar by remember { mutableStateOf(savedRemember) }
-            var deposito by remember { mutableStateOf("") }
+            var deposito by remember { mutableStateOf(prefs.getString("savedDeposito", "") ?: "") }
             var prefs by remember { mutableStateOf(prefs) }
             BarCodeScannerTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
@@ -143,13 +145,27 @@ class LoginActivity : ComponentActivity() {
                                 ) {
                                     val rawBody = response.body()?.string()
                                     if (response.isSuccessful && rawBody != null) {
-                                        prefs.edit()
+                                        val editor = prefs.edit()
                                             .putString("token", rawBody)
-                                            .putString("savedUser", nombreUsuario)
-                                            .putString("savedPass", pass)
-                                            .putBoolean("savedRemember", recordar)
-                                            .putString("savedEmpresa", empresaSeleccionada)
-                                            .apply()
+                                            
+                                        if (recordar) {
+                                            // Guardar todo si recordar está activado
+                                            editor
+                                                .putString("savedUser", nombreUsuario)
+                                                .putString("savedPass", pass)
+                                                .putString("savedDeposito", deposito)
+                                                .putBoolean("savedRemember", recordar)
+                                                .putString("savedEmpresa", empresaSeleccionada)
+                                        } else {
+                                            // Solo guardar recordar = false, limpiar el resto
+                                            editor
+                                                .remove("savedUser")
+                                                .remove("savedPass")
+                                                .remove("savedDeposito")
+                                                .remove("savedEmpresa")
+                                                .putBoolean("savedRemember", recordar)
+                                        }
+                                        editor.apply()
                                         // Llamar a EmpresasGet
                                         ApiClient.apiService.EmpresasGet().enqueue(object : retrofit2.Callback<List<LoginEmpresaResponse>> {
                                             override fun onResponse(

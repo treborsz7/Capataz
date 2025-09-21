@@ -6,8 +6,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,6 +28,10 @@ import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import com.thinkthat.mamusckascaner.service.Services.ApiClient
 import com.thinkthat.mamusckascaner.service.Services.ReubicarPartida
 import com.thinkthat.mamusckascaner.service.Services.ReubicarPartidasRequest
@@ -64,6 +70,10 @@ fun ReubicacionScreen(
     // Persistencia de depósito
     val prefs = context.getSharedPreferences("QRCodeScannerPrefs", android.content.Context.MODE_PRIVATE)
     var deposito by remember { mutableStateOf(prefs.getString("savedDeposito", "") ?: "") }
+    var depositoFieldValue by remember { mutableStateOf(TextFieldValue(deposito)) }
+    var depositoEditable by remember { mutableStateOf(false) }
+    val depositoFocusRequester = remember { FocusRequester() }
+    
     LaunchedEffect(deposito) {
         prefs.edit().putString("savedDeposito", deposito).apply()
     }
@@ -109,30 +119,109 @@ fun ReubicacionScreen(
                 Spacer(Modifier.weight(1f))
             }
         }
+        
+        // Título en la parte superior
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 16.dp)
+        ) {
+            Text(
+                text = "Reubicar",
+                fontSize = 24.sp,
+                color = Color(0xFF1976D2),
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+        }
+        
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(32.dp),
             modifier = Modifier
                 .align(Alignment.Center)
+                .padding(top = 60.dp) // Add padding to account for title
                 .verticalScroll(rememberScrollState())
         ) {
-            // Campo depósito
-            OutlinedTextField(
-                value = deposito,
-                onValueChange = { deposito = it },
-                label = { Text("Depósito", color = Color.Black) },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(0.8f),
-                textStyle = LocalTextStyle.current.copy(color = Color.Black),
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    //textColor = Color.Black,
-                    cursorColor = Color.Black,
-                    focusedBorderColor = Color(0xFF1976D2),
-                    unfocusedBorderColor = Color(0xFF1976D2),
-                    focusedLabelColor = Color.Black,
-                    unfocusedLabelColor = Color.Black
-                )
-            )
+            // Campo depósito con ícono de edición o guardado
+            if (!depositoEditable) {
+                // Modo solo lectura - sin bordes, texto gris
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth(0.8f)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .background(Color.Transparent)
+                            .padding(16.dp)
+                    ) {
+                        Text(
+                            text = if (deposito.isBlank()) "Depósito:" else "Depósito: $deposito",
+                            color = Color.Gray,
+                            fontSize = 16.sp
+                        )
+                    }
+                    IconButton(
+                        onClick = { 
+                            depositoEditable = true
+                            depositoFieldValue = TextFieldValue(
+                                text = deposito,
+                                selection = TextRange(0, deposito.length)
+                            )
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Edit,
+                            contentDescription = "Editar depósito",
+                            tint = Color(0xFF1976D2)
+                        )
+                    }
+                }
+            } else {
+                // Modo edición - campo normal con ícono de guardar
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth(0.8f)
+                ) {
+                    OutlinedTextField(
+                        value = depositoFieldValue,
+                        onValueChange = { depositoFieldValue = it },
+                        label = { Text("Depósito", color = Color.Black) },
+                        singleLine = true,
+                        modifier = Modifier
+                            .weight(1f)
+                            .focusRequester(depositoFocusRequester),
+                        textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                        colors = TextFieldDefaults.outlinedTextFieldColors(
+                            cursorColor = Color.Black,
+                            focusedBorderColor = Color(0xFF1976D2),
+                            unfocusedBorderColor = Color(0xFF1976D2),
+                            focusedLabelColor = Color.Black,
+                            unfocusedLabelColor = Color.Black
+                        )
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    IconButton(
+                        onClick = { 
+                            deposito = depositoFieldValue.text
+                            depositoEditable = false
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Save,
+                            contentDescription = "Guardar depósito",
+                            tint = Color(0xFF1976D2)
+                        )
+                    }
+                }
+                
+                // Auto-focus y selección cuando se habilita la edición
+                LaunchedEffect(depositoEditable) {
+                    if (depositoEditable) {
+                        depositoFocusRequester.requestFocus()
+                    }
+                }
+            }
             // Botón escanear producto o mostrar producto escaneado
             if (productoActual.isNullOrBlank()) {
                 Button(
@@ -310,23 +399,7 @@ fun ReubicacionScreen(
                     }
                 }
             }
-            // Campo observación
-            OutlinedTextField(
-                value = observacion,
-                onValueChange = { observacion = it },
-                label = { Text("Observación") },
-                singleLine = false,
-                modifier = Modifier.fillMaxWidth(0.8f),
-                textStyle = LocalTextStyle.current.copy(color = Color.Black),
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    //textColor = Color.Black,
-                    cursorColor = Color.Black,
-                    focusedBorderColor = Color(0xFF1976D2),
-                    unfocusedBorderColor = Color(0xFF1976D2),
-                    focusedLabelColor = Color.Black,
-                    unfocusedLabelColor = Color.Black
-                )
-            )
+           
             // Botón de enviar solo si los tres campos están cargados
             if (!productoActual.isNullOrBlank() && !ubicacionOrigenActual.isNullOrBlank() && !ubicacionDestinoActual.isNullOrBlank() && deposito.isNotBlank()) {
                 Button(
