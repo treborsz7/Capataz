@@ -21,14 +21,6 @@ fun RecolectarSuccessScreen(
         showSuccess = true
     }
 
-    // Redirigir automáticamente después de 3 segundos adicionales
-    LaunchedEffect(showSuccess) {
-        if (showSuccess) {
-            kotlinx.coroutines.delay(3000)
-            onFinish()
-        }
-    }
-
     Box(
         modifier = Modifier
             .fillMaxSize()

@@ -5,6 +5,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.LocationOn
@@ -85,6 +86,12 @@ fun EstivacionScreen(
     var productosEditables by remember { mutableStateOf(mapOf<Int, Boolean>()) }
     var productosFieldValues by remember { mutableStateOf(mapOf<Int, TextFieldValue>()) }
     
+    // Estado para partida individual editable
+    var partidaLocal by remember { mutableStateOf(producto ?: "") }
+    var partidaEditable by remember { mutableStateOf(false) }
+    var partidaFieldValue by remember { mutableStateOf(TextFieldValue(producto ?: "")) }
+    val partidaFocusRequester = remember { FocusRequester() }
+    
     // Estado para ubicación editable - usar variable local mutable
     var ubicacionLocal by remember { mutableStateOf(ubicacion ?: "") }
     var ubicacionEditable by remember { mutableStateOf(false) }
@@ -93,16 +100,25 @@ fun EstivacionScreen(
     
     // Si viene un producto por parámetro (de la cámara), agregarlo a la lista
     LaunchedEffect(producto) {
-        if (!producto.isNullOrBlank() && !productos.contains(producto)) {
-            productos = productos + producto
+        if (!producto.isNullOrBlank()) {
+            partidaLocal = producto
+            partidaFieldValue = TextFieldValue(producto)
+            // Salir del modo editable si estaba activo
+            partidaEditable = false
+            // Agregar a la lista si no existe ya
+            if (!productos.contains(producto)) {
+                productos = productos + producto
+            }
         }
     }
     
     // Actualizar ubicacionLocal y ubicacionFieldValue cuando cambie ubicacion
     LaunchedEffect(ubicacion) {
-        if (ubicacion != null && !ubicacionEditable) {
+        if (ubicacion != null) {
             ubicacionLocal = ubicacion
             ubicacionFieldValue = TextFieldValue(ubicacion)
+            // Salir del modo editable si estaba activo
+            ubicacionEditable = false
         }
     }
     // Estado para ubicaciones
@@ -240,8 +256,490 @@ fun EstivacionScreen(
                     }
                 }
             }
-            // Si la lista de productos está vacía, mostrar botón escanear producto
-            if (productos.isEmpty()) {
+            
+            // Lógica secuencial: mostrar campos y botones según el estado
+            if (partidaLocal.isBlank()) {
+                // 1. Solo mostrar campo partida
+                // Campo Partida con ícono de cámara y edición
+                if (!partidaEditable) {
+                    // Modo solo lectura - sin bordes, texto gris
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(0.8f)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .background(Color.Transparent)
+                                .padding(16.dp)
+                        ) {
+                            Text(
+                                text = "Partida:",
+                                color = Color.Gray,
+                                fontSize = 16.sp
+                            )
+                        }
+                        IconButton(
+                            onClick = {
+                                if (hasCameraPermission) {
+                                    onStockearClick("producto")
+                                } else {
+                                    launcher.launch(android.Manifest.permission.CAMERA)
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.CameraAlt,
+                                contentDescription = "Escanear partida",
+                                tint = Color(0xFF1976D2)
+                            )
+                        }
+                        IconButton(
+                            onClick = { 
+                                partidaEditable = true
+                                partidaFieldValue = TextFieldValue(
+                                    text = partidaLocal,
+                                    selection = TextRange(0, partidaLocal.length)
+                                )
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Edit,
+                                contentDescription = "Editar partida",
+                                tint = Color(0xFF1976D2)
+                            )
+                        }
+                    }
+                } else {
+                    // Modo edición - campo normal con ícono de guardar
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(0.8f)
+                    ) {
+                        OutlinedTextField(
+                            value = partidaFieldValue,
+                            onValueChange = { partidaFieldValue = it },
+                            label = { Text("Partida", color = Color.Black) },
+                            singleLine = true,
+                            modifier = Modifier
+                                .weight(1f)
+                                .focusRequester(partidaFocusRequester),
+                            textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                            colors = TextFieldDefaults.outlinedTextFieldColors(
+                                cursorColor = Color.Black,
+                                focusedBorderColor = Color(0xFF1976D2),
+                                unfocusedBorderColor = Color(0xFF1976D2),
+                                focusedLabelColor = Color.Black,
+                                unfocusedLabelColor = Color.Black
+                            )
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        IconButton(
+                            onClick = { 
+                                partidaLocal = partidaFieldValue.text
+                                partidaEditable = false
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Save,
+                                contentDescription = "Guardar partida",
+                                tint = Color(0xFF1976D2)
+                            )
+                        }
+                    }
+                    
+                    // Auto-focus y selección cuando se habilita la edición
+                    LaunchedEffect(partidaEditable) {
+                        if (partidaEditable) {
+                            partidaFocusRequester.requestFocus()
+                        }
+                    }
+                }
+            } else if (ubicacionLocal.isBlank()) {
+                // 2. Mostrar campo partida (completado) + campo ubicación
+                // Campo Partida (completado)
+                if (!partidaEditable) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(0.8f)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .background(Color.Transparent)
+                                .padding(16.dp)
+                        ) {
+                            Text(
+                                text = "Partida: $partidaLocal",
+                                color = Color.Gray,
+                                fontSize = 16.sp
+                            )
+                        }
+                        IconButton(
+                            onClick = {
+                                if (hasCameraPermission) {
+                                    onStockearClick("producto")
+                                } else {
+                                    launcher.launch(android.Manifest.permission.CAMERA)
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.CameraAlt,
+                                contentDescription = "Escanear partida",
+                                tint = Color(0xFF1976D2)
+                            )
+                        }
+                        IconButton(
+                            onClick = { 
+                                partidaEditable = true
+                                partidaFieldValue = TextFieldValue(
+                                    text = partidaLocal,
+                                    selection = TextRange(0, partidaLocal.length)
+                                )
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Edit,
+                                contentDescription = "Editar partida",
+                                tint = Color(0xFF1976D2)
+                            )
+                        }
+                    }
+                } else {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(0.8f)
+                    ) {
+                        OutlinedTextField(
+                            value = partidaFieldValue,
+                            onValueChange = { partidaFieldValue = it },
+                            label = { Text("Partida", color = Color.Black) },
+                            singleLine = true,
+                            modifier = Modifier
+                                .weight(1f)
+                                .focusRequester(partidaFocusRequester),
+                            textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                            colors = TextFieldDefaults.outlinedTextFieldColors(
+                                cursorColor = Color.Black,
+                                focusedBorderColor = Color(0xFF1976D2),
+                                unfocusedBorderColor = Color(0xFF1976D2),
+                                focusedLabelColor = Color.Black,
+                                unfocusedLabelColor = Color.Black
+                            )
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        IconButton(
+                            onClick = { 
+                                partidaLocal = partidaFieldValue.text
+                                partidaEditable = false
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Save,
+                                contentDescription = "Guardar partida",
+                                tint = Color(0xFF1976D2)
+                            )
+                        }
+                    }
+                    
+                    LaunchedEffect(partidaEditable) {
+                        if (partidaEditable) {
+                            partidaFocusRequester.requestFocus()
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Campo Ubicación
+                if (!ubicacionEditable) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(0.8f)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .background(Color.Transparent)
+                                .padding(16.dp)
+                        ) {
+                            Text(
+                                text = "Ubicación:",
+                                color = Color.Gray,
+                                fontSize = 16.sp
+                            )
+                        }
+                        IconButton(
+                            onClick = {
+                                if (hasCameraPermission) {
+                                    onStockearClick("ubicacion")
+                                } else {
+                                    launcher.launch(android.Manifest.permission.CAMERA)
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.CameraAlt,
+                                contentDescription = "Escanear ubicación",
+                                tint = Color(0xFF1976D2)
+                            )
+                        }
+                        IconButton(
+                            onClick = { 
+                                ubicacionEditable = true
+                                ubicacionFieldValue = TextFieldValue(
+                                    text = ubicacionLocal,
+                                    selection = TextRange(0, ubicacionLocal.length)
+                                )
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Edit,
+                                contentDescription = "Editar ubicación",
+                                tint = Color(0xFF1976D2)
+                            )
+                        }
+                    }
+                } else {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(0.8f)
+                    ) {
+                        OutlinedTextField(
+                            value = ubicacionFieldValue,
+                            onValueChange = { ubicacionFieldValue = it },
+                            label = { Text("Ubicación", color = Color.Black) },
+                            singleLine = true,
+                            modifier = Modifier
+                                .weight(1f)
+                                .focusRequester(ubicacionFocusRequester),
+                            textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                            colors = TextFieldDefaults.outlinedTextFieldColors(
+                                cursorColor = Color.Black,
+                                focusedBorderColor = Color(0xFF1976D2),
+                                unfocusedBorderColor = Color(0xFF1976D2),
+                                focusedLabelColor = Color.Black,
+                                unfocusedLabelColor = Color.Black
+                            )
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        IconButton(
+                            onClick = { 
+                                ubicacionLocal = ubicacionFieldValue.text
+                                ubicacionEditable = false
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Save,
+                                contentDescription = "Guardar ubicación",
+                                tint = Color(0xFF1976D2)
+                            )
+                        }
+                    }
+                    
+                    LaunchedEffect(ubicacionEditable) {
+                        if (ubicacionEditable) {
+                            ubicacionFocusRequester.requestFocus()
+                        }
+                    }
+                }
+            } else {
+                // 3. Mostrar ambos campos (completados) con opciones de re-edición
+                // Campo Partida (completado)
+                if (!partidaEditable) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(0.8f)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .background(Color.Transparent)
+                                .padding(16.dp)
+                        ) {
+                            Text(
+                                text = "Partida: $partidaLocal",
+                                color = Color.Gray,
+                                fontSize = 16.sp
+                            )
+                        }
+                        IconButton(
+                            onClick = {
+                                if (hasCameraPermission) {
+                                    onStockearClick("producto")
+                                } else {
+                                    launcher.launch(android.Manifest.permission.CAMERA)
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.CameraAlt,
+                                contentDescription = "Escanear partida",
+                                tint = Color(0xFF1976D2)
+                            )
+                        }
+                        IconButton(
+                            onClick = { 
+                                partidaEditable = true
+                                partidaFieldValue = TextFieldValue(
+                                    text = partidaLocal,
+                                    selection = TextRange(0, partidaLocal.length)
+                                )
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Edit,
+                                contentDescription = "Editar partida",
+                                tint = Color(0xFF1976D2)
+                            )
+                        }
+                    }
+                } else {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(0.8f)
+                    ) {
+                        OutlinedTextField(
+                            value = partidaFieldValue,
+                            onValueChange = { partidaFieldValue = it },
+                            label = { Text("Partida", color = Color.Black) },
+                            singleLine = true,
+                            modifier = Modifier
+                                .weight(1f)
+                                .focusRequester(partidaFocusRequester),
+                            textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                            colors = TextFieldDefaults.outlinedTextFieldColors(
+                                cursorColor = Color.Black,
+                                focusedBorderColor = Color(0xFF1976D2),
+                                unfocusedBorderColor = Color(0xFF1976D2),
+                                focusedLabelColor = Color.Black,
+                                unfocusedLabelColor = Color.Black
+                            )
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        IconButton(
+                            onClick = { 
+                                partidaLocal = partidaFieldValue.text
+                                partidaEditable = false
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Save,
+                                contentDescription = "Guardar partida",
+                                tint = Color(0xFF1976D2)
+                            )
+                        }
+                    }
+                    
+                    LaunchedEffect(partidaEditable) {
+                        if (partidaEditable) {
+                            partidaFocusRequester.requestFocus()
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Campo Ubicación (completado)
+                if (!ubicacionEditable) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(0.8f)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .background(Color.Transparent)
+                                .padding(16.dp)
+                        ) {
+                            Text(
+                                text = "Ubicación: $ubicacionLocal",
+                                color = Color.Gray,
+                                fontSize = 16.sp
+                            )
+                        }
+                        IconButton(
+                            onClick = {
+                                if (hasCameraPermission) {
+                                    onStockearClick("ubicacion")
+                                } else {
+                                    launcher.launch(android.Manifest.permission.CAMERA)
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.CameraAlt,
+                                contentDescription = "Escanear ubicación",
+                                tint = Color(0xFF1976D2)
+                            )
+                        }
+                        IconButton(
+                            onClick = { 
+                                ubicacionEditable = true
+                                ubicacionFieldValue = TextFieldValue(
+                                    text = ubicacionLocal,
+                                    selection = TextRange(0, ubicacionLocal.length)
+                                )
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Edit,
+                                contentDescription = "Editar ubicación",
+                                tint = Color(0xFF1976D2)
+                            )
+                        }
+                    }
+                } else {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(0.8f)
+                    ) {
+                        OutlinedTextField(
+                            value = ubicacionFieldValue,
+                            onValueChange = { ubicacionFieldValue = it },
+                            label = { Text("Ubicación", color = Color.Black) },
+                            singleLine = true,
+                            modifier = Modifier
+                                .weight(1f)
+                                .focusRequester(ubicacionFocusRequester),
+                            textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                            colors = TextFieldDefaults.outlinedTextFieldColors(
+                                cursorColor = Color.Black,
+                                focusedBorderColor = Color(0xFF1976D2),
+                                unfocusedBorderColor = Color(0xFF1976D2),
+                                focusedLabelColor = Color.Black,
+                                unfocusedLabelColor = Color.Black
+                            )
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        IconButton(
+                            onClick = { 
+                                ubicacionLocal = ubicacionFieldValue.text
+                                ubicacionEditable = false
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Save,
+                                contentDescription = "Guardar ubicación",
+                                tint = Color(0xFF1976D2)
+                            )
+                        }
+                    }
+                    
+                    LaunchedEffect(ubicacionEditable) {
+                        if (ubicacionEditable) {
+                            ubicacionFocusRequester.requestFocus()
+                        }
+                    }
+                }
+            }
+            
+            // Continuar con la lógica de botones grandes integrados
+            if (partidaLocal.isBlank()) {
+                // 1. Solo mostrar botón escanear partida si no hay partida
+                Spacer(modifier = Modifier.height(16.dp))
+                
                 Button(
                     onClick = {
                         if (hasCameraPermission) {
@@ -275,110 +773,49 @@ fun EstivacionScreen(
                         )
                     }
                 }
-            } else {
-                // Mostrar lista de productos con íconos de edición
-                Column(
+            } else if (ubicacionLocal.isBlank()) {
+                // 2. Mostrar botón escanear ubicación si hay partida pero no ubicación
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                Button(
+                    onClick = {
+                        if (hasCameraPermission) {
+                            onStockearClick("ubicacion")
+                        } else {
+                            launcher.launch(android.Manifest.permission.CAMERA)
+                        }
+                    },
                     modifier = Modifier
                         .fillMaxWidth(0.8f)
-                        .background(Color(0xFFF5F5F5), RoundedCornerShape(12.dp))
-                        .padding(16.dp)
+                        .height(48.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2))
                 ) {
-                    Text(
-                        text = "Partidas:",
-                        color = Color(0xFF1976D2),
-                        fontSize = 16.sp,
-                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-                    
-                    productos.forEachIndexed { index, prod ->
-                        val isEditable = productosEditables[index] ?: false
-                        val fieldValue = productosFieldValues[index] ?: TextFieldValue(prod)
-                        
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp)
-                        ) {
-                            if (!isEditable) {
-                                // Modo solo lectura
-                                Text(
-                                    text = prod,
-                                    modifier = Modifier.weight(1f),
-                                    color = Color.Black,
-                                    fontSize = 14.sp
-                                )
-                                IconButton(
-                                    onClick = {
-                                        productosEditables = productosEditables + (index to true)
-                                        productosFieldValues = productosFieldValues + (index to TextFieldValue(
-                                            text = prod,
-                                            selection = TextRange(0, prod.length)
-                                        ))
-                                    }
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Filled.Edit,
-                                        contentDescription = "Editar partida",
-                                        tint = Color(0xFF1976D2),
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
-                            } else {
-                                // Modo edición
-                                OutlinedTextField(
-                                    value = fieldValue,
-                                    onValueChange = { newValue ->
-                                        productosFieldValues = productosFieldValues + (index to newValue)
-                                    },
-                                    singleLine = true,
-                                    modifier = Modifier.weight(1f),
-                                    textStyle = LocalTextStyle.current.copy(color = Color.Black),
-                                    colors = TextFieldDefaults.outlinedTextFieldColors(
-                                        cursorColor = Color.Black,
-                                        focusedBorderColor = Color(0xFF1976D2),
-                                        unfocusedBorderColor = Color(0xFF1976D2)
-                                    )
-                                )
-                                IconButton(
-                                    onClick = {
-                                        // Guardar la edición
-                                        val newProductos = productos.toMutableList()
-                                        newProductos[index] = fieldValue.text
-                                        productos = newProductos
-                                        productosEditables = productosEditables + (index to false)
-                                    }
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Filled.Save,
-                                        contentDescription = "Guardar partida",
-                                        tint = Color(0xFF4CAF50),
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
-                            }
-                            
-                            // Botón eliminar siempre visible
-                            IconButton(
-                                onClick = {
-                                    productos = productos.filterIndexed { i, _ -> i != index }
-                                    // Limpiar estados relacionados con este índice
-                                    productosEditables = productosEditables.filterKeys { it != index }
-                                    productosFieldValues = productosFieldValues.filterKeys { it != index }
-                                }
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "Eliminar producto",
-                                    tint = Color.Red,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                        }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.LocationOn,
+                            contentDescription = "Stockear",
+                            tint = Color.White,
+                            modifier = Modifier.size(32.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Escanear Ubicación",
+                            color = Color.White,
+                            fontSize = 18.sp
+                        )
                     }
                 }
-            }
+            } 
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Cerrar la lógica secuencial
+            
             // Listado de ubicaciones (no dropdown)
             if (ubicaciones.isNotEmpty()) {
                 Column(
@@ -414,142 +851,10 @@ fun EstivacionScreen(
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            // Botón escanear ubicación solo aparece cuando hay productos
-            if (productos.isNotEmpty()) {
-                if (ubicacionLocal.isBlank()) {
-                    Button(
-                        onClick = {
-                            if (hasCameraPermission) {
-                                onStockearClick("ubicacion")
-                            } else {
-                                launcher.launch(android.Manifest.permission.CAMERA)
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth(0.8f)
-                            .height(48.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2))
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.LocationOn,
-                                contentDescription = "Stockear",
-                                tint = Color.White,
-                                modifier = Modifier.size(32.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Escanear ubicación",
-                                color = Color.White,
-                                fontSize = 18.sp
-                            )
-                        }
-                    }
-                } else {
-                    // Mostrar ubicación escaneada con íconos de edición y reescaneo
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth(0.8f)
-                            .background(Color(0xFFF5F5F5), RoundedCornerShape(12.dp))
-                            .padding(16.dp)
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Ubicación:",
-                                color = Color(0xFF1976D2),
-                                fontSize = 14.sp,
-                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
-                            )
-                            
-                            if (!ubicacionEditable) {
-                                // Modo solo lectura
-                                Text(
-                                    text = ubicacionLocal,
-                                    color = Color.Black,
-                                    fontSize = 16.sp,
-                                    modifier = Modifier.padding(top = 4.dp)
-                                )
-                            } else {
-                                // Modo edición
-                                OutlinedTextField(
-                                    value = ubicacionFieldValue,
-                                    onValueChange = { ubicacionFieldValue = it },
-                                    singleLine = true,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .focusRequester(ubicacionFocusRequester),
-                                    textStyle = LocalTextStyle.current.copy(color = Color.Black),
-                                    colors = TextFieldDefaults.outlinedTextFieldColors(
-                                        cursorColor = Color.Black,
-                                        focusedBorderColor = Color(0xFF1976D2),
-                                        unfocusedBorderColor = Color(0xFF1976D2)
-                                    )
-                                )
-                                
-                                // Auto-focus cuando se habilita la edición
-                                LaunchedEffect(ubicacionEditable) {
-                                    if (ubicacionEditable) {
-                                        ubicacionFocusRequester.requestFocus()
-                                    }
-                                }
-                            }
-                        }
-                        
-                        Column {
-                            // Botón editar/guardar
-                            IconButton(
-                                onClick = {
-                                    if (!ubicacionEditable) {
-                                        ubicacionEditable = true
-                                        ubicacionFieldValue = TextFieldValue(
-                                            text = ubicacionLocal,
-                                            selection = TextRange(0, ubicacionLocal.length)
-                                        )
-                                    } else {
-                                        // Guardar la edición
-                                        ubicacionLocal = ubicacionFieldValue.text
-                                        ubicacionEditable = false
-                                    }
-                                }
-                            ) {
-                                Icon(
-                                    imageVector = if (ubicacionEditable) Icons.Filled.Save else Icons.Filled.Edit,
-                                    contentDescription = if (ubicacionEditable) "Guardar ubicación" else "Editar ubicación",
-                                    tint = if (ubicacionEditable) Color(0xFF4CAF50) else Color(0xFF1976D2),
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                            
-                            // Botón reescanear
-                            IconButton(
-                                onClick = {
-                                    if (hasCameraPermission) {
-                                        onStockearClick("ubicacion")
-                                    } else {
-                                        launcher.launch(android.Manifest.permission.CAMERA)
-                                    }
-                                }
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Filled.Refresh,
-                                    contentDescription = "Reescanear ubicación",
-                                    tint = Color(0xFF1976D2),
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                        }
-                    }
-                }
-            }
+            // Los botones de escaneo ya están integrados en la lógica secuencial arriba
 
 
-           if(productos.isNotEmpty() && !ubicacionLocal.isBlank())
+           if(partidaLocal.isNotBlank() && ubicacionLocal.isNotBlank())
            {// Campo editable para observación
             OutlinedTextField(
                 value = observacion,
@@ -575,27 +880,27 @@ fun EstivacionScreen(
                 .align(Alignment.BottomEnd)
                 .padding(24.dp)
         ) {
-            val enabled = productos.isNotEmpty() && !ubicacionLocal.isBlank()
+            val enabled = partidaLocal.isNotBlank() && ubicacionLocal.isNotBlank()
             var errorEnvio by remember { mutableStateOf<String?>(null) }
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 // Aquí el botón de enviar
-                if (productos.isNotEmpty() && !ubicacionLocal.isBlank()) {
+                if (partidaLocal.isNotBlank() && ubicacionLocal.isNotBlank()) {
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(
                         onClick = {
                             errorEnvio = null
-                            val ubicacionLimpia = ubicacionLocal.trim().replace(" ", "")
+                            val ubicacionLimpia = ubicacionLocal
                             Log.d("EstivacionScreen", "Ubicación original: '$ubicacionLocal'")
                             Log.d("EstivacionScreen", "Ubicación procesada (sin espacios): '$ubicacionLimpia'")
 
-                            val partidas = productos.map { prod ->
+                            val partidas = listOf(
                                 EstibarPartida(
                                     nombreUbicacion = ubicacionLimpia,
-                                    numPartida = prod
+                                    numPartida = partidaLocal
                                 )
-                            }
+                            )
                             val fechaHora = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault()).format(Date())
                             val usuario = prefs.getString("savedUser", "") ?: ""
                             val obsFinal = if (observacion.isNotBlank()) "$usuario: $observacion" else usuario

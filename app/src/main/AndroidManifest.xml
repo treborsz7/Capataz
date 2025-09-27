@@ -10,9 +10,9 @@
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
-        android:icon="@mipmap/ic_launcher"
+    android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
+    android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.BarCodeScanner"
         android:usesCleartextTraffic="true"
@@ -21,6 +21,7 @@
             android:name=".view.LoginActivity"
             android:exported="true"
             android:label="@string/app_name"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.BarCodeScanner">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -32,46 +33,55 @@
             android:name=".view.MainActivity"
             android:exported="false"
             android:label="@string/app_name"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.BarCodeScanner" />
         <activity
             android:name=".view.EstivacionActivity"
             android:exported="false"
             android:label="Estivacion"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.BarCodeScanner" />
         <activity
             android:name=".view.BarcodeScannerActivity"
             android:exported="false"
             android:label="Escanear"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.BarCodeScanner" />
         <activity
             android:name=".view.EstivacionSuccessActivity"
             android:exported="false"
             android:label="Success"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.BarCodeScanner" />
         <activity
             android:name=".view.SplashActivity"
             android:exported="false"
             android:label="Splash"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.BarCodeScanner" />
         <activity
             android:name=".view.RecolectarActivity"
             android:exported="false"
             android:label="Recolectar"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.BarCodeScanner" />
         <activity
             android:name=".view.ReubicacionActivity"
             android:exported="false"
             android:label="Reubicacion"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.BarCodeScanner" />
         <activity
             android:name=".view.ListadoOrdenesActivity"
             android:exported="false"
             android:label="Listado de Órdenes"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.BarCodeScanner" />
         <activity
             android:name=".view.RecolectarByQRActivity"
             android:exported="false"
             android:label="Recolectar por QR"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.BarCodeScanner" />
     </application>
 

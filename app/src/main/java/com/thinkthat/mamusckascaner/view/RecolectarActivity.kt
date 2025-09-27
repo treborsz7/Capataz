@@ -82,7 +82,8 @@ class RecolectarActivity : ComponentActivity() {
                                         // Retry with path param if 404 or generic Not Found
                                         if (code == 404 || response.message().contains("Not Found", true)) {
                                             Log.d("RecolectarActivity", "Reintentando Ubicaciones con path ...")
-
+                                            isLoadingUbicaciones = false
+                                            errorUbicaciones = "Error ${code}: ${response.message()}"
                                         } else {
                                             isLoadingUbicaciones = false
                                             errorUbicaciones = "Error ${code}: ${response.message()}"

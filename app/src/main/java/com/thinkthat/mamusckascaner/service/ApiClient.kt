@@ -59,7 +59,8 @@ data class UbicacionResponse(
     val nombre: String,
     val alias: String,
     var orden: Number,
-    val codArticulo: String
+    val codArticulo: String,
+    val cantidad: Number
 )
 
 data class EstibarPartida(

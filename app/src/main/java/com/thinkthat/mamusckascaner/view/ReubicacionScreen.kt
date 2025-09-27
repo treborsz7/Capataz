@@ -6,6 +6,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Refresh
@@ -77,25 +79,48 @@ fun ReubicacionScreen(
     LaunchedEffect(deposito) {
         prefs.edit().putString("savedDeposito", deposito).apply()
     }
-    var productoActual by remember { mutableStateOf<String?>(null) }
-    var ubicacionOrigenActual by remember { mutableStateOf<String?>(null) }
-    var ubicacionDestinoActual by remember { mutableStateOf<String?>(null) }
+    
+    // Estados para campos editables
+    var productoLocal by remember { mutableStateOf(producto ?: "") }
+    var productoEditable by remember { mutableStateOf(false) }
+    var productoFieldValue by remember { mutableStateOf(TextFieldValue(producto ?: "")) }
+    val productoFocusRequester = remember { FocusRequester() }
+    
+    var ubicacionOrigenLocal by remember { mutableStateOf(ubicacionOrigen ?: "") }
+    var ubicacionOrigenEditable by remember { mutableStateOf(false) }
+    var ubicacionOrigenFieldValue by remember { mutableStateOf(TextFieldValue(ubicacionOrigen ?: "")) }
+    val ubicacionOrigenFocusRequester = remember { FocusRequester() }
+    
+    var ubicacionDestinoLocal by remember { mutableStateOf(ubicacionDestino ?: "") }
+    var ubicacionDestinoEditable by remember { mutableStateOf(false) }
+    var ubicacionDestinoFieldValue by remember { mutableStateOf(TextFieldValue(ubicacionDestino ?: "")) }
+    val ubicacionDestinoFocusRequester = remember { FocusRequester() }
+    
     var errorEnvio by remember { mutableStateOf<String?>(null) }
-    var observacion:String = ""
-    // Manejo de escaneo
+    var observacion by remember { mutableStateOf("") }
+    // Sincronización de valores de la cámara
     LaunchedEffect(producto) {
-        if (!producto.isNullOrBlank()) {
-            productoActual = producto
+        if (producto != null) {
+            productoLocal = producto
+            productoFieldValue = TextFieldValue(producto)
+            // Salir del modo editable si estaba activo
+            productoEditable = false
         }
     }
     LaunchedEffect(ubicacionOrigen) {
-        if (!ubicacionOrigen.isNullOrBlank()) {
-            ubicacionOrigenActual = ubicacionOrigen
+        if (ubicacionOrigen != null) {
+            ubicacionOrigenLocal = ubicacionOrigen
+            ubicacionOrigenFieldValue = TextFieldValue(ubicacionOrigen)
+            // Salir del modo editable si estaba activo
+            ubicacionOrigenEditable = false
         }
     }
     LaunchedEffect(ubicacionDestino) {
-        if (!ubicacionDestino.isNullOrBlank()) {
-            ubicacionDestinoActual = ubicacionDestino
+        if (ubicacionDestino != null) {
+            ubicacionDestinoLocal = ubicacionDestino
+            ubicacionDestinoFieldValue = TextFieldValue(ubicacionDestino)
+            // Salir del modo editable si estaba activo
+            ubicacionDestinoEditable = false
         }
     }
 
@@ -222,8 +247,104 @@ fun ReubicacionScreen(
                     }
                 }
             }
-            // Botón escanear producto o mostrar producto escaneado
-            if (productoActual.isNullOrBlank()) {
+
+            // Lógica secuencial: mostrar campos y botones según el estado
+            if (productoLocal.isBlank()) {
+                // 1. Mostrar campo producto + botón escanear producto
+                if (!productoEditable) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(0.8f)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .background(Color.Transparent)
+                                .padding(16.dp)
+                        ) {
+                            Text(
+                                text = "Partida:",
+                                color = Color.Gray,
+                                fontSize = 16.sp
+                            )
+                        }
+                        IconButton(
+                            onClick = {
+                                if (hasCameraPermission) {
+                                    onReubicarClick("producto")
+                                } else {
+                                    launcher.launch(android.Manifest.permission.CAMERA)
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.CameraAlt,
+                                contentDescription = "Escanear partida",
+                                tint = Color(0xFF1976D2)
+                            )
+                        }
+                        IconButton(
+                            onClick = { 
+                                productoEditable = true
+                                productoFieldValue = TextFieldValue(
+                                    text = productoLocal,
+                                    selection = TextRange(0, productoLocal.length)
+                                )
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Edit,
+                                contentDescription = "Editar partida",
+                                tint = Color(0xFF1976D2)
+                            )
+                        }
+                    }
+                } else {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(0.8f)
+                    ) {
+                        OutlinedTextField(
+                            value = productoFieldValue,
+                            onValueChange = { productoFieldValue = it },
+                            label = { Text("Partida", color = Color.Black) },
+                            singleLine = true,
+                            modifier = Modifier
+                                .weight(1f)
+                                .focusRequester(productoFocusRequester),
+                            textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                            colors = TextFieldDefaults.outlinedTextFieldColors(
+                                cursorColor = Color.Black,
+                                focusedBorderColor = Color(0xFF1976D2),
+                                unfocusedBorderColor = Color(0xFF1976D2),
+                                focusedLabelColor = Color.Black,
+                                unfocusedLabelColor = Color.Black
+                            )
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        IconButton(
+                            onClick = {
+                                productoLocal = productoFieldValue.text
+                                productoEditable = false
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Save,
+                                contentDescription = "Guardar partida",
+                                tint = Color(0xFF1976D2)
+                            )
+                        }
+                    }
+                    
+                    LaunchedEffect(productoEditable) {
+                        if (productoEditable) {
+                            productoFocusRequester.requestFocus()
+                        }
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
                 Button(
                     onClick = {
                         if (hasCameraPermission) {
@@ -257,32 +378,196 @@ fun ReubicacionScreen(
                         )
                     }
                 }
-            } else {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth(0.8f)
-                        .background(Color(0xFFF5F5F5), RoundedCornerShape(12.dp))
-                        .padding(8.dp)
-                ) {
-                    Text(productoActual ?: "-", modifier = Modifier.weight(1f), color=Color.Black)
-                    IconButton(onClick = {
-                        if (hasCameraPermission) {
-                            onReubicarClick("producto")
-                        } else {
-                            launcher.launch(android.Manifest.permission.CAMERA)
+            } else if (ubicacionOrigenLocal.isBlank()) {
+                // 2. Mostrar campo producto (completado) + campo ubicación origen + botón escanear ubicación origen
+                if (!productoEditable) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(0.8f)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .background(Color.Transparent)
+                                .padding(16.dp)
+                        ) {
+                            Text(
+                                text = "Partida: $productoLocal",
+                                color = Color.Gray,
+                                fontSize = 16.sp
+                            )
                         }
-                    }) {
-                        Icon(
-                            imageVector = Icons.Filled.Refresh,
-                            contentDescription = "Refrescar producto",
-                            tint = Color(0xFF1976D2)
+                        IconButton(
+                            onClick = {
+                                if (hasCameraPermission) {
+                                    onReubicarClick("producto")
+                                } else {
+                                    launcher.launch(android.Manifest.permission.CAMERA)
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.CameraAlt,
+                                contentDescription = "Escanear partida",
+                                tint = Color(0xFF1976D2)
+                            )
+                        }
+                        IconButton(
+                            onClick = { 
+                                productoEditable = true
+                                productoFieldValue = TextFieldValue(
+                                    text = productoLocal,
+                                    selection = TextRange(0, productoLocal.length)
+                                )
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Edit,
+                                contentDescription = "Editar partida",
+                                tint = Color(0xFF1976D2)
+                            )
+                        }
+                    }
+                } else {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(0.8f)
+                    ) {
+                        OutlinedTextField(
+                            value = productoFieldValue,
+                            onValueChange = { productoFieldValue = it },
+                            label = { Text("Partida", color = Color.Black) },
+                            singleLine = true,
+                            modifier = Modifier
+                                .weight(1f)
+                                .focusRequester(productoFocusRequester),
+                            textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                            colors = TextFieldDefaults.outlinedTextFieldColors(
+                                cursorColor = Color.Black,
+                                focusedBorderColor = Color(0xFF1976D2),
+                                unfocusedBorderColor = Color(0xFF1976D2),
+                                focusedLabelColor = Color.Black,
+                                unfocusedLabelColor = Color.Black
+                            )
                         )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        IconButton(
+                            onClick = {
+                                productoLocal = productoFieldValue.text
+                                productoEditable = false
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Save,
+                                contentDescription = "Guardar partida",
+                                tint = Color(0xFF1976D2)
+                            )
+                        }
+                    }
+                    
+                    LaunchedEffect(productoEditable) {
+                        if (productoEditable) {
+                            productoFocusRequester.requestFocus()
+                        }
                     }
                 }
-            }
-            // Botón escanear ubicación origen o mostrar ubicación origen escaneada
-            if (!productoActual.isNullOrBlank() && ubicacionOrigenActual.isNullOrBlank()) {
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                if (!ubicacionOrigenEditable) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(0.8f)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .background(Color.Transparent)
+                                .padding(16.dp)
+                        ) {
+                            Text(
+                                text = "Ubicación Origen:",
+                                color = Color.Gray,
+                                fontSize = 16.sp
+                            )
+                        }
+                        IconButton(
+                            onClick = {
+                                if (hasCameraPermission) {
+                                    onReubicarClick("ubicacion_origen")
+                                } else {
+                                    launcher.launch(android.Manifest.permission.CAMERA)
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.CameraAlt,
+                                contentDescription = "Escanear ubicación origen",
+                                tint = Color(0xFF1976D2)
+                            )
+                        }
+                        IconButton(
+                            onClick = { 
+                                ubicacionOrigenEditable = true
+                                ubicacionOrigenFieldValue = TextFieldValue(
+                                    text = ubicacionOrigenLocal,
+                                    selection = TextRange(0, ubicacionOrigenLocal.length)
+                                )
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Edit,
+                                contentDescription = "Editar ubicación origen",
+                                tint = Color(0xFF1976D2)
+                            )
+                        }
+                    }
+                } else {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(0.8f)
+                    ) {
+                        OutlinedTextField(
+                            value = ubicacionOrigenFieldValue,
+                            onValueChange = { ubicacionOrigenFieldValue = it },
+                            label = { Text("Ubicación Origen", color = Color.Black) },
+                            singleLine = true,
+                            modifier = Modifier
+                                .weight(1f)
+                                .focusRequester(ubicacionOrigenFocusRequester),
+                            textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                            colors = TextFieldDefaults.outlinedTextFieldColors(
+                                cursorColor = Color.Black,
+                                focusedBorderColor = Color(0xFF1976D2),
+                                unfocusedBorderColor = Color(0xFF1976D2),
+                                focusedLabelColor = Color.Black,
+                                unfocusedLabelColor = Color.Black
+                            )
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        IconButton(
+                            onClick = {
+                                ubicacionOrigenLocal = ubicacionOrigenFieldValue.text
+                                ubicacionOrigenEditable = false
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Save,
+                                contentDescription = "Guardar ubicación origen",
+                                tint = Color(0xFF1976D2)
+                            )
+                        }
+                    }
+                    
+                    LaunchedEffect(ubicacionOrigenEditable) {
+                        if (ubicacionOrigenEditable) {
+                            ubicacionOrigenFocusRequester.requestFocus()
+                        }
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
                 Button(
                     onClick = {
                         if (hasCameraPermission) {
@@ -310,38 +595,296 @@ fun ReubicacionScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Ubicación Origen",
+                            text = "Escanear Ubicación Origen",
                             color = Color.White,
                             fontSize = 18.sp
                         )
                     }
                 }
-            } else if (!productoActual.isNullOrBlank() && !ubicacionOrigenActual.isNullOrBlank()) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth(0.8f)
-                        .background(Color(0xFFF5F5F5), RoundedCornerShape(12.dp))
-                        .padding(8.dp)
-                ) {
-                    Text(ubicacionOrigenActual ?: "-", modifier = Modifier.weight(1f), color=Color.Black)
-                    IconButton(onClick = {
-                        if (hasCameraPermission) {
-                            onReubicarClick("ubicacion_origen")
-                        } else {
-                            launcher.launch(android.Manifest.permission.CAMERA)
+            } else if (ubicacionDestinoLocal.isBlank()) {
+                // 3. Mostrar campos producto y ubicación origen (completados) + campo ubicación destino + botón escanear ubicación destino
+                if (!productoEditable) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(0.8f)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .background(Color.Transparent)
+                                .padding(16.dp)
+                        ) {
+                            Text(
+                                text = "Partida: $productoLocal",
+                                color = Color.Gray,
+                                fontSize = 16.sp
+                            )
                         }
-                    }) {
-                        Icon(
-                            imageVector = Icons.Filled.Refresh,
-                            contentDescription = "Refrescar ubicación origen",
-                            tint = Color(0xFF1976D2)
+                        IconButton(
+                            onClick = {
+                                if (hasCameraPermission) {
+                                    onReubicarClick("producto")
+                                } else {
+                                    launcher.launch(android.Manifest.permission.CAMERA)
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.CameraAlt,
+                                contentDescription = "Escanear partida",
+                                tint = Color(0xFF1976D2)
+                            )
+                        }
+                        IconButton(
+                            onClick = { 
+                                productoEditable = true
+                                productoFieldValue = TextFieldValue(
+                                    text = productoLocal,
+                                    selection = TextRange(0, productoLocal.length)
+                                )
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Edit,
+                                contentDescription = "Editar partida",
+                                tint = Color(0xFF1976D2)
+                            )
+                        }
+                    }
+                } else {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(0.8f)
+                    ) {
+                        OutlinedTextField(
+                            value = productoFieldValue,
+                            onValueChange = { productoFieldValue = it },
+                            label = { Text("Partida", color = Color.Black) },
+                            singleLine = true,
+                            modifier = Modifier
+                                .weight(1f)
+                                .focusRequester(productoFocusRequester),
+                            textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                            colors = TextFieldDefaults.outlinedTextFieldColors(
+                                cursorColor = Color.Black,
+                                focusedBorderColor = Color(0xFF1976D2),
+                                unfocusedBorderColor = Color(0xFF1976D2),
+                                focusedLabelColor = Color.Black,
+                                unfocusedLabelColor = Color.Black
+                            )
                         )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        IconButton(
+                            onClick = {
+                                productoLocal = productoFieldValue.text
+                                productoEditable = false
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Save,
+                                contentDescription = "Guardar partida",
+                                tint = Color(0xFF1976D2)
+                            )
+                        }
+                    }
+                    
+                    LaunchedEffect(productoEditable) {
+                        if (productoEditable) {
+                            productoFocusRequester.requestFocus()
+                        }
                     }
                 }
-            }
-            // Botón escanear ubicación destino o mostrar ubicación destino escaneada
-            if (!productoActual.isNullOrBlank() && !ubicacionOrigenActual.isNullOrBlank() && ubicacionDestinoActual.isNullOrBlank()) {
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                if (!ubicacionOrigenEditable) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(0.8f)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .background(Color.Transparent)
+                                .padding(16.dp)
+                        ) {
+                            Text(
+                                text = "Ubicación Origen: $ubicacionOrigenLocal",
+                                color = Color.Gray,
+                                fontSize = 16.sp
+                            )
+                        }
+                        IconButton(
+                            onClick = {
+                                if (hasCameraPermission) {
+                                    onReubicarClick("ubicacion_origen")
+                                } else {
+                                    launcher.launch(android.Manifest.permission.CAMERA)
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.CameraAlt,
+                                contentDescription = "Escanear ubicación origen",
+                                tint = Color(0xFF1976D2)
+                            )
+                        }
+                        IconButton(
+                            onClick = { 
+                                ubicacionOrigenEditable = true
+                                ubicacionOrigenFieldValue = TextFieldValue(
+                                    text = ubicacionOrigenLocal,
+                                    selection = TextRange(0, ubicacionOrigenLocal.length)
+                                )
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Edit,
+                                contentDescription = "Editar ubicación origen",
+                                tint = Color(0xFF1976D2)
+                            )
+                        }
+                    }
+                } else {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(0.8f)
+                    ) {
+                        OutlinedTextField(
+                            value = ubicacionOrigenFieldValue,
+                            onValueChange = { ubicacionOrigenFieldValue = it },
+                            label = { Text("Ubicación Origen", color = Color.Black) },
+                            singleLine = true,
+                            modifier = Modifier
+                                .weight(1f)
+                                .focusRequester(ubicacionOrigenFocusRequester),
+                            textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                            colors = TextFieldDefaults.outlinedTextFieldColors(
+                                cursorColor = Color.Black,
+                                focusedBorderColor = Color(0xFF1976D2),
+                                unfocusedBorderColor = Color(0xFF1976D2),
+                                focusedLabelColor = Color.Black,
+                                unfocusedLabelColor = Color.Black
+                            )
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        IconButton(
+                            onClick = {
+                                ubicacionOrigenLocal = ubicacionOrigenFieldValue.text
+                                ubicacionOrigenEditable = false
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Save,
+                                contentDescription = "Guardar ubicación origen",
+                                tint = Color(0xFF1976D2)
+                            )
+                        }
+                    }
+                    
+                    LaunchedEffect(ubicacionOrigenEditable) {
+                        if (ubicacionOrigenEditable) {
+                            ubicacionOrigenFocusRequester.requestFocus()
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                if (!ubicacionDestinoEditable) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(0.8f)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .background(Color.Transparent)
+                                .padding(16.dp)
+                        ) {
+                            Text(
+                                text = "Ubicación Destino:",
+                                color = Color.Gray,
+                                fontSize = 16.sp
+                            )
+                        }
+                        IconButton(
+                            onClick = {
+                                if (hasCameraPermission) {
+                                    onReubicarClick("ubicacion_destino")
+                                } else {
+                                    launcher.launch(android.Manifest.permission.CAMERA)
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.CameraAlt,
+                                contentDescription = "Escanear ubicación destino",
+                                tint = Color(0xFF1976D2)
+                            )
+                        }
+                        IconButton(
+                            onClick = { 
+                                ubicacionDestinoEditable = true
+                                ubicacionDestinoFieldValue = TextFieldValue(
+                                    text = ubicacionDestinoLocal,
+                                    selection = TextRange(0, ubicacionDestinoLocal.length)
+                                )
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Edit,
+                                contentDescription = "Editar ubicación destino",
+                                tint = Color(0xFF1976D2)
+                            )
+                        }
+                    }
+                } else {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(0.8f)
+                    ) {
+                        OutlinedTextField(
+                            value = ubicacionDestinoFieldValue,
+                            onValueChange = { ubicacionDestinoFieldValue = it },
+                            label = { Text("Ubicación Destino", color = Color.Black) },
+                            singleLine = true,
+                            modifier = Modifier
+                                .weight(1f)
+                                .focusRequester(ubicacionDestinoFocusRequester),
+                            textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                            colors = TextFieldDefaults.outlinedTextFieldColors(
+                                cursorColor = Color.Black,
+                                focusedBorderColor = Color(0xFF1976D2),
+                                unfocusedBorderColor = Color(0xFF1976D2),
+                                focusedLabelColor = Color.Black,
+                                unfocusedLabelColor = Color.Black
+                            )
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        IconButton(
+                            onClick = {
+                                ubicacionDestinoLocal = ubicacionDestinoFieldValue.text
+                                ubicacionDestinoEditable = false
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Save,
+                                contentDescription = "Guardar ubicación destino",
+                                tint = Color(0xFF1976D2)
+                            )
+                        }
+                    }
+                    
+                    LaunchedEffect(ubicacionDestinoEditable) {
+                        if (ubicacionDestinoEditable) {
+                            ubicacionDestinoFocusRequester.requestFocus()
+                        }
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
                 Button(
                     onClick = {
                         if (hasCameraPermission) {
@@ -369,39 +912,301 @@ fun ReubicacionScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Ubicación Destino",
+                            text = "Escanear Ubicación Destino",
                             color = Color.White,
                             fontSize = 18.sp
                         )
                     }
                 }
-            } else if (!productoActual.isNullOrBlank() && !ubicacionOrigenActual.isNullOrBlank() && !ubicacionDestinoActual.isNullOrBlank()) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth(0.8f)
-                        .background(Color(0xFFF5F5F5), RoundedCornerShape(12.dp))
-                        .padding(8.dp)
-                ) {
-                    Text(ubicacionDestinoActual ?: "-", modifier = Modifier.weight(1f), color=Color.Black)
-                    IconButton(onClick = {
-                        if (hasCameraPermission) {
-                            onReubicarClick("ubicacion_destino")
-                        } else {
-                            launcher.launch(android.Manifest.permission.CAMERA)
+            } else {
+                // 4. Mostrar todos los campos (completados) con botones de edición/escaneo
+                if (!productoEditable) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(0.8f)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .background(Color.Transparent)
+                                .padding(16.dp)
+                        ) {
+                            Text(
+                                text = "Partida: $productoLocal",
+                                color = Color.Gray,
+                                fontSize = 16.sp
+                            )
                         }
-                    }) {
-                        Icon(
-                            imageVector = Icons.Filled.Refresh,
-                            contentDescription = "Refrescar ubicación destino",
-                            tint = Color(0xFF1976D2)
+                        IconButton(
+                            onClick = {
+                                if (hasCameraPermission) {
+                                    onReubicarClick("producto")
+                                } else {
+                                    launcher.launch(android.Manifest.permission.CAMERA)
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.CameraAlt,
+                                contentDescription = "Escanear partida",
+                                tint = Color(0xFF1976D2)
+                            )
+                        }
+                        IconButton(
+                            onClick = { 
+                                productoEditable = true
+                                productoFieldValue = TextFieldValue(
+                                    text = productoLocal,
+                                    selection = TextRange(0, productoLocal.length)
+                                )
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Edit,
+                                contentDescription = "Editar partida",
+                                tint = Color(0xFF1976D2)
+                            )
+                        }
+                    }
+                } else {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(0.8f)
+                    ) {
+                        OutlinedTextField(
+                            value = productoFieldValue,
+                            onValueChange = { productoFieldValue = it },
+                            label = { Text("Partida", color = Color.Black) },
+                            singleLine = true,
+                            modifier = Modifier
+                                .weight(1f)
+                                .focusRequester(productoFocusRequester),
+                            textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                            colors = TextFieldDefaults.outlinedTextFieldColors(
+                                cursorColor = Color.Black,
+                                focusedBorderColor = Color(0xFF1976D2),
+                                unfocusedBorderColor = Color(0xFF1976D2),
+                                focusedLabelColor = Color.Black,
+                                unfocusedLabelColor = Color.Black
+                            )
                         )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        IconButton(
+                            onClick = {
+                                productoLocal = productoFieldValue.text
+                                productoEditable = false
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Save,
+                                contentDescription = "Guardar partida",
+                                tint = Color(0xFF1976D2)
+                            )
+                        }
+                    }
+                    
+                    LaunchedEffect(productoEditable) {
+                        if (productoEditable) {
+                            productoFocusRequester.requestFocus()
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                if (!ubicacionOrigenEditable) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(0.8f)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .background(Color.Transparent)
+                                .padding(16.dp)
+                        ) {
+                            Text(
+                                text = "Ubicación Origen: $ubicacionOrigenLocal",
+                                color = Color.Gray,
+                                fontSize = 16.sp
+                            )
+                        }
+                        IconButton(
+                            onClick = {
+                                if (hasCameraPermission) {
+                                    onReubicarClick("ubicacion_origen")
+                                } else {
+                                    launcher.launch(android.Manifest.permission.CAMERA)
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.CameraAlt,
+                                contentDescription = "Escanear ubicación origen",
+                                tint = Color(0xFF1976D2)
+                            )
+                        }
+                        IconButton(
+                            onClick = { 
+                                ubicacionOrigenEditable = true
+                                ubicacionOrigenFieldValue = TextFieldValue(
+                                    text = ubicacionOrigenLocal,
+                                    selection = TextRange(0, ubicacionOrigenLocal.length)
+                                )
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Edit,
+                                contentDescription = "Editar ubicación origen",
+                                tint = Color(0xFF1976D2)
+                            )
+                        }
+                    }
+                } else {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(0.8f)
+                    ) {
+                        OutlinedTextField(
+                            value = ubicacionOrigenFieldValue,
+                            onValueChange = { ubicacionOrigenFieldValue = it },
+                            label = { Text("Ubicación Origen", color = Color.Black) },
+                            singleLine = true,
+                            modifier = Modifier
+                                .weight(1f)
+                                .focusRequester(ubicacionOrigenFocusRequester),
+                            textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                            colors = TextFieldDefaults.outlinedTextFieldColors(
+                                cursorColor = Color.Black,
+                                focusedBorderColor = Color(0xFF1976D2),
+                                unfocusedBorderColor = Color(0xFF1976D2),
+                                focusedLabelColor = Color.Black,
+                                unfocusedLabelColor = Color.Black
+                            )
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        IconButton(
+                            onClick = {
+                                ubicacionOrigenLocal = ubicacionOrigenFieldValue.text
+                                ubicacionOrigenEditable = false
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Save,
+                                contentDescription = "Guardar ubicación origen",
+                                tint = Color(0xFF1976D2)
+                            )
+                        }
+                    }
+                    
+                    LaunchedEffect(ubicacionOrigenEditable) {
+                        if (ubicacionOrigenEditable) {
+                            ubicacionOrigenFocusRequester.requestFocus()
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                if (!ubicacionDestinoEditable) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(0.8f)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .background(Color.Transparent)
+                                .padding(16.dp)
+                        ) {
+                            Text(
+                                text = "Ubicación Destino: $ubicacionDestinoLocal",
+                                color = Color.Gray,
+                                fontSize = 16.sp
+                            )
+                        }
+                        IconButton(
+                            onClick = {
+                                if (hasCameraPermission) {
+                                    onReubicarClick("ubicacion_destino")
+                                } else {
+                                    launcher.launch(android.Manifest.permission.CAMERA)
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.CameraAlt,
+                                contentDescription = "Escanear ubicación destino",
+                                tint = Color(0xFF1976D2)
+                            )
+                        }
+                        IconButton(
+                            onClick = { 
+                                ubicacionDestinoEditable = true
+                                ubicacionDestinoFieldValue = TextFieldValue(
+                                    text = ubicacionDestinoLocal,
+                                    selection = TextRange(0, ubicacionDestinoLocal.length)
+                                )
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Edit,
+                                contentDescription = "Editar ubicación destino",
+                                tint = Color(0xFF1976D2)
+                            )
+                        }
+                    }
+                } else {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(0.8f)
+                    ) {
+                        OutlinedTextField(
+                            value = ubicacionDestinoFieldValue,
+                            onValueChange = { ubicacionDestinoFieldValue = it },
+                            label = { Text("Ubicación Destino", color = Color.Black) },
+                            singleLine = true,
+                            modifier = Modifier
+                                .weight(1f)
+                                .focusRequester(ubicacionDestinoFocusRequester),
+                            textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                            colors = TextFieldDefaults.outlinedTextFieldColors(
+                                cursorColor = Color.Black,
+                                focusedBorderColor = Color(0xFF1976D2),
+                                unfocusedBorderColor = Color(0xFF1976D2),
+                                focusedLabelColor = Color.Black,
+                                unfocusedLabelColor = Color.Black
+                            )
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        IconButton(
+                            onClick = {
+                                ubicacionDestinoLocal = ubicacionDestinoFieldValue.text
+                                ubicacionDestinoEditable = false
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Save,
+                                contentDescription = "Guardar ubicación destino",
+                                tint = Color(0xFF1976D2)
+                            )
+                        }
+                    }
+                    
+                    LaunchedEffect(ubicacionDestinoEditable) {
+                        if (ubicacionDestinoEditable) {
+                            ubicacionDestinoFocusRequester.requestFocus()
+                        }
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Los botones de escaneo ya están integrados en la lógica secuencial arriba
            
             // Botón de enviar solo si los tres campos están cargados
-            if (!productoActual.isNullOrBlank() && !ubicacionOrigenActual.isNullOrBlank() && !ubicacionDestinoActual.isNullOrBlank() && deposito.isNotBlank()) {
+            if (productoLocal.isNotBlank() && ubicacionOrigenLocal.isNotBlank() && ubicacionDestinoLocal.isNotBlank() && deposito.isNotBlank()) {
                 Button(
                     onClick = {
                         errorEnvio = null
@@ -413,9 +1218,9 @@ fun ReubicacionScreen(
                         val obsFinal = if (observacion.isNotBlank()) "$usuario: $observacion" else usuario
 
                         val reubicacion = ReubicarPartida(
-                                nombreUbiOrigen = ubicacionOrigenActual ?: "",
-                                nombreUbiDestino= ubicacionDestinoActual ?: "",
-                                numPartida = productoActual!!
+                                nombreUbiOrigen = ubicacionOrigenLocal,
+                                nombreUbiDestino = ubicacionDestinoLocal,
+                                numPartida = productoLocal
                             )
 
 
