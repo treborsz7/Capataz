@@ -1,4 +1,3 @@
-import android.util.Log
 import android.view.ViewGroup
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
@@ -17,6 +16,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
@@ -50,6 +51,7 @@ import androidx.compose.foundation.layout.systemBars
 import com.thinkthat.mamusckascaner.BarScanState
 import com.thinkthat.mamusckascaner.model.BarCodeAnalyzer
 import com.thinkthat.mamusckascaner.viewmodel.BarCodeScannerViewModel
+import com.thinkthat.mamusckascaner.utils.AppLogger
 
 @Composable
 fun BarcodeScannerScreen(
@@ -123,7 +125,8 @@ fun BarcodeScannerScreen(
                 ) {
                     CameraPreview(
                         viewModel = viewModel,
-                        onScanResult = onScanResult
+                        onScanResult = onScanResult,
+                        onBack = onBack
                     )
                 }
             } else {
@@ -145,7 +148,8 @@ fun BarcodeScannerScreen(
 @Composable
 fun CameraPreview(
     viewModel: BarCodeScannerViewModel,
-    onScanResult: (String) -> Unit = {}
+    onScanResult: (String) -> Unit = {},
+    onBack: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -221,7 +225,11 @@ fun CameraPreview(
                                     imageAnalysis
                                 )
                             } catch (e: Exception) {
-                                Log.d("CameraPreview", "Error: ${e.localizedMessage}")
+                                AppLogger.logError(
+                                    tag = "BarcodeScannerScreen",
+                                    message = "Error al iniciar cámara: ${e.message}",
+                                    throwable = e
+                                )
                             }
                         }, ContextCompat.getMainExecutor(context))
                     }
@@ -286,7 +294,28 @@ fun CameraPreview(
                 }
             }
             is BarScanState.Error -> {
-
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = barScanState.error,
+                        color = Color(0xFFD32F2F),
+                        style = MaterialTheme.typography.titleMedium,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(onClick = { viewModel.resetState() }) {
+                        Text("Intentar nuevamente")
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    TextButton(onClick = { onBack() }) {
+                        Text("Volver")
+                    }
+                }
             }
         }
     }

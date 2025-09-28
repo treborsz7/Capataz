@@ -48,6 +48,7 @@ import com.thinkthat.mamusckascaner.service.Services.ApiClient
 import com.thinkthat.mamusckascaner.service.Services.EstibarPartida
 import com.thinkthat.mamusckascaner.service.Services.EstibarPartidasRequest
 import com.thinkthat.mamusckascaner.service.Services.UbicacionResponse
+import com.thinkthat.mamusckascaner.utils.AppLogger
 import com.thinkthat.mamusckascaner.view.EstivacionSuccessActivity
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -946,23 +947,24 @@ fun EstivacionScreen(
                                         }
                                     } else {
                                         val errorBody = response.errorBody()?.string() ?: "Error desconocido"
-                                        Log.e("EstivacionScreen", "Response error body: $errorBody")
-                                        Log.e("EstivacionScreen", "=== REQUEST FALLÓ ===")
+                                        AppLogger.logError(
+                                            tag = "EstivacionScreen",
+                                            message = "Error de respuesta al estibar: code=${response.code()} body=$errorBody"
+                                        )
                                         
                                         withContext(Dispatchers.Main) {
-                                            errorEnvio = errorBody
+                                            errorEnvio = "No se pudo enviar la estivación. Intenta nuevamente."
                                         }
                                     }
                                 } catch (e: Exception) {
-                                    Log.e("EstivacionScreen", "=== EXCEPCIÓN EN REQUEST ===")
-                                    Log.e("EstivacionScreen", "Exception type: ${e::class.java.simpleName}")
-                                    Log.e("EstivacionScreen", "Exception message: ${e.message}")
-                                    Log.e("EstivacionScreen", "Exception cause: ${e.cause}")
-                                    Log.e("EstivacionScreen", "Stack trace:", e)
-                                    Log.e("EstivacionScreen", "=== FIN EXCEPCIÓN ===")
+                                    AppLogger.logError(
+                                        tag = "EstivacionScreen",
+                                        message = "Excepción al estibar: ${e.message}",
+                                        throwable = e
+                                    )
                                     
                                     withContext(Dispatchers.Main) {
-                                        errorEnvio = e.message ?: "Error desconocido"
+                                        errorEnvio = "No se pudo enviar la estivación por un problema de conexión."
                                     }
                                 }
                             }
@@ -977,7 +979,6 @@ fun EstivacionScreen(
                         Text("Enviar", color = Color.White)
                     }
                     if (errorEnvio != null) {
-                        Log.e("CameraPreview", "Error: ${errorEnvio}")
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(errorEnvio ?: "", color = Color.Red, modifier = Modifier.fillMaxWidth(0.8f))
                     }

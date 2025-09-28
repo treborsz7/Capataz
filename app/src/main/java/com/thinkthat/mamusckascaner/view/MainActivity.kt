@@ -28,6 +28,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.runtime.key
 import com.thinkthat.mamusckascaner.ui.theme.BarCodeScannerTheme
+import com.thinkthat.mamusckascaner.utils.AppLogger
 import com.thinkthat.mamusckascaner.viewmodel.BarCodeScannerViewModel
 
 class MainActivity : ComponentActivity() {
@@ -116,7 +117,11 @@ class MainActivity : ComponentActivity() {
                                         android.util.Log.d("MainActivity", "LoginActivity started")
                                         // No llamar finish() para ver si eso es el problema
                                     } catch (e: Exception) {
-                                        android.util.Log.e("MainActivity", "Error during logout: ${e.message}", e)
+                                        AppLogger.logError(
+                                            tag = "MainActivity",
+                                            message = "Error durante logout: ${e.message}",
+                                            throwable = e
+                                        )
                                     }
                                 }
                             )

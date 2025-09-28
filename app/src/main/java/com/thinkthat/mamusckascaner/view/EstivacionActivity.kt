@@ -17,6 +17,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import com.thinkthat.mamusckascaner.service.Services.ApiClient
 import com.thinkthat.mamusckascaner.ui.theme.BarCodeScannerTheme
+import com.thinkthat.mamusckascaner.utils.AppLogger
 class EstivacionActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -57,13 +58,20 @@ class EstivacionActivity : ComponentActivity() {
                                                 finish()
                                             }*/
                                         } else {
-                                            android.util.Log.e("EstivacionActivity", "ubicacion fallida: respuesta no exitosa")
+                                            AppLogger.logError(
+                                                tag = "EstivacionActivity",
+                                                message = "ubicacion fallida: respuesta no exitosa"
+                                            )
                                             // Si falla el login automático, mostrar pantalla de login
                                             //mostrarPantallaLogin(savedUser, savedPass, savedRemember)
                                         }
                                     }
                                     override fun onFailure(call: retrofit2.Call<okhttp3.ResponseBody>, t: Throwable) {
-                                        android.util.Log.e("EstivacionActivity", "ubicacion onFailure: ${t.message}", t)
+                                        AppLogger.logError(
+                                            tag = "EstivacionActivity",
+                                            message = "ubicacion onFailure: ${t.message}",
+                                            throwable = t
+                                        )
                                         // Si falla el login automático, mostrar pantalla de login
                                         //mostrarPantallaLogin(savedUser, savedPass, savedRemember)
                                     }
@@ -76,7 +84,7 @@ class EstivacionActivity : ComponentActivity() {
                     EstivacionScreen(
                         onBack = { finish() },
                         onStockearClick = { tipo ->
-                            Log.e("tIPO", tipo)
+                            Log.d("EstivacionActivity", "Tipo de escaneo: $tipo")
                             tipoScan = tipo
                             val intent = Intent(this, BarcodeScannerActivity::class.java)
                             intent.putExtra("modo", tipo)

@@ -35,6 +35,7 @@ import com.thinkthat.mamusckascaner.service.Services.ApiClient
 import com.thinkthat.mamusckascaner.view.components.ErrorMessage
 import com.thinkthat.mamusckascaner.view.components.LoadingMessage
 import com.thinkthat.mamusckascaner.view.components.SuccessMessage
+import com.thinkthat.mamusckascaner.utils.AppLogger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -1104,17 +1105,24 @@ fun RecolectarScreen(
                                     }
                                 } else {
                                     val errorBody = response.errorBody()?.string() ?: "Error desconocido"
-                                    Log.e("RecolectarScreen", "❌ Error en respuesta: $errorBody")
+                                    AppLogger.logError(
+                                        tag = "RecolectarScreen",
+                                        message = "Error en respuesta: code=${response.code()} body=$errorBody"
+                                    )
                                     
                                     withContext(Dispatchers.Main) {
-                                        errorEnvio = "Error ${response.code()}: $errorBody"
+                                        errorEnvio = "No se pudo enviar la recolección. Intenta nuevamente."
                                     }
                                 }
                             } catch (e: Exception) {
-                                Log.e("RecolectarScreen", "❌ Excepción durante el envío: ${e.message}", e)
+                                AppLogger.logError(
+                                    tag = "RecolectarScreen",
+                                    message = "Excepción durante el envío: ${e.message}",
+                                    throwable = e
+                                )
                                 
                                 withContext(Dispatchers.Main) {
-                                    errorEnvio = "Error de conexión: ${e.message ?: "Error desconocido"}"
+                                    errorEnvio = "No se pudo enviar la recolección por un problema de conexión."
                                 }
                             }
                         }

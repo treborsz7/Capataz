@@ -26,6 +26,7 @@ import okhttp3.ResponseBody
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import com.thinkthat.mamusckascaner.utils.AppLogger
 import com.thinkthat.mamusckascaner.utils.QRData
 import com.thinkthat.mamusckascaner.utils.parseQRData
 
@@ -83,19 +84,30 @@ class RecolectarActivity : ComponentActivity() {
                                         if (code == 404 || response.message().contains("Not Found", true)) {
                                             Log.d("RecolectarActivity", "Reintentando Ubicaciones con path ...")
                                             isLoadingUbicaciones = false
-                                            errorUbicaciones = "Error ${code}: ${response.message()}"
+                                            AppLogger.logError(
+                                                tag = "RecolectarActivity",
+                                                message = "Ubicaciones no encontradas: code=$code message=${response.message()} body=${err ?: "sin cuerpo"}"
+                                            )
+                                            errorUbicaciones = "No se encontraron ubicaciones para el pedido."
                                         } else {
                                             isLoadingUbicaciones = false
-                                            errorUbicaciones = "Error ${code}: ${response.message()}"
-                                            Log.e("RecolectarActivity", "Ubicaciones error: code=${code} msg=${response.message()} body=$err")
+                                            AppLogger.logError(
+                                                tag = "RecolectarActivity",
+                                                message = "Ubicaciones error: code=$code message=${response.message()} body=${err ?: "sin cuerpo"}"
+                                            )
+                                            errorUbicaciones = "No se pudieron cargar las ubicaciones. Intenta nuevamente."
                                         }
                                     }
                                 }
 
                                 override fun onFailure(call: Call<List<UbicacionResponse>>, t: Throwable) {
                                     isLoadingUbicaciones = false
-                                    errorUbicaciones = "Error de conexión: ${t.message ?: "Error desconocido"}"
-                                    Log.e("RecolectarActivity", "Fallo ubicaciones", t)
+                                    AppLogger.logError(
+                                        tag = "RecolectarActivity",
+                                        message = "Fallo ubicaciones: ${t.message}",
+                                        throwable = t
+                                    )
+                                    errorUbicaciones = "No se pudieron cargar las ubicaciones. Verifica tu conexión."
                                 }
                             })
                         }
@@ -128,7 +140,7 @@ class RecolectarActivity : ComponentActivity() {
                             finish()
                         },
                         onStockearClick = { tipo ->
-                            Log.e("tIPO", tipo)
+                            Log.d("RecolectarActivity", "Tipo de escaneo: $tipo")
                             tipoScan = tipo
                             val intent = Intent(this, BarcodeScannerActivity::class.java)
                             intent.putExtra("modo", tipo)

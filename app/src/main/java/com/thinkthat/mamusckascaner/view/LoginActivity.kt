@@ -13,12 +13,14 @@ import com.codegalaxy.barcodescanner.view.LoginScreen
 import com.thinkthat.mamusckascaner.service.Services.ApiClient
 import com.thinkthat.mamusckascaner.service.Services.LoginEmpresaResponse
 import com.thinkthat.mamusckascaner.ui.theme.BarCodeScannerTheme
+import com.thinkthat.mamusckascaner.utils.AppLogger
 
 class LoginActivity : ComponentActivity() {
     private var empresasList: List<Pair<String, String>> = emptyList() // id, nombre
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+    AppLogger.init(applicationContext)
         ApiClient.init(applicationContext)
         enableEdgeToEdge()
         android.util.Log.d("LoginActivity", "LoginActivity is being created")
@@ -61,10 +63,19 @@ class LoginActivity : ComponentActivity() {
                                         mostrarPantallaLogin(savedUser, savedPass, savedRemember, savedEmpresa,prefs)
                                     }
                                 } else {
+                                    AppLogger.logError(
+                                        tag = "LoginActivity",
+                                        message = "EmpresasGet falló en auto login: code=${response.code()} message=${response.message()}"
+                                    )
                                     mostrarPantallaLogin(savedUser, savedPass, savedRemember, savedEmpresa,prefs)
                                 }
                             }
                             override fun onFailure(call: retrofit2.Call<List<LoginEmpresaResponse>>, t: Throwable) {
+                                AppLogger.logError(
+                                    tag = "LoginActivity",
+                                    message = "EmpresasGet onFailure durante auto login: ${t.message}",
+                                    throwable = t
+                                )
                                 mostrarPantallaLogin(
                                     savedUser,
                                     savedPass,
@@ -75,6 +86,10 @@ class LoginActivity : ComponentActivity() {
                             }
                         })
                     } else {
+                        AppLogger.logError(
+                            tag = "LoginActivity",
+                            message = "LoginPlano falló en auto login: code=${response.code()} message=${response.message()}"
+                        )
                         mostrarPantallaLogin(
                             savedUser,
                             savedPass,
@@ -85,6 +100,11 @@ class LoginActivity : ComponentActivity() {
                     }
                 }
                 override fun onFailure(call: retrofit2.Call<okhttp3.ResponseBody>, t: Throwable) {
+                    AppLogger.logError(
+                        tag = "LoginActivity",
+                        message = "LoginPlano onFailure en auto login: ${t.message}",
+                        throwable = t
+                    )
                     mostrarPantallaLogin(savedUser, savedPass, savedRemember, savedEmpresa, prefs)
                 }
             })
@@ -133,7 +153,7 @@ class LoginActivity : ComponentActivity() {
                             isLoading = true
                             errorMessage = null
                             if (nombreUsuario.isBlank()) {
-                                errorMessage = "Usuario vacío, no se llama a la API"
+                                errorMessage = "El usuario no puede estar vacío."
                                 isLoading = false
                                 return@LoginScreen
                             }
@@ -178,22 +198,41 @@ class LoginActivity : ComponentActivity() {
                                                     empresas = empresasResponse.map { Pair(it.id.toString(), it.nombre) }
                                                     errorMessage = null
                                                 } else {
-                                                    errorMessage = "Error obteniendo empresas: ${response.message()}"
+                                                        val errorBody = response.errorBody()?.string()
+                                                        AppLogger.logError(
+                                                            tag = "LoginActivity",
+                                                            message = "EmpresasGet falló: code=${response.code()} message=${response.message()} body=${errorBody ?: "sin cuerpo"}"
+                                                        )
+                                                        errorMessage = "No se pudieron obtener las empresas. Intenta nuevamente."
                                                 }
                                             }
                                             override fun onFailure(call: retrofit2.Call<List<LoginEmpresaResponse>>, t: Throwable) {
                                                 isLoading = false
-                                                errorMessage = "Error de red al obtener empresas: ${t.message}"
+                                                    AppLogger.logError(
+                                                        tag = "LoginActivity",
+                                                        message = "EmpresasGet onFailure: ${t.message}",
+                                                        throwable = t
+                                                    )
+                                                    errorMessage = "No se pudieron obtener las empresas. Verifica tu conexión."
                                             }
                                         })
                                     } else {
                                         isLoading = false
-                                        errorMessage = "Login fallido: respuesta no exitosa o token nulo"
+                                            AppLogger.logError(
+                                                tag = "LoginActivity",
+                                                message = "LoginPlano falló: code=${response.code()} message=${response.message()} body=${rawBody ?: "sin cuerpo"}"
+                                            )
+                                            errorMessage = "No se pudo iniciar sesión. Revisa tus credenciales."
                                     }
                                 }
-                                override fun onFailure(call: retrofit2.Call<okhttp3.ResponseBody>, t: Throwable) {
+                                    override fun onFailure(call: retrofit2.Call<okhttp3.ResponseBody>, t: Throwable) {
                                     isLoading = false
-                                    errorMessage = "loginPlano onFailure: ${t.message}"
+                                        AppLogger.logError(
+                                            tag = "LoginActivity",
+                                            message = "LoginPlano onFailure: ${t.message}",
+                                            throwable = t
+                                        )
+                                        errorMessage = "No se pudo iniciar sesión por un problema de conexión."
                                 }
                             })
                         },

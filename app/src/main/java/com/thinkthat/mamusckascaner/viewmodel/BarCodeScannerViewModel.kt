@@ -1,6 +1,5 @@
 package com.thinkthat.mamusckascaner.viewmodel
 
-import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -9,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.thinkthat.mamusckascaner.model.BarModel
 import com.thinkthat.mamusckascaner.BarScanState
 import com.google.mlkit.vision.barcode.common.Barcode
+import com.thinkthat.mamusckascaner.utils.AppLogger
 import kotlinx.coroutines.launch
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
@@ -25,7 +25,7 @@ class BarCodeScannerViewModel : ViewModel() {
     fun onBarCodeDetected(barcodes: List<Barcode>) {
         viewModelScope.launch {
             if (barcodes.isEmpty()) {
-                _barScanState = BarScanState.Error("No barcode detected")
+                _barScanState = BarScanState.Error("No se detectó ningún código.")
                 return@launch
             }
 
@@ -46,13 +46,17 @@ class BarCodeScannerViewModel : ViewModel() {
                             )
                         }
                     } catch (e: Exception) {
-                        Log.e("BarCodeScanner", "Error processing barcode", e)
-                        _barScanState = BarScanState.Error("Error processing barcode: ${e.message}")
+                        AppLogger.logError(
+                            tag = "BarCodeScannerViewModel",
+                            message = "Error procesando código: ${e.message}",
+                            throwable = e
+                        )
+                        _barScanState = BarScanState.Error("No se pudo procesar el código. Intenta nuevamente.")
                     }
                     return@launch
                 }
             }
-            _barScanState = BarScanState.Error("No valid barcode value")
+            _barScanState = BarScanState.Error("El código escaneado no es válido.")
         }
     }
 

@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.util.Log
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
+import com.thinkthat.mamusckascaner.utils.AppLogger
 import com.thinkthat.mamusckascaner.viewmodel.BarCodeScannerViewModel
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
@@ -47,7 +48,11 @@ class BarCodeAnalyzer(private val viewModel: BarCodeScannerViewModel) : ImageAna
                     viewModel.onBarCodeDetected(barcodes)
                 }
                 .addOnFailureListener { exception ->
-                    Log.e("BarCodeAnalyzer", "Barcode scanning failed", exception)
+                    AppLogger.logError(
+                        tag = "BarCodeAnalyzer",
+                        message = "Barcode scanning failed: ${exception.message}",
+                        throwable = exception
+                    )
                 }
                 .addOnCompleteListener {
                     imageProxy.close()

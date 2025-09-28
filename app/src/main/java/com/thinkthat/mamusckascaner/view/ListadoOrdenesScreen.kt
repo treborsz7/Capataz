@@ -25,6 +25,7 @@ import com.thinkthat.mamusckascaner.service.Services.ApiClient
 import com.thinkthat.mamusckascaner.service.Services.OrdenLanzada
 import com.thinkthat.mamusckascaner.view.components.ErrorMessage
 import com.thinkthat.mamusckascaner.view.components.LoadingMessage
+import com.thinkthat.mamusckascaner.utils.AppLogger
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -51,13 +52,23 @@ fun ListadoOrdenesScreen(
                  if (response.isSuccessful) {
                     ordenes = response.body() ?: emptyList()
                 } else {
-                    errorMessage = "Error al cargar órdenes: ${response.code()}"
+                    val errorBody = response.errorBody()?.string()
+                    AppLogger.logError(
+                        tag = "ListadoOrdenesScreen",
+                        message = "Error al cargar órdenes: code=${response.code()} message=${response.message()} body=${errorBody ?: "sin cuerpo"}"
+                    )
+                    errorMessage = "No se pudieron cargar las órdenes. Intenta nuevamente."
                 }
             }
 
             override fun onFailure(call: Call<List<OrdenLanzada>>, t: Throwable) {
                 isLoading = false
-                errorMessage = "Error de conexión: ${t.message}"
+                AppLogger.logError(
+                    tag = "ListadoOrdenesScreen",
+                    message = "Error de conexión al cargar órdenes: ${t.message}",
+                    throwable = t
+                )
+                errorMessage = "No se pudieron cargar las órdenes. Verifica tu conexión."
             }
         })
     }

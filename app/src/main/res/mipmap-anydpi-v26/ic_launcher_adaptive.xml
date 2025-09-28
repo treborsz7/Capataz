@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Fondo blanco, no el verde por defecto -->
-    <background android:drawable="@android:color/white" />
-    <!-- Usa el ícono existente en mipmap como foreground para el adaptive icon -->
-    <foreground android:drawable="@mipmap/ic_launcher" />
-</adaptive-icon>

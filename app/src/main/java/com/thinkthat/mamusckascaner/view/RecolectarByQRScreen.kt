@@ -20,6 +20,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import com.thinkthat.mamusckascaner.utils.AppLogger
 import com.thinkthat.mamusckascaner.utils.QRData
 import com.thinkthat.mamusckascaner.utils.parseQRData
 
@@ -64,7 +65,11 @@ fun RecolectarByQRScreen(
                 onProceedWithOrder(scannedResult)
             } else {
                 // QR inválido - mostrar error
-                errorMessage = "QR inválido: No contiene los datos esperados (Depósito y Pedido)"
+                AppLogger.logError(
+                    tag = "RecolectarByQRScreen",
+                    message = "QR inválido sin datos esperados: $scannedResult"
+                )
+                errorMessage = "No se pudo procesar el QR escaneado."
             }
         } else {
             // Limpiar error cuando se resetea el resultado escaneado
