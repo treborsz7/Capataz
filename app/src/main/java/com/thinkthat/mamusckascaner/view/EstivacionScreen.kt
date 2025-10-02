@@ -128,6 +128,8 @@ fun EstivacionScreen(
     var expandedUbicaciones by remember { mutableStateOf(false) }
     var observacion by remember { mutableStateOf("") }
     var ubicacionSeleccionada by remember { mutableStateOf<String?>(null) }
+    var isLoading by remember { mutableStateOf(false) }
+    var errorEnvio by remember { mutableStateOf<String?>(null) }
 
     val launcher = rememberLauncherForActivityResult(contract = ActivityResultContracts.RequestPermission())
     { isGranted: Boolean ->
@@ -875,115 +877,100 @@ fun EstivacionScreen(
             )
            }
         }
-        // Botón de enviar en la esquina inferior derecha
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(24.dp)
-        ) {
-            val enabled = partidaLocal.isNotBlank() && ubicacionLocal.isNotBlank()
-            var errorEnvio by remember { mutableStateOf<String?>(null) }
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                // Aquí el botón de enviar
-                if (partidaLocal.isNotBlank() && ubicacionLocal.isNotBlank()) {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Button(
-                        onClick = {
-                            errorEnvio = null
-                            val ubicacionLimpia = ubicacionLocal
-                            Log.d("EstivacionScreen", "Ubicación original: '$ubicacionLocal'")
-                            Log.d("EstivacionScreen", "Ubicación procesada (sin espacios): '$ubicacionLimpia'")
-
-                            val partidas = listOf(
-                                EstibarPartida(
-                                    nombreUbicacion = ubicacionLimpia,
-                                    numPartida = partidaLocal
-                                )
+        // Botón de enviar en la parte inferior del scroll
+        if (partidaLocal.isNotBlank() && ubicacionLocal.isNotBlank()) {
+            Spacer(modifier = Modifier.height(32.dp))
+            Button(
+                onClick = {
+                    if (!isLoading) {
+                        errorEnvio = null
+                        isLoading = true
+                        
+                        val ubicacionLimpia = ubicacionLocal
+                        
+                        val partidas = listOf(
+                            EstibarPartida(
+                                nombreUbicacion = ubicacionLimpia,
+                                numPartida = partidaLocal
                             )
-                            val fechaHora = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault()).format(Date())
-                            val usuario = prefs.getString("savedUser", "") ?: ""
-                            val obsFinal = if (observacion.isNotBlank()) "$usuario: $observacion" else usuario
-                            val request = EstibarPartidasRequest(
-                                partidas = partidas,
-                                fechaHora = fechaHora,
-                                codDeposito = deposito,
-                                observacion = obsFinal
-                            )
-                            
-                            // Log detallado del request antes del envío
-                            Log.d("EstivacionScreen", "=== ENVIANDO REQUEST ESTIBAR PARTIDAS ===")
-                            Log.d("EstivacionScreen", "Request completo: $request")
-                            Log.d("EstivacionScreen", "FechaHora: $fechaHora")
-                            Log.d("EstivacionScreen", "CodDeposito: $deposito")
-                            Log.d("EstivacionScreen", "Observacion: $obsFinal")
-                            Log.d("EstivacionScreen", "Cantidad de partidas: ${partidas.size}")
-                            partidas.forEachIndexed { index, partida ->
-                                Log.d("EstivacionScreen", "Partida[$index]: nombreUbicacion='${partida.nombreUbicacion}' (sin espacios internos), numPartida='${partida.numPartida}'")
-                            }
-                            Log.d("EstivacionScreen", "JSON del request: ${Gson().toJson(request)}")
-                            Log.d("EstivacionScreen", "=== INICIANDO LLAMADA A API ===")
-                            
-                            CoroutineScope(Dispatchers.IO).launch {
-                                try {
-                                    val response = ApiClient.apiService.estibarPartidas(request).execute()
+                        )
+                        val fechaHora = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault()).format(Date())
+                        val usuario = prefs.getString("savedUser", "") ?: ""
+                        val obsFinal = if (observacion.isNotBlank()) "$usuario: $observacion" else usuario
+                        val request = EstibarPartidasRequest(
+                            partidas = partidas,
+                            fechaHora = fechaHora,
+                            codDeposito = deposito,
+                            observacion = obsFinal
+                        )
+                        
+                        AppLogger.logInfo("EstivacionScreen", "Iniciando estivación - Partida: $partidaLocal, Ubicación: $ubicacionLimpia, Depósito: $deposito")
+                        
+                        CoroutineScope(Dispatchers.IO).launch {
+                            try {
+                                val response = ApiClient.apiService.estibarPartidas(request).execute()
+                                
+                                if (response.isSuccessful) {
+                                    val responseBody = response.body()?.string()
+                                    AppLogger.logInfo("EstivacionScreen", "Estivación exitosa - Partida: $partidaLocal, Ubicación: $ubicacionLimpia, Response: $responseBody")
                                     
-                                    // Log detallado de la respuesta
-                                    Log.d("EstivacionScreen", "=== RESPUESTA RECIBIDA ===")
-                                    Log.d("EstivacionScreen", "Response code: ${response.code()}")
-                                    Log.d("EstivacionScreen", "Response message: ${response.message()}")
-                                    Log.d("EstivacionScreen", "Is successful: ${response.isSuccessful}")
-                                    Log.d("EstivacionScreen", "Response headers: ${response.headers()}")
-                                    
-                                    if (response.isSuccessful) {
-                                        val responseBody = response.body()?.string()
-                                        Log.d("EstivacionScreen", "Response body (success): $responseBody")
-                                        Log.d("EstivacionScreen", "=== REQUEST EXITOSO - NAVEGANDO A SUCCESS ===")
-                                        
-                                        withContext(Dispatchers.Main) {
-                                            context.startActivity(Intent(context, EstivacionSuccessActivity::class.java))
-                                            (context as? Activity)?.finish()
-                                        }
-                                    } else {
-                                        val errorBody = response.errorBody()?.string() ?: "Error desconocido"
-                                        AppLogger.logError(
-                                            tag = "EstivacionScreen",
-                                            message = "Error de respuesta al estibar: code=${response.code()} body=$errorBody"
-                                        )
-                                        
-                                        withContext(Dispatchers.Main) {
-                                            errorEnvio = "No se pudo enviar la estivación. Intenta nuevamente."
-                                        }
+                                    withContext(Dispatchers.Main) {
+                                        isLoading = false
+                                        context.startActivity(Intent(context, EstivacionSuccessActivity::class.java))
+                                        (context as? Activity)?.finish()
                                     }
-                                } catch (e: Exception) {
+                                } else {
+                                    val errorBody = response.errorBody()?.string() ?: "Error desconocido"
                                     AppLogger.logError(
                                         tag = "EstivacionScreen",
-                                        message = "Excepción al estibar: ${e.message}",
-                                        throwable = e
+                                        message = "Error al estibar partida: code=${response.code()}, error=$errorBody, partida=$partidaLocal, ubicación=$ubicacionLimpia"
                                     )
                                     
                                     withContext(Dispatchers.Main) {
-                                        errorEnvio = "No se pudo enviar la estivación por un problema de conexión."
+                                        isLoading = false
+                                        errorEnvio = "No se pudo enviar la estivación. Intenta nuevamente."
                                     }
                                 }
+                            } catch (e: Exception) {
+                                AppLogger.logError(
+                                    tag = "EstivacionScreen",
+                                    message = "Excepción al estibar partida: ${e.message}, partida=$partidaLocal, ubicación=$ubicacionLimpia",
+                                    throwable = e
+                                )
+                                
+                                withContext(Dispatchers.Main) {
+                                    isLoading = false
+                                    errorEnvio = "No se pudo enviar la estivación por un problema de conexión."
+                                }
                             }
-                        },
-                        enabled = true,
-                        shape = RoundedCornerShape(24.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2)),
-                        modifier = Modifier
-                            .fillMaxWidth(0.8f)
-                            .height(48.dp)
-                    ) {
-                        Text("Enviar", color = Color.White)
+                        }
                     }
-                    if (errorEnvio != null) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(errorEnvio ?: "", color = Color.Red, modifier = Modifier.fillMaxWidth(0.8f))
-                    }
+                },
+                enabled = !isLoading,
+                shape = RoundedCornerShape(24.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF1976D2),
+                    disabledContainerColor = Color(0xFF90CAF9)
+                ),
+                modifier = Modifier
+                    .fillMaxWidth(0.8f)
+                    .height(56.dp)
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        color = Color.White,
+                        modifier = Modifier.size(24.dp),
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text("Enviar", color = Color.White, fontSize = 16.sp)
                 }
             }
+            if (errorEnvio != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(errorEnvio ?: "", color = Color.Red, modifier = Modifier.fillMaxWidth(0.8f))
+            }
+            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }

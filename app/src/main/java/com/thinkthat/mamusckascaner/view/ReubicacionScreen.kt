@@ -38,6 +38,7 @@ import com.thinkthat.mamusckascaner.service.Services.ApiClient
 import com.thinkthat.mamusckascaner.service.Services.ReubicarPartida
 import com.thinkthat.mamusckascaner.service.Services.ReubicarPartidasRequest
 import com.thinkthat.mamusckascaner.view.EstivacionSuccessActivity
+import com.thinkthat.mamusckascaner.utils.AppLogger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -98,6 +99,7 @@ fun ReubicacionScreen(
     
     var errorEnvio by remember { mutableStateOf<String?>(null) }
     var observacion by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
     // Sincronización de valores de la cámara
     LaunchedEffect(producto) {
         if (producto != null) {
@@ -1209,75 +1211,85 @@ fun ReubicacionScreen(
             if (productoLocal.isNotBlank() && ubicacionOrigenLocal.isNotBlank() && ubicacionDestinoLocal.isNotBlank() && deposito.isNotBlank()) {
                 Button(
                     onClick = {
-                        errorEnvio = null
-                        val fechaHora = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault()).format(
-                            Date()
-                        )
-
-                        val usuario = prefs.getString("savedUser", "") ?: ""
-                        val obsFinal = if (observacion.isNotBlank()) "$usuario: $observacion" else usuario
-
-                        val reubicacion = ReubicarPartida(
-                                nombreUbiOrigen = ubicacionOrigenLocal,
-                                nombreUbiDestino = ubicacionDestinoLocal,
-                                numPartida = productoLocal
+                        if (!isLoading) {
+                            errorEnvio = null
+                            isLoading = true
+                            
+                            val fechaHora = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault()).format(
+                                Date()
                             )
 
+                            val usuario = prefs.getString("savedUser", "") ?: ""
+                            val obsFinal = if (observacion.isNotBlank()) "$usuario: $observacion" else usuario
 
-                        val request = ReubicarPartidasRequest(
-                            reubicaciones = mutableListOf(reubicacion),
-                            fechaHora = fechaHora,
-                            codDeposito = deposito,
-                            observacion = obsFinal,
-                            reubicacion = 0
-                        )
-                        // val json = JSONObject()
-                        // json.put("fechaHora", request.fechaHora)
-                        // json.put("codDeposito", request.codDeposito)
-                        // json.put("observacion", request.observacion)
-                        // json.put("codDeposito", request.codDeposito)
+                            val reubicacion = ReubicarPartida(
+                                    nombreUbiOrigen = ubicacionOrigenLocal,
+                                    nombreUbiDestino = ubicacionDestinoLocal,
+                                    numPartida = productoLocal
+                                )
 
-                        // val itemsArray = JSONArray()
-                        // request.reubicaciones.forEach { item ->
-                        //     val itemObj = JSONObject()
-                        //     itemObj.put("nombreUbiOrigen", item.nombreUbiOrigen)
-                        //     itemObj.put("nombreUbiDestino", item.nombreUbiDestino)
-                        //     itemObj.put("numPartida", item.numPartida)
-                        //     itemsArray.put(itemObj)
-                        // }
+                            val request = ReubicarPartidasRequest(
+                                reubicaciones = mutableListOf(reubicacion),
+                                fechaHora = fechaHora,
+                                codDeposito = deposito,
+                                observacion = obsFinal,
+                                reubicacion = 0
+                            )
 
-                        // json.put("items", itemsArray)
-
-                        CoroutineScope(Dispatchers.IO).launch {
-                            try {
-                                val response = ApiClient.apiService.reubicarPartidas(request).execute()
-                                if (response.isSuccessful) {
-                                    withContext(Dispatchers.Main) {
-                                        context.startActivity(Intent(context, EstivacionSuccessActivity::class.java))
-                                        (context as? Activity)?.finish()
+                            CoroutineScope(Dispatchers.IO).launch {
+                                try {
+                                    val response = ApiClient.apiService.reubicarPartidas(request).execute()
+                                    if (response.isSuccessful) {
+                                        AppLogger.logInfo("ReubicacionScreen", "Reubicación exitosa - Partida: $productoLocal, Origen: $ubicacionOrigenLocal, Destino: $ubicacionDestinoLocal")
+                                        withContext(Dispatchers.Main) {
+                                            isLoading = false
+                                            context.startActivity(Intent(context, EstivacionSuccessActivity::class.java))
+                                            (context as? Activity)?.finish()
+                                        }
+                                    } else {
+                                        val errorBody = response.errorBody()?.string() ?: "Error desconocido"
+                                        AppLogger.logError(
+                                            tag = "ReubicacionScreen",
+                                            message = "Error al reubicar partida: code=${response.code()}, error=$errorBody, partida=$productoLocal"
+                                        )
+                                        withContext(Dispatchers.Main) {
+                                            isLoading = false
+                                            errorEnvio = errorBody
+                                        }
                                     }
-                                } else {
-                                    val errorBody = response.errorBody()?.string() ?: "Error desconocido"
+                                } catch (e: Exception) {
+                                    AppLogger.logError(
+                                        tag = "ReubicacionScreen",
+                                        message = "Excepción al reubicar partida: ${e.message}, partida=$productoLocal",
+                                        throwable = e
+                                    )
                                     withContext(Dispatchers.Main) {
-                                        errorEnvio = errorBody
+                                        isLoading = false
+                                        errorEnvio = e.message ?: "Error desconocido"
                                     }
-                                }
-                            } catch (e: Exception) {
-                                withContext(Dispatchers.Main) {
-                                    errorEnvio = e.message ?: "Error desconocido"
                                 }
                             }
                         }
-
                     },
-                    enabled = true,
+                    enabled = !isLoading,
                     shape = RoundedCornerShape(24.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2)),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF1976D2),
+                        disabledContainerColor = Color(0xFF90CAF9)
+                    ),
                     modifier = Modifier
                         .fillMaxWidth(0.8f)
-                        .height(48.dp)
+                        .height(56.dp)
                 ) {
-                    Text("Enviar", color = Color.White)
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            color = Color.White,
+                            modifier = Modifier.size(24.dp),
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text("Enviar", color = Color.White, fontSize = 16.sp)
+                    }
                 }
                 if (errorEnvio != null) {
                     Spacer(modifier = Modifier.height(8.dp))

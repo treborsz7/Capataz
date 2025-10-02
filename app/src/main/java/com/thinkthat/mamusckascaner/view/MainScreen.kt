@@ -28,6 +28,13 @@ import androidx.compose.foundation.layout.asPaddingValues
 import com.thinkthat.mamusckascaner.model.OperationType
 import androidx.compose.ui.tooling.preview.Preview
 import com.thinkthat.mamusckascaner.ui.theme.BarCodeScannerTheme
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import android.content.Intent
+import android.net.Uri
+import androidx.core.content.FileProvider
+import java.io.File
+import android.widget.Toast
 
 @Composable
 fun MainScreen(
@@ -43,6 +50,16 @@ fun MainScreen(
             ) == PackageManager.PERMISSION_GRANTED
 
         )
+    }
+    
+    // Estado para el botón de logs
+    var showLogButton by remember { mutableStateOf(false) }
+    var showSendLogDialog by remember { mutableStateOf(false) }
+    
+    // Verificar si existe el archivo de log
+    LaunchedEffect(Unit) {
+        val logFile = File(context.getExternalFilesDir(null), "logs/app_log.txt")
+        showLogButton = logFile.exists() && logFile.length() > 0
     }
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -60,18 +77,39 @@ fun MainScreen(
     ) {
         // Botón de logout en la esquina superior derecha
         Box(modifier = Modifier.fillMaxSize()) {
-            IconButton(
-                onClick = {
-                    onLogout()
-                },
-                modifier = Modifier.align(Alignment.TopEnd).padding(16.dp)
+            Column(
+                modifier = Modifier.align(Alignment.TopEnd).padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalAlignment = Alignment.End
             ) {
-                Icon(
-                    imageVector = Icons.Filled.Logout,
-                    contentDescription = "Logout",
-                    tint = Color(0xFF1976D2),
-                    modifier = Modifier.size(32.dp)
-                )
+                IconButton(
+                    onClick = {
+                        onLogout()
+                    }
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Logout,
+                        contentDescription = "Logout",
+                        tint = Color(0xFF1976D2),
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+                
+                // Botón de envío de logs (solo visible si hay logs)
+                if (showLogButton) {
+                    IconButton(
+                        onClick = {
+                            showSendLogDialog = true
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Email,
+                            contentDescription = "Enviar logs",
+                            tint = Color(0xFF1976D2),
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+                }
             }
         }
         // Agrupar los botones en un Column centrado
@@ -200,6 +238,99 @@ fun MainScreen(
                 }
             }
         }
+    }
+    
+    // Diálogo de confirmación para enviar logs
+    if (showSendLogDialog) {
+        AlertDialog(
+            onDismissRequest = { showSendLogDialog = false },
+            title = { Text("Enviar logs") },
+            text = { Text("¿Desea enviar el log a soporte?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showSendLogDialog = false
+                        sendLogEmail(context)
+                    }
+                ) {
+                    Text("Enviar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSendLogDialog = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+}
+
+private fun sendLogEmail(context: android.content.Context) {
+    try {
+        // Obtener el archivo de log
+        val logFile = File(context.getExternalFilesDir(null), "logs/app_log.txt")
+        
+        if (!logFile.exists() || logFile.length() == 0L) {
+            Toast.makeText(context, "No hay logs para enviar", Toast.LENGTH_SHORT).show()
+            return
+        }
+        
+        // Obtener información del usuario desde SharedPreferences
+        val prefs = context.getSharedPreferences("QRCodeScannerPrefs", android.content.Context.MODE_PRIVATE)
+        val username = prefs.getString("savedUser", "Usuario desconocido") ?: "Usuario desconocido"
+        val empresa = prefs.getString("savedEmpresa", "Empresa desconocida") ?: "Empresa desconocida"
+        
+        // Crear URI del archivo usando FileProvider
+        val logUri: Uri = try {
+            FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                logFile
+            )
+        } catch (e: Exception) {
+            Toast.makeText(context, "Error al preparar el archivo: ${e.message}", Toast.LENGTH_LONG).show()
+            return
+        }
+        
+        // Crear el intent de email con el archivo adjunto automáticamente
+        val emailIntent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"  // Tipo MIME para archivos de texto
+            putExtra(Intent.EXTRA_EMAIL, arrayOf("robert-sz@hotmail.com"))
+            putExtra(Intent.EXTRA_SUBJECT, "Logs de aplicación - Usuario: $username")
+            putExtra(Intent.EXTRA_TEXT, """
+                Información del usuario:
+                - Usuario: $username
+                - Empresa: $empresa
+                - Fecha de envío: ${java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())}
+                
+                El archivo de logs se adjunta automáticamente a este correo.
+            """.trimIndent())
+            // Adjuntar el archivo de log automáticamente
+            putExtra(Intent.EXTRA_STREAM, logUri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        
+        try {
+            // Abrir el selector de aplicaciones de email con el archivo ya adjunto
+            context.startActivity(Intent.createChooser(emailIntent, "Enviar logs por email"))
+            
+            // Nota: Eliminar el archivo después de abrir el selector
+            // El archivo ya está disponible para el cliente de email
+            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                if (logFile.exists()) {
+                    if (logFile.delete()) {
+                        Toast.makeText(context, "Log preparado para envío y eliminado del dispositivo", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }, 2000) // Esperar 2 segundos para asegurar que el archivo se haya adjuntado
+            
+        } catch (e: Exception) {
+            Toast.makeText(context, "No hay aplicaciones de email disponibles", Toast.LENGTH_LONG).show()
+        }
+        
+    } catch (e: Exception) {
+        Toast.makeText(context, "Error al enviar logs: ${e.message}", Toast.LENGTH_SHORT).show()
     }
 }
 
