@@ -64,7 +64,7 @@ class RecolectarActivity : ComponentActivity() {
 
                             ApiClient.apiService.UbicacionesParaRecolectar(
                                 idPed = ordenId,
-                                optimizaRecorrido = false
+                                optimizaRecorrido = true
                             ).enqueue(object : Callback<List<UbicacionResponse>> {
                                 override fun onResponse(
                                     call: Call<List<UbicacionResponse>>,

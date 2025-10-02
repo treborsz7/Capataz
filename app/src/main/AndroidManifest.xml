@@ -18,7 +18,7 @@
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
         <activity
-            android:name=".view.LoginActivity"
+            android:name="com.codegalaxy.barcodescanner.view.SplashScreen"
             android:exported="true"
             android:label="@string/app_name"
             android:screenOrientation="portrait"
@@ -28,6 +28,13 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".view.LoginActivity"
+            android:exported="false"
+            android:label="@string/app_name"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.BarCodeScanner" />
 
         <activity
             android:name=".view.MainActivity"
