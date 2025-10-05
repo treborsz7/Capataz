@@ -35,6 +35,7 @@ import android.net.Uri
 import androidx.core.content.FileProvider
 import java.io.File
 import android.widget.Toast
+import com.thinkthat.mamusckascaner.utils.AppLogger
 
 @Composable
 fun MainScreen(
@@ -56,10 +57,12 @@ fun MainScreen(
     var showLogButton by remember { mutableStateOf(false) }
     var showSendLogDialog by remember { mutableStateOf(false) }
     
-    // Verificar si existe el archivo de log
+    // Verificar si existen archivos de log de ERROR o EXCEPTION
     LaunchedEffect(Unit) {
-        val logFile = File(context.getExternalFilesDir(null), "logs/app_log.txt")
-        showLogButton = logFile.exists() && logFile.length() > 0
+        val errorLogFile = File(context.getExternalFilesDir(null), "logs/${AppLogger.LOG_FILE_ERROR}")
+        val exceptionLogFile = File(context.getExternalFilesDir(null), "logs/${AppLogger.LOG_FILE_EXCEPTION}")
+        showLogButton = (errorLogFile.exists() && errorLogFile.length() > 0) || 
+                        (exceptionLogFile.exists() && exceptionLogFile.length() > 0)
     }
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -267,11 +270,42 @@ fun MainScreen(
 
 private fun sendLogEmail(context: android.content.Context) {
     try {
-        // Obtener el archivo de log
-        val logFile = File(context.getExternalFilesDir(null), "logs/app_log.txt")
+        // Obtener todos los archivos de log
+        val infoLogFile = File(context.getExternalFilesDir(null), "logs/${AppLogger.LOG_FILE_INFO}")
+        val errorLogFile = File(context.getExternalFilesDir(null), "logs/${AppLogger.LOG_FILE_ERROR}")
+        val exceptionLogFile = File(context.getExternalFilesDir(null), "logs/${AppLogger.LOG_FILE_EXCEPTION}")
         
-        if (!logFile.exists() || logFile.length() == 0L) {
+        // Recopilar archivos que existen y tienen contenido
+        val logFiles = mutableListOf<File>()
+        val logUris = ArrayList<Uri>()
+        
+        if (infoLogFile.exists() && infoLogFile.length() > 0) {
+            logFiles.add(infoLogFile)
+        }
+        if (errorLogFile.exists() && errorLogFile.length() > 0) {
+            logFiles.add(errorLogFile)
+        }
+        if (exceptionLogFile.exists() && exceptionLogFile.length() > 0) {
+            logFiles.add(exceptionLogFile)
+        }
+        
+        if (logFiles.isEmpty()) {
             Toast.makeText(context, "No hay logs para enviar", Toast.LENGTH_SHORT).show()
+            return
+        }
+        
+        // Crear URIs de los archivos usando FileProvider
+        try {
+            logFiles.forEach { file ->
+                val uri = FileProvider.getUriForFile(
+                    context,
+                    "${context.packageName}.fileprovider",
+                    file
+                )
+                logUris.add(uri)
+            }
+        } catch (e: Exception) {
+            Toast.makeText(context, "Error al preparar los archivos: ${e.message}", Toast.LENGTH_LONG).show()
             return
         }
         
@@ -280,20 +314,8 @@ private fun sendLogEmail(context: android.content.Context) {
         val username = prefs.getString("savedUser", "Usuario desconocido") ?: "Usuario desconocido"
         val empresa = prefs.getString("savedEmpresa", "Empresa desconocida") ?: "Empresa desconocida"
         
-        // Crear URI del archivo usando FileProvider
-        val logUri: Uri = try {
-            FileProvider.getUriForFile(
-                context,
-                "${context.packageName}.fileprovider",
-                logFile
-            )
-        } catch (e: Exception) {
-            Toast.makeText(context, "Error al preparar el archivo: ${e.message}", Toast.LENGTH_LONG).show()
-            return
-        }
-        
-        // Crear el intent de email con el archivo adjunto automáticamente
-        val emailIntent = Intent(Intent.ACTION_SEND).apply {
+        // Crear el intent de email con múltiples archivos adjuntos
+        val emailIntent = Intent(Intent.ACTION_SEND_MULTIPLE).apply {
             type = "text/plain"  // Tipo MIME para archivos de texto
             putExtra(Intent.EXTRA_EMAIL, arrayOf("robert-sz@hotmail.com"))
             putExtra(Intent.EXTRA_SUBJECT, "Logs de aplicación - Usuario: $username")
@@ -303,27 +325,30 @@ private fun sendLogEmail(context: android.content.Context) {
                 - Empresa: $empresa
                 - Fecha de envío: ${java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())}
                 
-                El archivo de logs se adjunta automáticamente a este correo.
+                Se adjuntan ${logFiles.size} archivo(s) de logs automáticamente a este correo.
             """.trimIndent())
-            // Adjuntar el archivo de log automáticamente
-            putExtra(Intent.EXTRA_STREAM, logUri)
+            // Adjuntar todos los archivos de log
+            putParcelableArrayListExtra(Intent.EXTRA_STREAM, logUris)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
         
         try {
-            // Abrir el selector de aplicaciones de email con el archivo ya adjunto
+            // Abrir el selector de aplicaciones de email con los archivos ya adjuntos
             context.startActivity(Intent.createChooser(emailIntent, "Enviar logs por email"))
             
-            // Nota: Eliminar el archivo después de abrir el selector
-            // El archivo ya está disponible para el cliente de email
+            // Eliminar todos los archivos después de abrir el selector
             android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                if (logFile.exists()) {
-                    if (logFile.delete()) {
-                        Toast.makeText(context, "Log preparado para envío y eliminado del dispositivo", Toast.LENGTH_SHORT).show()
+                var deletedCount = 0
+                logFiles.forEach { file ->
+                    if (file.exists() && file.delete()) {
+                        deletedCount++
                     }
                 }
-            }, 2000) // Esperar 2 segundos para asegurar que el archivo se haya adjuntado
+                if (deletedCount > 0) {
+                    Toast.makeText(context, "$deletedCount archivo(s) de log eliminado(s) del dispositivo", Toast.LENGTH_SHORT).show()
+                }
+            }, 2000) // Esperar 2 segundos para asegurar que los archivos se hayan adjuntado
             
         } catch (e: Exception) {
             Toast.makeText(context, "No hay aplicaciones de email disponibles", Toast.LENGTH_LONG).show()

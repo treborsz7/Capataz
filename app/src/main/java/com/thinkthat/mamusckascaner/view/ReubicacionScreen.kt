@@ -98,7 +98,6 @@ fun ReubicacionScreen(
     val ubicacionDestinoFocusRequester = remember { FocusRequester() }
     
     var errorEnvio by remember { mutableStateOf<String?>(null) }
-    var observacion by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
     // Sincronización de valores de la cámara
     LaunchedEffect(producto) {
@@ -1206,9 +1205,15 @@ fun ReubicacionScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             // Los botones de escaneo ya están integrados en la lógica secuencial arriba
+        }
            
-            // Botón de enviar solo si los tres campos están cargados
-            if (productoLocal.isNotBlank() && ubicacionOrigenLocal.isNotBlank() && ubicacionDestinoLocal.isNotBlank() && deposito.isNotBlank()) {
+        // Botón de enviar en la parte inferior de la pantalla
+        if (productoLocal.isNotBlank() && ubicacionOrigenLocal.isNotBlank() && ubicacionDestinoLocal.isNotBlank() && deposito.isNotBlank()) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 16.dp)
+            ) {
                 Button(
                     onClick = {
                         if (!isLoading) {
@@ -1218,9 +1223,6 @@ fun ReubicacionScreen(
                             val fechaHora = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault()).format(
                                 Date()
                             )
-
-                            val usuario = prefs.getString("savedUser", "") ?: ""
-                            val obsFinal = if (observacion.isNotBlank()) "$usuario: $observacion" else usuario
 
                             val reubicacion = ReubicarPartida(
                                     nombreUbiOrigen = ubicacionOrigenLocal,
@@ -1232,7 +1234,7 @@ fun ReubicacionScreen(
                                 reubicaciones = mutableListOf(reubicacion),
                                 fechaHora = fechaHora,
                                 codDeposito = deposito,
-                                observacion = obsFinal,
+                                observacion = "",
                                 reubicacion = 0
                             )
 

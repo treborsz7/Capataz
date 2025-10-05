@@ -126,7 +126,6 @@ fun EstivacionScreen(
     var ubicaciones by remember { mutableStateOf(listOf<UbicacionResponse>()) }
     //var ubicacionSeleccionada by remember { mutableStateOf<String?>(null) }
     var expandedUbicaciones by remember { mutableStateOf(false) }
-    var observacion by remember { mutableStateOf("") }
     var ubicacionSeleccionada by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
     var errorEnvio by remember { mutableStateOf<String?>(null) }
@@ -855,30 +854,15 @@ fun EstivacionScreen(
             Spacer(modifier = Modifier.height(4.dp))
 
             // Los botones de escaneo ya están integrados en la lógica secuencial arriba
-
-
-           if(partidaLocal.isNotBlank() && ubicacionLocal.isNotBlank())
-           {// Campo editable para observación
-            OutlinedTextField(
-                value = observacion,
-                onValueChange = { observacion = it },
-                label = { Text("Observación") },
-                singleLine = false,
-                modifier = Modifier.fillMaxWidth(0.8f),
-                textStyle = LocalTextStyle.current.copy(color = Color.Black),
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-
-                    cursorColor = Color.Black,
-                    focusedBorderColor = Color(0xFF1976D2),
-                    unfocusedBorderColor = Color(0xFF1976D2),
-                    focusedLabelColor = Color.Black,
-                    unfocusedLabelColor = Color.Black
-                )
-            )
-           }
         }
-        // Botón de enviar en la parte inferior del scroll
+        
+        // Botón de enviar en la parte inferior de la pantalla
         if (partidaLocal.isNotBlank() && ubicacionLocal.isNotBlank()) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 16.dp)
+            ) {
             Spacer(modifier = Modifier.height(32.dp))
             Button(
                 onClick = {
@@ -895,13 +879,11 @@ fun EstivacionScreen(
                             )
                         )
                         val fechaHora = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault()).format(Date())
-                        val usuario = prefs.getString("savedUser", "") ?: ""
-                        val obsFinal = if (observacion.isNotBlank()) "$usuario: $observacion" else usuario
                         val request = EstibarPartidasRequest(
                             partidas = partidas,
                             fechaHora = fechaHora,
                             codDeposito = deposito,
-                            observacion = obsFinal
+                            observacion = ""
                         )
                         
                         AppLogger.logInfo("EstivacionScreen", "Iniciando estivación - Partida: $partidaLocal, Ubicación: $ubicacionLimpia, Depósito: $deposito")
@@ -956,21 +938,21 @@ fun EstivacionScreen(
                     .fillMaxWidth(0.8f)
                     .height(56.dp)
             ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        color = Color.White,
-                        modifier = Modifier.size(24.dp),
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    Text("Enviar", color = Color.White, fontSize = 16.sp)
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            color = Color.White,
+                            modifier = Modifier.size(24.dp),
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text("Enviar", color = Color.White, fontSize = 16.sp)
+                    }
+                }
+                if (errorEnvio != null) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(errorEnvio ?: "", color = Color.Red, modifier = Modifier.fillMaxWidth(0.8f))
                 }
             }
-            if (errorEnvio != null) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(errorEnvio ?: "", color = Color.Red, modifier = Modifier.fillMaxWidth(0.8f))
-            }
-            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }
