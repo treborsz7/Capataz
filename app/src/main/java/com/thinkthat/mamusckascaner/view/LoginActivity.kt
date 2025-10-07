@@ -20,7 +20,14 @@ class LoginActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-    AppLogger.init(applicationContext)
+        
+        // Mantener el splash visible por 4 segundos
+        Thread.sleep(2000)
+        
+        // Cambiar del tema Splash al tema normal antes de setContent
+        setTheme(com.thinkthat.mamusckascaner.R.style.Theme_BarCodeScanner)
+        
+        AppLogger.init(applicationContext)
         ApiClient.init(applicationContext)
         enableEdgeToEdge()
         android.util.Log.d("LoginActivity", "LoginActivity is being created")

@@ -128,7 +128,7 @@ fun ReubicacionScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(Color(0xFFCD0914))
             .padding(WindowInsets.systemBars.asPaddingValues()),
         contentAlignment = Alignment.Center
     ) {
@@ -140,7 +140,7 @@ fun ReubicacionScreen(
         ) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.Filled.ArrowBack, contentDescription = "Volver", tint = Color(0xFF1976D2))
+                    Icon(Icons.Filled.ArrowBack, contentDescription = "Volver", tint = Color.White)
                 }
                 Spacer(Modifier.weight(1f))
             }
@@ -155,7 +155,7 @@ fun ReubicacionScreen(
             Text(
                 text = "Reubicar",
                 fontSize = 24.sp,
-                color = Color(0xFF1976D2),
+                color = Color.White,
                 modifier = Modifier.padding(vertical = 8.dp)
             )
         }
@@ -183,7 +183,7 @@ fun ReubicacionScreen(
                     ) {
                         Text(
                             text = if (deposito.isBlank()) "Depósito:" else "Depósito: $deposito",
-                            color = Color.Gray,
+                            color = Color.White,
                             fontSize = 16.sp
                         )
                     }
@@ -199,7 +199,7 @@ fun ReubicacionScreen(
                         Icon(
                             imageVector = Icons.Filled.Edit,
                             contentDescription = "Editar depósito",
-                            tint = Color(0xFF1976D2)
+                            tint = Color.White
                         )
                     }
                 }
@@ -236,7 +236,7 @@ fun ReubicacionScreen(
                         Icon(
                             imageVector = Icons.Filled.Save,
                             contentDescription = "Guardar depósito",
-                            tint = Color(0xFF1976D2)
+                            tint = Color.White
                         )
                     }
                 }
@@ -265,7 +265,7 @@ fun ReubicacionScreen(
                         ) {
                             Text(
                                 text = "Partida:",
-                                color = Color.Gray,
+                                color = Color.White,
                                 fontSize = 16.sp
                             )
                         }
@@ -281,7 +281,7 @@ fun ReubicacionScreen(
                             Icon(
                                 imageVector = Icons.Filled.CameraAlt,
                                 contentDescription = "Escanear partida",
-                                tint = Color(0xFF1976D2)
+                                tint = Color.White
                             )
                         }
                         IconButton(
@@ -296,7 +296,7 @@ fun ReubicacionScreen(
                             Icon(
                                 imageVector = Icons.Filled.Edit,
                                 contentDescription = "Editar partida",
-                                tint = Color(0xFF1976D2)
+                                tint = Color.White
                             )
                         }
                     }
@@ -332,7 +332,7 @@ fun ReubicacionScreen(
                             Icon(
                                 imageVector = Icons.Filled.Save,
                                 contentDescription = "Guardar partida",
-                                tint = Color(0xFF1976D2)
+                                tint = Color.White
                             )
                         }
                     }
@@ -358,7 +358,7 @@ fun ReubicacionScreen(
                         .fillMaxWidth(0.8f)
                         .height(48.dp),
                     shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2))
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.White)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -368,13 +368,13 @@ fun ReubicacionScreen(
                         Icon(
                             imageVector = Icons.Filled.Add,
                             contentDescription = "Escanear producto",
-                            tint = Color.White,
+                            tint = Color.Black,
                             modifier = Modifier.size(32.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "Escanear Producto",
-                            color = Color.White,
+                            color = Color.Black,
                             fontSize = 18.sp
                         )
                     }
@@ -394,7 +394,7 @@ fun ReubicacionScreen(
                         ) {
                             Text(
                                 text = "Partida: $productoLocal",
-                                color = Color.Gray,
+                                color = Color.White,
                                 fontSize = 16.sp
                             )
                         }
@@ -410,7 +410,7 @@ fun ReubicacionScreen(
                             Icon(
                                 imageVector = Icons.Filled.CameraAlt,
                                 contentDescription = "Escanear partida",
-                                tint = Color(0xFF1976D2)
+                                tint = Color.White
                             )
                         }
                         IconButton(
@@ -425,7 +425,7 @@ fun ReubicacionScreen(
                             Icon(
                                 imageVector = Icons.Filled.Edit,
                                 contentDescription = "Editar partida",
-                                tint = Color(0xFF1976D2)
+                                tint = Color.White
                             )
                         }
                     }
@@ -461,7 +461,7 @@ fun ReubicacionScreen(
                             Icon(
                                 imageVector = Icons.Filled.Save,
                                 contentDescription = "Guardar partida",
-                                tint = Color(0xFF1976D2)
+                                tint = Color.White
                             )
                         }
                     }
@@ -488,7 +488,7 @@ fun ReubicacionScreen(
                         ) {
                             Text(
                                 text = "Ubicación Origen:",
-                                color = Color.Gray,
+                                color = Color.White,
                                 fontSize = 16.sp
                             )
                         }
@@ -504,7 +504,7 @@ fun ReubicacionScreen(
                             Icon(
                                 imageVector = Icons.Filled.CameraAlt,
                                 contentDescription = "Escanear ubicación origen",
-                                tint = Color(0xFF1976D2)
+                                tint = Color.White
                             )
                         }
                         IconButton(
@@ -519,7 +519,7 @@ fun ReubicacionScreen(
                             Icon(
                                 imageVector = Icons.Filled.Edit,
                                 contentDescription = "Editar ubicación origen",
-                                tint = Color(0xFF1976D2)
+                                tint = Color.White
                             )
                         }
                     }
@@ -555,7 +555,7 @@ fun ReubicacionScreen(
                             Icon(
                                 imageVector = Icons.Filled.Save,
                                 contentDescription = "Guardar ubicación origen",
-                                tint = Color(0xFF1976D2)
+                                tint = Color.White
                             )
                         }
                     }
@@ -581,7 +581,7 @@ fun ReubicacionScreen(
                         .fillMaxWidth(0.8f)
                         .height(48.dp),
                     shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2))
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.White)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -591,13 +591,13 @@ fun ReubicacionScreen(
                         Icon(
                             imageVector = Icons.Filled.LocationOn,
                             contentDescription = "Ubicación Origen",
-                            tint = Color.White,
+                            tint = Color.Black,
                             modifier = Modifier.size(32.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "Escanear Ubicación Origen",
-                            color = Color.White,
+                            color = Color.Black,
                             fontSize = 18.sp
                         )
                     }
@@ -617,7 +617,7 @@ fun ReubicacionScreen(
                         ) {
                             Text(
                                 text = "Partida: $productoLocal",
-                                color = Color.Gray,
+                                color = Color.White,
                                 fontSize = 16.sp
                             )
                         }
@@ -633,7 +633,7 @@ fun ReubicacionScreen(
                             Icon(
                                 imageVector = Icons.Filled.CameraAlt,
                                 contentDescription = "Escanear partida",
-                                tint = Color(0xFF1976D2)
+                                tint = Color.White
                             )
                         }
                         IconButton(
@@ -648,7 +648,7 @@ fun ReubicacionScreen(
                             Icon(
                                 imageVector = Icons.Filled.Edit,
                                 contentDescription = "Editar partida",
-                                tint = Color(0xFF1976D2)
+                                tint = Color.White
                             )
                         }
                     }
@@ -684,7 +684,7 @@ fun ReubicacionScreen(
                             Icon(
                                 imageVector = Icons.Filled.Save,
                                 contentDescription = "Guardar partida",
-                                tint = Color(0xFF1976D2)
+                                tint = Color.White
                             )
                         }
                     }
@@ -711,7 +711,7 @@ fun ReubicacionScreen(
                         ) {
                             Text(
                                 text = "Ubicación Origen: $ubicacionOrigenLocal",
-                                color = Color.Gray,
+                                color = Color.White,
                                 fontSize = 16.sp
                             )
                         }
@@ -727,7 +727,7 @@ fun ReubicacionScreen(
                             Icon(
                                 imageVector = Icons.Filled.CameraAlt,
                                 contentDescription = "Escanear ubicación origen",
-                                tint = Color(0xFF1976D2)
+                                tint = Color.White
                             )
                         }
                         IconButton(
@@ -742,7 +742,7 @@ fun ReubicacionScreen(
                             Icon(
                                 imageVector = Icons.Filled.Edit,
                                 contentDescription = "Editar ubicación origen",
-                                tint = Color(0xFF1976D2)
+                                tint = Color.White
                             )
                         }
                     }
@@ -778,7 +778,7 @@ fun ReubicacionScreen(
                             Icon(
                                 imageVector = Icons.Filled.Save,
                                 contentDescription = "Guardar ubicación origen",
-                                tint = Color(0xFF1976D2)
+                                tint = Color.White
                             )
                         }
                     }
@@ -805,7 +805,7 @@ fun ReubicacionScreen(
                         ) {
                             Text(
                                 text = "Ubicación Destino:",
-                                color = Color.Gray,
+                                color = Color.White,
                                 fontSize = 16.sp
                             )
                         }
@@ -821,7 +821,7 @@ fun ReubicacionScreen(
                             Icon(
                                 imageVector = Icons.Filled.CameraAlt,
                                 contentDescription = "Escanear ubicación destino",
-                                tint = Color(0xFF1976D2)
+                                tint = Color.White
                             )
                         }
                         IconButton(
@@ -836,7 +836,7 @@ fun ReubicacionScreen(
                             Icon(
                                 imageVector = Icons.Filled.Edit,
                                 contentDescription = "Editar ubicación destino",
-                                tint = Color(0xFF1976D2)
+                                tint = Color.White
                             )
                         }
                     }
@@ -872,7 +872,7 @@ fun ReubicacionScreen(
                             Icon(
                                 imageVector = Icons.Filled.Save,
                                 contentDescription = "Guardar ubicación destino",
-                                tint = Color(0xFF1976D2)
+                                tint = Color.White
                             )
                         }
                     }
@@ -898,7 +898,7 @@ fun ReubicacionScreen(
                         .fillMaxWidth(0.8f)
                         .height(48.dp),
                     shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2))
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.White)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -908,13 +908,13 @@ fun ReubicacionScreen(
                         Icon(
                             imageVector = Icons.Filled.LocationOn,
                             contentDescription = "Ubicación Destino",
-                            tint = Color.White,
+                            tint = Color.Black,
                             modifier = Modifier.size(32.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "Escanear Ubicación Destino",
-                            color = Color.White,
+                            color = Color.Black,
                             fontSize = 18.sp
                         )
                     }
@@ -934,7 +934,7 @@ fun ReubicacionScreen(
                         ) {
                             Text(
                                 text = "Partida: $productoLocal",
-                                color = Color.Gray,
+                                color = Color.White,
                                 fontSize = 16.sp
                             )
                         }
@@ -950,7 +950,7 @@ fun ReubicacionScreen(
                             Icon(
                                 imageVector = Icons.Filled.CameraAlt,
                                 contentDescription = "Escanear partida",
-                                tint = Color(0xFF1976D2)
+                                tint = Color.White
                             )
                         }
                         IconButton(
@@ -965,7 +965,7 @@ fun ReubicacionScreen(
                             Icon(
                                 imageVector = Icons.Filled.Edit,
                                 contentDescription = "Editar partida",
-                                tint = Color(0xFF1976D2)
+                                tint = Color.White
                             )
                         }
                     }
@@ -1001,7 +1001,7 @@ fun ReubicacionScreen(
                             Icon(
                                 imageVector = Icons.Filled.Save,
                                 contentDescription = "Guardar partida",
-                                tint = Color(0xFF1976D2)
+                                tint = Color.White
                             )
                         }
                     }
@@ -1028,7 +1028,7 @@ fun ReubicacionScreen(
                         ) {
                             Text(
                                 text = "Ubicación Origen: $ubicacionOrigenLocal",
-                                color = Color.Gray,
+                                color = Color.White,
                                 fontSize = 16.sp
                             )
                         }
@@ -1044,7 +1044,7 @@ fun ReubicacionScreen(
                             Icon(
                                 imageVector = Icons.Filled.CameraAlt,
                                 contentDescription = "Escanear ubicación origen",
-                                tint = Color(0xFF1976D2)
+                                tint = Color.White
                             )
                         }
                         IconButton(
@@ -1059,7 +1059,7 @@ fun ReubicacionScreen(
                             Icon(
                                 imageVector = Icons.Filled.Edit,
                                 contentDescription = "Editar ubicación origen",
-                                tint = Color(0xFF1976D2)
+                                tint = Color.White
                             )
                         }
                     }
@@ -1095,7 +1095,7 @@ fun ReubicacionScreen(
                             Icon(
                                 imageVector = Icons.Filled.Save,
                                 contentDescription = "Guardar ubicación origen",
-                                tint = Color(0xFF1976D2)
+                                tint = Color.White
                             )
                         }
                     }
@@ -1122,7 +1122,7 @@ fun ReubicacionScreen(
                         ) {
                             Text(
                                 text = "Ubicación Destino: $ubicacionDestinoLocal",
-                                color = Color.Gray,
+                                color = Color.White,
                                 fontSize = 16.sp
                             )
                         }
@@ -1138,7 +1138,7 @@ fun ReubicacionScreen(
                             Icon(
                                 imageVector = Icons.Filled.CameraAlt,
                                 contentDescription = "Escanear ubicación destino",
-                                tint = Color(0xFF1976D2)
+                                tint = Color.White
                             )
                         }
                         IconButton(
@@ -1153,7 +1153,7 @@ fun ReubicacionScreen(
                             Icon(
                                 imageVector = Icons.Filled.Edit,
                                 contentDescription = "Editar ubicación destino",
-                                tint = Color(0xFF1976D2)
+                                tint = Color.White
                             )
                         }
                     }
@@ -1189,7 +1189,7 @@ fun ReubicacionScreen(
                             Icon(
                                 imageVector = Icons.Filled.Save,
                                 contentDescription = "Guardar ubicación destino",
-                                tint = Color(0xFF1976D2)
+                                tint = Color.White
                             )
                         }
                     }
@@ -1276,8 +1276,8 @@ fun ReubicacionScreen(
                     enabled = !isLoading,
                     shape = RoundedCornerShape(24.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF1976D2),
-                        disabledContainerColor = Color(0xFF90CAF9)
+                        containerColor = Color.White,
+                        disabledContainerColor = Color(0xFFE0E0E0)
                     ),
                     modifier = Modifier
                         .fillMaxWidth(0.8f)
@@ -1285,12 +1285,12 @@ fun ReubicacionScreen(
                 ) {
                     if (isLoading) {
                         CircularProgressIndicator(
-                            color = Color.White,
+                            color = Color.Black,
                             modifier = Modifier.size(24.dp),
                             strokeWidth = 2.dp
                         )
                     } else {
-                        Text("Enviar", color = Color.White, fontSize = 16.sp)
+                        Text("Enviar", color = Color.Black, fontSize = 16.sp)
                     }
                 }
                 if (errorEnvio != null) {
@@ -1313,3 +1313,4 @@ fun ReubicacionScreenPreview() {
         ubicacionDestino = "B-02"
     )
 }
+

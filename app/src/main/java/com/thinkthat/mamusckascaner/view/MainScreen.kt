@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -74,7 +75,7 @@ fun MainScreen(
     Box(
          modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(Color(0xFFCD0914))
             .padding(WindowInsets.systemBars.asPaddingValues()), // <-- Respeta la status bar
         contentAlignment = Alignment.Center
     ) {
@@ -93,7 +94,7 @@ fun MainScreen(
                     Icon(
                         imageVector = Icons.Filled.Logout,
                         contentDescription = "Logout",
-                        tint = Color(0xFF1976D2),
+                        tint = Color.White,
                         modifier = Modifier.size(32.dp)
                     )
                 }
@@ -108,7 +109,7 @@ fun MainScreen(
                         Icon(
                             imageVector = Icons.Outlined.Email,
                             contentDescription = "Enviar logs",
-                            tint = Color(0xFF1976D2),
+                            tint = Color.White,
                             modifier = Modifier.size(32.dp)
                         )
                     }
@@ -119,8 +120,19 @@ fun MainScreen(
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier.padding(horizontal = 32.dp)
+            modifier = Modifier
+                .padding(horizontal = 32.dp)
+                .offset(y = (-40).dp) // Mover todo el contenido hacia arriba
         ) {
+            // Icono de la app centrado
+            Icon(
+                painter = painterResource(id = com.thinkthat.mamusckascaner.R.drawable.logos_y__1__05__1_),
+                contentDescription = "Logo",
+                tint = Color.White,
+                modifier = Modifier.size(400.dp)
+
+            )
+
             // Botón Recolectar
             Button(
                 onClick = {
@@ -132,8 +144,8 @@ fun MainScreen(
                     .height(56.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF1976D2),
-                    contentColor = Color.White
+                    containerColor = Color.White,
+                    contentColor = Color.Black
                 ),
                 elevation = ButtonDefaults.buttonElevation(
                     defaultElevation = 4.dp,
@@ -148,13 +160,13 @@ fun MainScreen(
                     Icon(
                         imageVector = Icons.Outlined.Inventory,
                         contentDescription = "Recolectar Pedido",
-                        tint = Color.White,
+                        tint = Color.Black,
                         modifier = Modifier.size(24.dp)
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
                         text = "Recolectar Pedido",
-                        color = Color.White,
+                        color = Color.Black,
                         fontSize = 16.sp
                     )
                 }
@@ -174,8 +186,8 @@ fun MainScreen(
                     .height(56.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF1976D2),
-                    contentColor = Color.White
+                    containerColor = Color.White,
+                    contentColor = Color.Black
                 ),
                 elevation = ButtonDefaults.buttonElevation(
                     defaultElevation = 4.dp,
@@ -190,13 +202,13 @@ fun MainScreen(
                     Icon(
                         imageVector = Icons.Outlined.DashboardCustomize,
                         contentDescription = "Estibar",
-                        tint = Color.White,
+                        tint = Color.Black,
                         modifier = Modifier.size(24.dp)
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
                         text = "Estibar Partidas",
-                        color = Color.White,
+                        color = Color.Black,
                         fontSize = 16.sp
                     )
                 }
@@ -213,8 +225,8 @@ fun MainScreen(
                     .height(56.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF1976D2),
-                    contentColor = Color.White
+                    containerColor = Color.White,
+                    contentColor = Color.Black
                 ),
                 elevation = ButtonDefaults.buttonElevation(
                     defaultElevation = 4.dp,
@@ -229,13 +241,13 @@ fun MainScreen(
                     Icon(
                         imageVector = Icons.Outlined.SwapHoriz,
                         contentDescription = "Reubicar",
-                        tint = Color.White,
+                        tint = Color.Black,
                         modifier = Modifier.size(24.dp)
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
                         text = "Reubicar Partidas",
-                        color = Color.White,
+                        color = Color.Black,
                         fontSize = 16.sp
                     )
                 }

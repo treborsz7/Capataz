@@ -1,4 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.BarCodeScanner" parent="Theme.AppCompat.Light.NoActionBar" /></resources>
+    <!-- Tema principal de la aplicación -->
+    <style name="Theme.BarCodeScanner" parent="Theme.AppCompat.Light.NoActionBar">
+        <!-- Color primario de la app -->
+        <item name="colorPrimary">#CD0914</item>
+        <item name="colorPrimaryDark">#A00710</item>
+        <item name="colorAccent">#FFFFFF</item>
+        
+        <!-- Fondo normal (sin splash) -->
+        <item name="android:windowBackground">@color/splash_background</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowFullscreen">false</item>
+    </style>
+    
+    <!-- Tema específico para el Splash Screen con icono -->
+    <style name="Theme.BarCodeScanner.Splash" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:windowBackground">@color/splash_background</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowFullscreen">false</item>
+        <item name="android:windowDisablePreview">true</item>
+    </style>
+</resources>

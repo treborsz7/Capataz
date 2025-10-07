@@ -186,7 +186,7 @@ fun RecolectarScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = { showBackDialog = true }) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "Volver", tint = Color(0xFF1976D2))
+                        Icon(Icons.Filled.ArrowBack, contentDescription = "Volver", tint = Color.White)
                     }
                     Spacer(Modifier.weight(1f))
                     Text(
@@ -197,7 +197,7 @@ fun RecolectarScreen(
                     )
                     Spacer(Modifier.weight(1f))
                     IconButton(onClick = { showCloseDialog = true }) {
-                        Icon(Icons.Filled.Close, contentDescription = "Cerrar", tint = Color(0xFF1976D2))
+                        Icon(Icons.Filled.Close, contentDescription = "Cerrar", tint = Color.White)
                     }
                 }
             }
@@ -350,7 +350,6 @@ fun RecolectarScreen(
                             ubicaciones.add(mapOf(
                                 "numero" to ubicacion.optString("numero", "N/A"),
                                 "nombre" to ubicacion.optString("nombre", "N/A"),
-                               
                                 "codArticulo" to ubicacion.optString("codArticulo", "N/A")
                             ))
                         }
@@ -547,7 +546,7 @@ fun RecolectarScreen(
                                                     Icon(
                                                         Icons.Filled.CameraAlt,
                                                         contentDescription = "Escanear producto",
-                                                        tint = Color(0xFF1976D2),
+                                                        tint = Color.White,
                                                         modifier = Modifier.size(20.dp)
                                                     )
                                                 }
@@ -688,7 +687,7 @@ fun RecolectarScreen(
                                                     Icon(
                                                         Icons.Filled.CameraAlt,
                                                         contentDescription = "Escanear producto",
-                                                        tint = Color(0xFF1976D2),
+                                                        tint = Color.White,
                                                         modifier = Modifier.size(20.dp)
                                                     )
                                                 }
@@ -749,7 +748,7 @@ fun RecolectarScreen(
                                                     Icon(
                                                         Icons.Filled.CameraAlt,
                                                         contentDescription = "Escanear ubicación",
-                                                        tint = Color(0xFF1976D2),
+                                                        tint = Color.White,
                                                         modifier = Modifier.size(20.dp)
                                                     )
                                                 }
@@ -855,7 +854,7 @@ fun RecolectarScreen(
                                                         Icon(
                                                             Icons.Filled.Edit,
                                                             contentDescription = "Editar cantidad",
-                                                            tint = Color(0xFF1976D2),
+                                                            tint = Color.White,
                                                             modifier = Modifier.size(20.dp)
                                                         )
                                                     }

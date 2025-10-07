@@ -80,7 +80,7 @@ fun RecolectarByQRScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(Color(0xFFCD0914))
             .padding(WindowInsets.systemBars.asPaddingValues()),
         contentAlignment = Alignment.Center
     ) {
@@ -92,7 +92,7 @@ fun RecolectarByQRScreen(
         ) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.Filled.ArrowBack, contentDescription = "Volver", tint = Color(0xFF1976D2))
+                    Icon(Icons.Filled.ArrowBack, contentDescription = "Volver", tint = Color.White)
                 }
                 Spacer(Modifier.weight(1f))
             }
@@ -108,7 +108,7 @@ fun RecolectarByQRScreen(
                 
                 text = "Recolectar",
                 fontSize = 24.sp,
-                color = Color(0xFF1976D2),
+                color = Color.White,
                 modifier = Modifier.padding(vertical = 8.dp)
             )
         }
@@ -125,7 +125,7 @@ fun RecolectarByQRScreen(
             Icon(
                 imageVector = Icons.Filled.QrCodeScanner,
                 contentDescription = "Escanear QR",
-                tint = Color(0xFF1976D2),
+                tint = Color.White,
                 modifier = Modifier.size(120.dp)
             )
             
@@ -179,8 +179,8 @@ fun RecolectarByQRScreen(
                         .height(56.dp),
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF1976D2),
-                        contentColor = Color.White
+                        containerColor = Color.White,
+                        contentColor = Color.Black
                     ),
                     elevation = ButtonDefaults.buttonElevation(
                         defaultElevation = 4.dp,
@@ -195,13 +195,13 @@ fun RecolectarByQRScreen(
                         Icon(
                             imageVector = Icons.Filled.QrCodeScanner,
                             contentDescription = "Intentar de nuevo",
-                            tint = Color.White,
+                            tint = Color.Black,
                             modifier = Modifier.size(24.dp)
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
                             text = "Intentar de nuevo",
-                            color = Color.White,
+                            color = Color.Black,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Medium
                         )
@@ -213,7 +213,7 @@ fun RecolectarByQRScreen(
                 Text(
                     text = "Escanea el código QR del pedido que deseas recolectar",
                     fontSize = 16.sp,
-                    color = Color.Gray,
+                    color = Color.White,
                     modifier = Modifier.padding(horizontal = 16.dp),
                     lineHeight = 24.sp
                 )
@@ -234,8 +234,8 @@ fun RecolectarByQRScreen(
                         .height(56.dp),
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF1976D2),
-                        contentColor = Color.White
+                        containerColor = Color.White,
+                        contentColor = Color.Black
                     ),
                     elevation = ButtonDefaults.buttonElevation(
                         defaultElevation = 4.dp,
@@ -250,13 +250,13 @@ fun RecolectarByQRScreen(
                         Icon(
                             imageVector = Icons.Filled.QrCodeScanner,
                             contentDescription = "Escanear QR",
-                            tint = Color.White,
+                            tint = Color.Black,
                             modifier = Modifier.size(24.dp)
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
                             text = "Escanear QR",
-                            color = Color.White,
+                            color = Color.Black,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Medium
                         )

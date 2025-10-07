@@ -21,7 +21,7 @@ fun EstivacionSuccessScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White),
+            .background(Color(0xFFCD0914)),
         contentAlignment = Alignment.Center
     ) {
         if (!showSuccess) {
@@ -29,9 +29,9 @@ fun EstivacionSuccessScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                CircularProgressIndicator(color = Color(0xFF1976D2))
+                CircularProgressIndicator(color = Color.White)
                 Spacer(modifier = Modifier.height(24.dp))
-                Text("Guardando Exitoso...", color = Color.Black)
+                Text("Guardando Exitoso...", color = Color.White)
             }
         } else {
             Column(
@@ -40,15 +40,15 @@ fun EstivacionSuccessScreen(
             ) {
                 Text(
                     text = "¡Estivación guardada correctamente!!",
-                    color = Color(0xFF1976D2),
+                    color = Color.White,
                     style = MaterialTheme.typography.titleLarge
                 )
                 Spacer(modifier = Modifier.height(32.dp))
                 Button(
                     onClick = onFinish,
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2))
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.White)
                 ) {
-                    Text("Finalizar", color = Color.White)
+                    Text("Finalizar", color = Color.Black)
                 }
             }
         }

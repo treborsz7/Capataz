@@ -138,7 +138,7 @@ fun EstivacionScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(Color(0xFFCD0914))
             .padding(WindowInsets.systemBars.asPaddingValues()),
         contentAlignment = Alignment.Center
     ) {
@@ -150,7 +150,7 @@ fun EstivacionScreen(
         ) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.Filled.ArrowBack, contentDescription = "Volver", tint = Color(0xFF1976D2))
+                    Icon(Icons.Filled.ArrowBack, contentDescription = "Volver", tint = Color.White)
                 }
                 Spacer(Modifier.weight(1f))
             }
@@ -165,7 +165,7 @@ fun EstivacionScreen(
             Text(
                 text = "Estivación",
                 fontSize = 24.sp,
-                color = Color(0xFF1976D2),
+                color = Color.White,
                 modifier = Modifier.padding(vertical = 8.dp)
             )
         }
@@ -193,7 +193,7 @@ fun EstivacionScreen(
                     ) {
                         Text(
                             text = if (deposito.isBlank()) "Depósito:" else "Depósito: $deposito",
-                            color = Color.Gray,
+                            color = Color.White,
                             fontSize = 16.sp
                         )
                     }
@@ -209,7 +209,7 @@ fun EstivacionScreen(
                         Icon(
                             imageVector = Icons.Filled.Edit,
                             contentDescription = "Editar depósito",
-                            tint = Color(0xFF1976D2)
+                            tint = Color.White
                         )
                     }
                 }
@@ -222,18 +222,18 @@ fun EstivacionScreen(
                     OutlinedTextField(
                         value = depositoFieldValue,
                         onValueChange = { depositoFieldValue = it },
-                        label = { Text("Depósito", color = Color.Black) },
+                        label = { Text("Depósito", color = Color.White) },
                         singleLine = true,
                         modifier = Modifier
                             .weight(1f)
                             .focusRequester(depositoFocusRequester),
-                        textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                        textStyle = LocalTextStyle.current.copy(color = Color.White),
                         colors = TextFieldDefaults.outlinedTextFieldColors(
-                            cursorColor = Color.Black,
-                            focusedBorderColor = Color(0xFF1976D2),
-                            unfocusedBorderColor = Color(0xFF1976D2),
-                            focusedLabelColor = Color.Black,
-                            unfocusedLabelColor = Color.Black
+                            cursorColor = Color.White,
+                            focusedBorderColor = Color.White,
+                            unfocusedBorderColor = Color.White,
+                            focusedLabelColor = Color.White,
+                            unfocusedLabelColor = Color.White
                         )
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -246,7 +246,7 @@ fun EstivacionScreen(
                         Icon(
                             imageVector = Icons.Filled.Save,
                             contentDescription = "Guardar depósito",
-                            tint = Color(0xFF1976D2)
+                            tint = Color.White
                         )
                     }
                 }
@@ -277,7 +277,7 @@ fun EstivacionScreen(
                         ) {
                             Text(
                                 text = "Partida:",
-                                color = Color.Gray,
+                                color = Color.White,
                                 fontSize = 16.sp
                             )
                         }
@@ -293,7 +293,7 @@ fun EstivacionScreen(
                             Icon(
                                 imageVector = Icons.Filled.CameraAlt,
                                 contentDescription = "Escanear partida",
-                                tint = Color(0xFF1976D2)
+                                tint = Color.White
                             )
                         }
                         IconButton(
@@ -308,7 +308,7 @@ fun EstivacionScreen(
                             Icon(
                                 imageVector = Icons.Filled.Edit,
                                 contentDescription = "Editar partida",
-                                tint = Color(0xFF1976D2)
+                                tint = Color.White
                             )
                         }
                     }
@@ -321,18 +321,18 @@ fun EstivacionScreen(
                         OutlinedTextField(
                             value = partidaFieldValue,
                             onValueChange = { partidaFieldValue = it },
-                            label = { Text("Partida", color = Color.Black) },
+                            label = { Text("Partida", color = Color.White) },
                             singleLine = true,
                             modifier = Modifier
                                 .weight(1f)
                                 .focusRequester(partidaFocusRequester),
-                            textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                            textStyle = LocalTextStyle.current.copy(color = Color.White),
                             colors = TextFieldDefaults.outlinedTextFieldColors(
-                                cursorColor = Color.Black,
-                                focusedBorderColor = Color(0xFF1976D2),
-                                unfocusedBorderColor = Color(0xFF1976D2),
-                                focusedLabelColor = Color.Black,
-                                unfocusedLabelColor = Color.Black
+                                cursorColor = Color.White,
+                                focusedBorderColor = Color.White,
+                                unfocusedBorderColor = Color.White,
+                                focusedLabelColor = Color.White,
+                                unfocusedLabelColor = Color.White
                             )
                         )
                         Spacer(modifier = Modifier.width(8.dp))
@@ -345,7 +345,7 @@ fun EstivacionScreen(
                             Icon(
                                 imageVector = Icons.Filled.Save,
                                 contentDescription = "Guardar partida",
-                                tint = Color(0xFF1976D2)
+                                tint = Color.White
                             )
                         }
                     }
@@ -373,7 +373,7 @@ fun EstivacionScreen(
                         ) {
                             Text(
                                 text = "Partida: $partidaLocal",
-                                color = Color.Gray,
+                                color = Color.White,
                                 fontSize = 16.sp
                             )
                         }
@@ -389,7 +389,7 @@ fun EstivacionScreen(
                             Icon(
                                 imageVector = Icons.Filled.CameraAlt,
                                 contentDescription = "Escanear partida",
-                                tint = Color(0xFF1976D2)
+                                tint = Color.White
                             )
                         }
                         IconButton(
@@ -404,7 +404,7 @@ fun EstivacionScreen(
                             Icon(
                                 imageVector = Icons.Filled.Edit,
                                 contentDescription = "Editar partida",
-                                tint = Color(0xFF1976D2)
+                                tint = Color.White
                             )
                         }
                     }
@@ -416,18 +416,18 @@ fun EstivacionScreen(
                         OutlinedTextField(
                             value = partidaFieldValue,
                             onValueChange = { partidaFieldValue = it },
-                            label = { Text("Partida", color = Color.Black) },
+                            label = { Text("Partida", color = Color.White) },
                             singleLine = true,
                             modifier = Modifier
                                 .weight(1f)
                                 .focusRequester(partidaFocusRequester),
-                            textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                            textStyle = LocalTextStyle.current.copy(color = Color.White),
                             colors = TextFieldDefaults.outlinedTextFieldColors(
-                                cursorColor = Color.Black,
-                                focusedBorderColor = Color(0xFF1976D2),
-                                unfocusedBorderColor = Color(0xFF1976D2),
-                                focusedLabelColor = Color.Black,
-                                unfocusedLabelColor = Color.Black
+                                cursorColor = Color.White,
+                                focusedBorderColor = Color.White,
+                                unfocusedBorderColor = Color.White,
+                                focusedLabelColor = Color.White,
+                                unfocusedLabelColor = Color.White
                             )
                         )
                         Spacer(modifier = Modifier.width(8.dp))
@@ -440,7 +440,7 @@ fun EstivacionScreen(
                             Icon(
                                 imageVector = Icons.Filled.Save,
                                 contentDescription = "Guardar partida",
-                                tint = Color(0xFF1976D2)
+                                tint = Color.White
                             )
                         }
                     }
@@ -468,7 +468,7 @@ fun EstivacionScreen(
                         ) {
                             Text(
                                 text = "Ubicación:",
-                                color = Color.Gray,
+                                color = Color.White,
                                 fontSize = 16.sp
                             )
                         }
@@ -484,7 +484,7 @@ fun EstivacionScreen(
                             Icon(
                                 imageVector = Icons.Filled.CameraAlt,
                                 contentDescription = "Escanear ubicación",
-                                tint = Color(0xFF1976D2)
+                                tint = Color.White
                             )
                         }
                         IconButton(
@@ -499,7 +499,7 @@ fun EstivacionScreen(
                             Icon(
                                 imageVector = Icons.Filled.Edit,
                                 contentDescription = "Editar ubicación",
-                                tint = Color(0xFF1976D2)
+                                tint = Color.White
                             )
                         }
                     }
@@ -511,18 +511,18 @@ fun EstivacionScreen(
                         OutlinedTextField(
                             value = ubicacionFieldValue,
                             onValueChange = { ubicacionFieldValue = it },
-                            label = { Text("Ubicación", color = Color.Black) },
+                            label = { Text("Ubicación", color = Color.White) },
                             singleLine = true,
                             modifier = Modifier
                                 .weight(1f)
                                 .focusRequester(ubicacionFocusRequester),
-                            textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                            textStyle = LocalTextStyle.current.copy(color = Color.White),
                             colors = TextFieldDefaults.outlinedTextFieldColors(
-                                cursorColor = Color.Black,
-                                focusedBorderColor = Color(0xFF1976D2),
-                                unfocusedBorderColor = Color(0xFF1976D2),
-                                focusedLabelColor = Color.Black,
-                                unfocusedLabelColor = Color.Black
+                                cursorColor = Color.White,
+                                focusedBorderColor = Color.White,
+                                unfocusedBorderColor = Color.White,
+                                focusedLabelColor = Color.White,
+                                unfocusedLabelColor = Color.White
                             )
                         )
                         Spacer(modifier = Modifier.width(8.dp))
@@ -535,7 +535,7 @@ fun EstivacionScreen(
                             Icon(
                                 imageVector = Icons.Filled.Save,
                                 contentDescription = "Guardar ubicación",
-                                tint = Color(0xFF1976D2)
+                                tint = Color.White
                             )
                         }
                     }
@@ -562,7 +562,7 @@ fun EstivacionScreen(
                         ) {
                             Text(
                                 text = "Partida: $partidaLocal",
-                                color = Color.Gray,
+                                color = Color.White,
                                 fontSize = 16.sp
                             )
                         }
@@ -578,7 +578,7 @@ fun EstivacionScreen(
                             Icon(
                                 imageVector = Icons.Filled.CameraAlt,
                                 contentDescription = "Escanear partida",
-                                tint = Color(0xFF1976D2)
+                                tint = Color.White
                             )
                         }
                         IconButton(
@@ -593,7 +593,7 @@ fun EstivacionScreen(
                             Icon(
                                 imageVector = Icons.Filled.Edit,
                                 contentDescription = "Editar partida",
-                                tint = Color(0xFF1976D2)
+                                tint = Color.White
                             )
                         }
                     }
@@ -605,18 +605,18 @@ fun EstivacionScreen(
                         OutlinedTextField(
                             value = partidaFieldValue,
                             onValueChange = { partidaFieldValue = it },
-                            label = { Text("Partida", color = Color.Black) },
+                            label = { Text("Partida", color = Color.White) },
                             singleLine = true,
                             modifier = Modifier
                                 .weight(1f)
                                 .focusRequester(partidaFocusRequester),
-                            textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                            textStyle = LocalTextStyle.current.copy(color = Color.White),
                             colors = TextFieldDefaults.outlinedTextFieldColors(
-                                cursorColor = Color.Black,
-                                focusedBorderColor = Color(0xFF1976D2),
-                                unfocusedBorderColor = Color(0xFF1976D2),
-                                focusedLabelColor = Color.Black,
-                                unfocusedLabelColor = Color.Black
+                                cursorColor = Color.White,
+                                focusedBorderColor = Color.White,
+                                unfocusedBorderColor = Color.White,
+                                focusedLabelColor = Color.White,
+                                unfocusedLabelColor = Color.White
                             )
                         )
                         Spacer(modifier = Modifier.width(8.dp))
@@ -629,7 +629,7 @@ fun EstivacionScreen(
                             Icon(
                                 imageVector = Icons.Filled.Save,
                                 contentDescription = "Guardar partida",
-                                tint = Color(0xFF1976D2)
+                                tint = Color.White
                             )
                         }
                     }
@@ -657,7 +657,7 @@ fun EstivacionScreen(
                         ) {
                             Text(
                                 text = "Ubicación: $ubicacionLocal",
-                                color = Color.Gray,
+                                color = Color.White,
                                 fontSize = 16.sp
                             )
                         }
@@ -673,7 +673,7 @@ fun EstivacionScreen(
                             Icon(
                                 imageVector = Icons.Filled.CameraAlt,
                                 contentDescription = "Escanear ubicación",
-                                tint = Color(0xFF1976D2)
+                                tint = Color.White
                             )
                         }
                         IconButton(
@@ -688,7 +688,7 @@ fun EstivacionScreen(
                             Icon(
                                 imageVector = Icons.Filled.Edit,
                                 contentDescription = "Editar ubicación",
-                                tint = Color(0xFF1976D2)
+                                tint = Color.White
                             )
                         }
                     }
@@ -700,18 +700,18 @@ fun EstivacionScreen(
                         OutlinedTextField(
                             value = ubicacionFieldValue,
                             onValueChange = { ubicacionFieldValue = it },
-                            label = { Text("Ubicación", color = Color.Black) },
+                            label = { Text("Ubicación", color = Color.White) },
                             singleLine = true,
                             modifier = Modifier
                                 .weight(1f)
                                 .focusRequester(ubicacionFocusRequester),
-                            textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                            textStyle = LocalTextStyle.current.copy(color = Color.White),
                             colors = TextFieldDefaults.outlinedTextFieldColors(
-                                cursorColor = Color.Black,
-                                focusedBorderColor = Color(0xFF1976D2),
-                                unfocusedBorderColor = Color(0xFF1976D2),
-                                focusedLabelColor = Color.Black,
-                                unfocusedLabelColor = Color.Black
+                                cursorColor = Color.White,
+                                focusedBorderColor = Color.White,
+                                unfocusedBorderColor = Color.White,
+                                focusedLabelColor = Color.White,
+                                unfocusedLabelColor = Color.White
                             )
                         )
                         Spacer(modifier = Modifier.width(8.dp))
@@ -724,7 +724,7 @@ fun EstivacionScreen(
                             Icon(
                                 imageVector = Icons.Filled.Save,
                                 contentDescription = "Guardar ubicación",
-                                tint = Color(0xFF1976D2)
+                                tint = Color.White
                             )
                         }
                     }
@@ -754,7 +754,7 @@ fun EstivacionScreen(
                         .fillMaxWidth(0.8f)
                         .height(48.dp),
                     shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2))
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.White)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -764,13 +764,13 @@ fun EstivacionScreen(
                         Icon(
                             imageVector = Icons.Filled.Add,
                             contentDescription = "Stockear",
-                            tint = Color.White,
+                            tint = Color.Black,
                             modifier = Modifier.size(32.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "Escanear Partida",
-                            color = Color.White,
+                            color = Color.Black,
                             fontSize = 18.sp
                         )
                     }
@@ -791,7 +791,7 @@ fun EstivacionScreen(
                         .fillMaxWidth(0.8f)
                         .height(48.dp),
                     shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2))
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.White)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -801,13 +801,13 @@ fun EstivacionScreen(
                         Icon(
                             imageVector = Icons.Filled.LocationOn,
                             contentDescription = "Stockear",
-                            tint = Color.White,
+                            tint = Color.Black,
                             modifier = Modifier.size(32.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "Escanear Ubicación",
-                            color = Color.White,
+                            color = Color.Black,
                             fontSize = 18.sp
                         )
                     }
@@ -843,7 +843,7 @@ fun EstivacionScreen(
                                 Icon(
                                     imageVector = Icons.Filled.LocationOn,
                                     contentDescription = "Ubicación seleccionada",
-                                    tint = Color(0xFF1976D2)
+                                    tint = Color.White
                                 )
                             }
                         }
@@ -931,8 +931,8 @@ fun EstivacionScreen(
                 enabled = !isLoading,
                 shape = RoundedCornerShape(24.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF1976D2),
-                    disabledContainerColor = Color(0xFF90CAF9)
+                    containerColor = Color.White,
+                    disabledContainerColor = Color(0xFFCCCCCC)
                 ),
                 modifier = Modifier
                     .fillMaxWidth(0.8f)
@@ -940,12 +940,12 @@ fun EstivacionScreen(
             ) {
                     if (isLoading) {
                         CircularProgressIndicator(
-                            color = Color.White,
+                            color = Color.Black,
                             modifier = Modifier.size(24.dp),
                             strokeWidth = 2.dp
                         )
                     } else {
-                        Text("Enviar", color = Color.White, fontSize = 16.sp)
+                        Text("Enviar", color = Color.Black, fontSize = 16.sp)
                     }
                 }
                 if (errorEnvio != null) {

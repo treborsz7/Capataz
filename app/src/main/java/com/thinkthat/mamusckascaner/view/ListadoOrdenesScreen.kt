@@ -91,7 +91,7 @@ fun ListadoOrdenesScreen(
                 .padding(16.dp)
         ) {
             IconButton(onClick = onBack) {
-                Icon(Icons.Filled.ArrowBack, contentDescription = "Volver", tint = Color(0xFF1976D2))
+                Icon(Icons.Filled.ArrowBack, contentDescription = "Volver", tint = Color.White)
             }
         }
         
@@ -104,7 +104,7 @@ fun ListadoOrdenesScreen(
                 .padding(16.dp)
             ) {
                 IconButton(onClick = { cargarOrdenes() }) {
-                    Icon(Icons.Filled.Refresh, contentDescription = "Refrescar", tint = Color(0xFF1976D2))
+                    Icon(Icons.Filled.Refresh, contentDescription = "Refrescar", tint = Color.White)
                 }
             }
 

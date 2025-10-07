@@ -17,24 +17,19 @@
         android:theme="@style/Theme.BarCodeScanner"
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
+        <!-- SplashScreen eliminado - ahora se usa splash nativo de Android -->
+        
         <activity
-            android:name="com.codegalaxy.barcodescanner.view.SplashScreen"
+            android:name=".view.LoginActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:screenOrientation="portrait"
-            android:theme="@style/Theme.BarCodeScanner">
+            android:theme="@style/Theme.BarCodeScanner.Splash">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <activity
-            android:name=".view.LoginActivity"
-            android:exported="false"
-            android:label="@string/app_name"
-            android:screenOrientation="portrait"
-            android:theme="@style/Theme.BarCodeScanner" />
 
         <activity
             android:name=".view.MainActivity"
