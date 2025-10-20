@@ -349,18 +349,9 @@ private fun sendLogEmail(context: android.content.Context) {
             // Abrir el selector de aplicaciones de email con los archivos ya adjuntos
             context.startActivity(Intent.createChooser(emailIntent, "Enviar logs por email"))
             
-            // Eliminar todos los archivos después de abrir el selector
-            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                var deletedCount = 0
-                logFiles.forEach { file ->
-                    if (file.exists() && file.delete()) {
-                        deletedCount++
-                    }
-                }
-                if (deletedCount > 0) {
-                    Toast.makeText(context, "$deletedCount archivo(s) de log eliminado(s) del dispositivo", Toast.LENGTH_SHORT).show()
-                }
-            }, 2000) // Esperar 2 segundos para asegurar que los archivos se hayan adjuntado
+            // Nota: Los archivos NO se eliminan automáticamente para asegurar que el cliente de email
+            // pueda leer los adjuntos correctamente. El usuario puede eliminarlos manualmente si lo desea,
+            // o se sobrescribirán en la próxima sesión de la aplicación.
             
         } catch (e: Exception) {
             Toast.makeText(context, "No hay aplicaciones de email disponibles", Toast.LENGTH_LONG).show()
