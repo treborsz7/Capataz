@@ -211,18 +211,18 @@ fun ReubicacionScreen(
                     OutlinedTextField(
                         value = depositoFieldValue,
                         onValueChange = { depositoFieldValue = it },
-                        label = { Text("Depósito", color = Color.Black) },
+                        label = { Text("Depósito", color = Color.White) },
                         singleLine = true,
                         modifier = Modifier
                             .weight(1f)
                             .focusRequester(depositoFocusRequester),
-                        textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                        textStyle = LocalTextStyle.current.copy(color = Color.White),
                         colors = TextFieldDefaults.outlinedTextFieldColors(
-                            cursorColor = Color.Black,
+                            cursorColor = Color.White,
                             focusedBorderColor = Color(0xFF1976D2),
                             unfocusedBorderColor = Color(0xFF1976D2),
-                            focusedLabelColor = Color.Black,
-                            unfocusedLabelColor = Color.Black
+                            focusedLabelColor = Color.White,
+                            unfocusedLabelColor = Color.White
                         )
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -293,18 +293,18 @@ fun ReubicacionScreen(
                         OutlinedTextField(
                             value = productoFieldValue,
                             onValueChange = { productoFieldValue = it },
-                            label = { Text("Partida", color = Color.Black) },
+                            label = { Text("Partida", color = Color.White) },
                             singleLine = true,
                             modifier = Modifier
                                 .weight(1f)
                                 .focusRequester(productoFocusRequester),
-                            textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                            textStyle = LocalTextStyle.current.copy(color = Color.White),
                             colors = TextFieldDefaults.outlinedTextFieldColors(
-                                cursorColor = Color.Black,
+                                cursorColor = Color.White,
                                 focusedBorderColor = Color(0xFF1976D2),
                                 unfocusedBorderColor = Color(0xFF1976D2),
-                                focusedLabelColor = Color.Black,
-                                unfocusedLabelColor = Color.Black
+                                focusedLabelColor = Color.White,
+                                unfocusedLabelColor = Color.White
                             )
                         )
                         Spacer(modifier = Modifier.width(8.dp))
@@ -328,8 +328,6 @@ fun ReubicacionScreen(
                         }
                     }
                 }
-                
-                Spacer(modifier = Modifier.height(16.dp))
                 
                 Button(
                     onClick = {
@@ -422,18 +420,18 @@ fun ReubicacionScreen(
                         OutlinedTextField(
                             value = productoFieldValue,
                             onValueChange = { productoFieldValue = it },
-                            label = { Text("Partida", color = Color.Black) },
+                            label = { Text("Partida", color = Color.White) },
                             singleLine = true,
                             modifier = Modifier
                                 .weight(1f)
                                 .focusRequester(productoFocusRequester),
-                            textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                            textStyle = LocalTextStyle.current.copy(color = Color.White),
                             colors = TextFieldDefaults.outlinedTextFieldColors(
-                                cursorColor = Color.Black,
+                                cursorColor = Color.White,
                                 focusedBorderColor = Color(0xFF1976D2),
                                 unfocusedBorderColor = Color(0xFF1976D2),
-                                focusedLabelColor = Color.Black,
-                                unfocusedLabelColor = Color.Black
+                                focusedLabelColor = Color.White,
+                                unfocusedLabelColor = Color.White
                             )
                         )
                         Spacer(modifier = Modifier.width(8.dp))
@@ -457,8 +455,6 @@ fun ReubicacionScreen(
                         }
                     }
                 }
-
-                Spacer(modifier = Modifier.height(16.dp))
 
                 if (!ubicacionOrigenEditable) {
                     Row(
@@ -502,18 +498,18 @@ fun ReubicacionScreen(
                         OutlinedTextField(
                             value = ubicacionOrigenFieldValue,
                             onValueChange = { ubicacionOrigenFieldValue = it },
-                            label = { Text("Ubicación Origen", color = Color.Black) },
+                            label = { Text("Ubicación Origen", color = Color.White) },
                             singleLine = true,
                             modifier = Modifier
                                 .weight(1f)
                                 .focusRequester(ubicacionOrigenFocusRequester),
-                            textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                            textStyle = LocalTextStyle.current.copy(color = Color.White),
                             colors = TextFieldDefaults.outlinedTextFieldColors(
-                                cursorColor = Color.Black,
+                                cursorColor = Color.White,
                                 focusedBorderColor = Color(0xFF1976D2),
                                 unfocusedBorderColor = Color(0xFF1976D2),
-                                focusedLabelColor = Color.Black,
-                                unfocusedLabelColor = Color.Black
+                                focusedLabelColor = Color.White,
+                                unfocusedLabelColor = Color.White
                             )
                         )
                         Spacer(modifier = Modifier.width(8.dp))
@@ -537,8 +533,6 @@ fun ReubicacionScreen(
                         }
                     }
                 }
-                
-                Spacer(modifier = Modifier.height(16.dp))
                 
                 Button(
                     onClick = {
@@ -631,18 +625,18 @@ fun ReubicacionScreen(
                         OutlinedTextField(
                             value = productoFieldValue,
                             onValueChange = { productoFieldValue = it },
-                            label = { Text("Partida", color = Color.Black) },
+                            label = { Text("Partida", color = Color.White) },
                             singleLine = true,
                             modifier = Modifier
                                 .weight(1f)
                                 .focusRequester(productoFocusRequester),
-                            textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                            textStyle = LocalTextStyle.current.copy(color = Color.White),
                             colors = TextFieldDefaults.outlinedTextFieldColors(
-                                cursorColor = Color.Black,
+                                cursorColor = Color.White,
                                 focusedBorderColor = Color(0xFF1976D2),
                                 unfocusedBorderColor = Color(0xFF1976D2),
-                                focusedLabelColor = Color.Black,
-                                unfocusedLabelColor = Color.Black
+                                focusedLabelColor = Color.White,
+                                unfocusedLabelColor = Color.White
                             )
                         )
                         Spacer(modifier = Modifier.width(8.dp))
@@ -666,8 +660,6 @@ fun ReubicacionScreen(
                         }
                     }
                 }
-
-                Spacer(modifier = Modifier.height(16.dp))
 
                 if (!ubicacionOrigenEditable) {
                     Row(
@@ -725,18 +717,18 @@ fun ReubicacionScreen(
                         OutlinedTextField(
                             value = ubicacionOrigenFieldValue,
                             onValueChange = { ubicacionOrigenFieldValue = it },
-                            label = { Text("Ubicación Origen", color = Color.Black) },
+                            label = { Text("Ubicación Origen", color = Color.White) },
                             singleLine = true,
                             modifier = Modifier
                                 .weight(1f)
                                 .focusRequester(ubicacionOrigenFocusRequester),
-                            textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                            textStyle = LocalTextStyle.current.copy(color = Color.White),
                             colors = TextFieldDefaults.outlinedTextFieldColors(
-                                cursorColor = Color.Black,
+                                cursorColor = Color.White,
                                 focusedBorderColor = Color(0xFF1976D2),
                                 unfocusedBorderColor = Color(0xFF1976D2),
-                                focusedLabelColor = Color.Black,
-                                unfocusedLabelColor = Color.Black
+                                focusedLabelColor = Color.White,
+                                unfocusedLabelColor = Color.White
                             )
                         )
                         Spacer(modifier = Modifier.width(8.dp))
@@ -760,8 +752,6 @@ fun ReubicacionScreen(
                         }
                     }
                 }
-
-                Spacer(modifier = Modifier.height(16.dp))
 
                 if (!ubicacionDestinoEditable) {
                     Row(
@@ -805,18 +795,18 @@ fun ReubicacionScreen(
                         OutlinedTextField(
                             value = ubicacionDestinoFieldValue,
                             onValueChange = { ubicacionDestinoFieldValue = it },
-                            label = { Text("Ubicación Destino", color = Color.Black) },
+                            label = { Text("Ubicación Destino", color = Color.White) },
                             singleLine = true,
                             modifier = Modifier
                                 .weight(1f)
                                 .focusRequester(ubicacionDestinoFocusRequester),
-                            textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                            textStyle = LocalTextStyle.current.copy(color = Color.White),
                             colors = TextFieldDefaults.outlinedTextFieldColors(
-                                cursorColor = Color.Black,
+                                cursorColor = Color.White,
                                 focusedBorderColor = Color(0xFF1976D2),
                                 unfocusedBorderColor = Color(0xFF1976D2),
-                                focusedLabelColor = Color.Black,
-                                unfocusedLabelColor = Color.Black
+                                focusedLabelColor = Color.White,
+                                unfocusedLabelColor = Color.White
                             )
                         )
                         Spacer(modifier = Modifier.width(8.dp))
@@ -840,8 +830,6 @@ fun ReubicacionScreen(
                         }
                     }
                 }
-                
-                Spacer(modifier = Modifier.height(16.dp))
                 
                 Button(
                     onClick = {
@@ -934,18 +922,18 @@ fun ReubicacionScreen(
                         OutlinedTextField(
                             value = productoFieldValue,
                             onValueChange = { productoFieldValue = it },
-                            label = { Text("Partida", color = Color.Black) },
+                            label = { Text("Partida", color = Color.White) },
                             singleLine = true,
                             modifier = Modifier
                                 .weight(1f)
                                 .focusRequester(productoFocusRequester),
-                            textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                            textStyle = LocalTextStyle.current.copy(color = Color.White),
                             colors = TextFieldDefaults.outlinedTextFieldColors(
-                                cursorColor = Color.Black,
+                                cursorColor = Color.White,
                                 focusedBorderColor = Color(0xFF1976D2),
                                 unfocusedBorderColor = Color(0xFF1976D2),
-                                focusedLabelColor = Color.Black,
-                                unfocusedLabelColor = Color.Black
+                                focusedLabelColor = Color.White,
+                                unfocusedLabelColor = Color.White
                             )
                         )
                         Spacer(modifier = Modifier.width(8.dp))
@@ -969,8 +957,6 @@ fun ReubicacionScreen(
                         }
                     }
                 }
-
-                Spacer(modifier = Modifier.height(16.dp))
 
                 if (!ubicacionOrigenEditable) {
                     Row(
@@ -1028,18 +1014,18 @@ fun ReubicacionScreen(
                         OutlinedTextField(
                             value = ubicacionOrigenFieldValue,
                             onValueChange = { ubicacionOrigenFieldValue = it },
-                            label = { Text("Ubicación Origen", color = Color.Black) },
+                            label = { Text("Ubicación Origen", color = Color.White) },
                             singleLine = true,
                             modifier = Modifier
                                 .weight(1f)
                                 .focusRequester(ubicacionOrigenFocusRequester),
-                            textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                            textStyle = LocalTextStyle.current.copy(color = Color.White),
                             colors = TextFieldDefaults.outlinedTextFieldColors(
-                                cursorColor = Color.Black,
+                                cursorColor = Color.White,
                                 focusedBorderColor = Color(0xFF1976D2),
                                 unfocusedBorderColor = Color(0xFF1976D2),
-                                focusedLabelColor = Color.Black,
-                                unfocusedLabelColor = Color.Black
+                                focusedLabelColor = Color.White,
+                                unfocusedLabelColor = Color.White
                             )
                         )
                         Spacer(modifier = Modifier.width(8.dp))
@@ -1063,8 +1049,6 @@ fun ReubicacionScreen(
                         }
                     }
                 }
-
-                Spacer(modifier = Modifier.height(16.dp))
 
                 if (!ubicacionDestinoEditable) {
                     Row(
@@ -1122,18 +1106,18 @@ fun ReubicacionScreen(
                         OutlinedTextField(
                             value = ubicacionDestinoFieldValue,
                             onValueChange = { ubicacionDestinoFieldValue = it },
-                            label = { Text("Ubicación Destino", color = Color.Black) },
+                            label = { Text("Ubicación Destino", color = Color.White) },
                             singleLine = true,
                             modifier = Modifier
                                 .weight(1f)
                                 .focusRequester(ubicacionDestinoFocusRequester),
-                            textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                            textStyle = LocalTextStyle.current.copy(color = Color.White),
                             colors = TextFieldDefaults.outlinedTextFieldColors(
-                                cursorColor = Color.Black,
+                                cursorColor = Color.White,
                                 focusedBorderColor = Color(0xFF1976D2),
                                 unfocusedBorderColor = Color(0xFF1976D2),
-                                focusedLabelColor = Color.Black,
-                                unfocusedLabelColor = Color.Black
+                                focusedLabelColor = Color.White,
+                                unfocusedLabelColor = Color.White
                             )
                         )
                         Spacer(modifier = Modifier.width(8.dp))
@@ -1158,8 +1142,6 @@ fun ReubicacionScreen(
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
 
             // Los botones de escaneo ya están integrados en la lógica secuencial arriba
         }

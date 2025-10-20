@@ -612,8 +612,6 @@ fun EstivacionScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
                 // Campo Ubicación (completado)
                 if (!ubicacionEditable) {
                     Row(
@@ -711,8 +709,6 @@ fun EstivacionScreen(
             // Continuar con la lógica de botones grandes integrados
             if (partidaLocal.isBlank()) {
                 // 1. Solo mostrar botón escanear partida si no hay partida
-                Spacer(modifier = Modifier.height(16.dp))
-                
                 Button(
                     onClick = {
                         if (hasCameraPermission) {
@@ -748,8 +744,6 @@ fun EstivacionScreen(
                 }
             } else if (ubicacionLocal.isBlank()) {
                 // 2. Mostrar botón escanear ubicación si hay partida pero no ubicación
-                Spacer(modifier = Modifier.height(16.dp))
-                
                 Button(
                     onClick = {
                         if (hasCameraPermission) {
