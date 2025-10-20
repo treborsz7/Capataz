@@ -5,6 +5,8 @@
     
     <!-- Icono centrado usando el drawable vectorial -->
     <item
-
+        android:drawable="@drawable/logos_y__1__05__1_"
+        android:width="400dp"
+        android:height="400dp"
         android:gravity="center"/>
 </layer-list>

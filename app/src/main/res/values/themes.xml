@@ -16,7 +16,7 @@
     
     <!-- Tema específico para el Splash Screen con icono -->
     <style name="Theme.BarCodeScanner.Splash" parent="Theme.AppCompat.Light.NoActionBar">
-        <item name="android:windowBackground">@color/splash_background</item>
+        <item name="android:windowBackground">@drawable/splash_with_icon</item>
         <item name="android:windowNoTitle">true</item>
         <item name="android:windowFullscreen">false</item>
         <item name="android:windowDisablePreview">true</item>

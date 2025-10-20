@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -148,15 +149,12 @@ fun EstivacionScreen(
                 .align(Alignment.TopStart)
                 .padding(16.dp)
         ) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.Filled.ArrowBack, contentDescription = "Volver", tint = Color.White)
-                }
-                Spacer(Modifier.weight(1f))
+            IconButton(onClick = onBack) {
+                Icon(Icons.Filled.ArrowBack, contentDescription = "Volver", tint = Color.White)
             }
         }
         
-        // Título centrado en la parte superior
+        // Título centrado a la misma altura que el botón de volver
         Box(
             modifier = Modifier
                 .align(Alignment.TopCenter)
@@ -175,8 +173,17 @@ fun EstivacionScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 80.dp, start = 16.dp, end = 16.dp, bottom = 80.dp)
+                .padding(horizontal = 32.dp)
+                .offset(y = (-40).dp)
+                .align(Alignment.Center)
         ) {
+            // Logo centrado
+            Icon(
+                painter = painterResource(id = com.thinkthat.mamusckascaner.R.drawable.logos_y__1__05__1_),
+                contentDescription = "Logo",
+                tint = Color.White,
+                modifier = Modifier.size(400.dp)
+            )
             // Campo depósito con ícono de edición o guardado
             if (!depositoEditable) {
                 // Modo solo lectura - sin bordes, texto gris
@@ -706,83 +713,6 @@ fun EstivacionScreen(
                 }
             }
             
-            // Continuar con la lógica de botones grandes integrados
-            if (partidaLocal.isBlank()) {
-                // 1. Solo mostrar botón escanear partida si no hay partida
-                Button(
-                    onClick = {
-                        if (hasCameraPermission) {
-                            onStockearClick("producto")
-                        } else {
-                            launcher.launch(android.Manifest.permission.CAMERA)
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth(0.8f)
-                        .height(48.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.White)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Add,
-                            contentDescription = "Stockear",
-                            tint = Color.Black,
-                            modifier = Modifier.size(32.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Escanear Partida",
-                            color = Color.Black,
-                            fontSize = 18.sp
-                        )
-                    }
-                }
-            } else if (ubicacionLocal.isBlank()) {
-                // 2. Mostrar botón escanear ubicación si hay partida pero no ubicación
-                Button(
-                    onClick = {
-                        if (hasCameraPermission) {
-                            onStockearClick("ubicacion")
-                        } else {
-                            launcher.launch(android.Manifest.permission.CAMERA)
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth(0.8f)
-                        .height(48.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.White)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.LocationOn,
-                            contentDescription = "Stockear",
-                            tint = Color.Black,
-                            modifier = Modifier.size(32.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Escanear Ubicación",
-                            color = Color.Black,
-                            fontSize = 18.sp
-                        )
-                    }
-                }
-            } 
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // Cerrar la lógica secuencial
-            
             // Listado de ubicaciones (no dropdown)
             if (ubicaciones.isNotEmpty()) {
                 Column(
@@ -831,6 +761,91 @@ fun EstivacionScreen(
                     message = errorEnvio!!,
                     modifier = Modifier.fillMaxWidth(0.8f)
                 )
+            }
+        }
+        
+        // Botones de escaneo en posición fija (misma ubicación que botón Enviar)
+        if (partidaLocal.isBlank()) {
+            // Botón Escanear Partida
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 16.dp)
+            ) {
+                Button(
+                    onClick = {
+                        if (hasCameraPermission) {
+                            onStockearClick("producto")
+                        } else {
+                            launcher.launch(android.Manifest.permission.CAMERA)
+                        }
+                    },
+                    shape = RoundedCornerShape(24.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                    modifier = Modifier
+                        .fillMaxWidth(0.8f)
+                        .height(56.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Add,
+                            contentDescription = "Escanear",
+                            tint = Color.Black,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "Escanear Partida",
+                            color = Color.Black,
+                            fontSize = 16.sp
+                        )
+                    }
+                }
+            }
+        } else if (ubicacionLocal.isBlank()) {
+            // Botón Escanear Ubicación
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 16.dp)
+            ) {
+                Button(
+                    onClick = {
+                        if (hasCameraPermission) {
+                            onStockearClick("ubicacion")
+                        } else {
+                            launcher.launch(android.Manifest.permission.CAMERA)
+                        }
+                    },
+                    shape = RoundedCornerShape(24.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                    modifier = Modifier
+                        .fillMaxWidth(0.8f)
+                        .height(56.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.LocationOn,
+                            contentDescription = "Ubicación",
+                            tint = Color.Black,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "Escanear Ubicación",
+                            color = Color.Black,
+                            fontSize = 16.sp
+                        )
+                    }
+                }
             }
         }
         

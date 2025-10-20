@@ -10,6 +10,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -44,68 +45,112 @@ fun LoginScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
-            .padding(WindowInsets.systemBars.asPaddingValues()),
-        contentAlignment = Alignment.Center
+            .background(Color(0xFFCD0914))
+            .padding(WindowInsets.systemBars.asPaddingValues())
     ) {
+        // Título centrado en la parte superior
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 16.dp)
+        ) {
+            Text(
+                text = "Login",
+                fontSize = 24.sp,
+                color = Color.White,
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+        }
+        
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
+            verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier
-                .background(Color.White, shape = RoundedCornerShape(24.dp))
-                .padding(32.dp)
+                .fillMaxWidth()
+                .padding(horizontal = 32.dp)
+                .offset(y = (-40).dp)
+                .align(Alignment.Center)
         ) {
             android.util.Log.d("LoginScreen", "Rendering login form")
-            Text("Iniciar Sesión", fontSize = 28.sp, color = Color(0xFF1976D2))
-            Spacer(modifier = Modifier.height(32.dp))
-            OutlinedTextField(
-
-                //placeholder = { Text(usuario, color= Color.Black) },
-                value = usuario,
-                onValueChange = {
-                    usuario = it
-                    android.util.Log.d("LoginScreen", "User input updated: $usuario")
-                },
-                label = { Text("Usuario",  color= Color.Gray) },
-                placeholder = { Text("Ingrese su usuario", color = Color.Gray) },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(0.8f),
-                textStyle = LocalTextStyle.current.copy(
-                    color = if (usuario.isBlank()) Color.Gray else Color.Black
-                ),
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    cursorColor = Color.Black,
-                    focusedBorderColor = Color(0xFF1976D2),
-                    unfocusedBorderColor = Color(0xFF1976D2),
-                    focusedLabelColor = Color.Black,
-                    unfocusedLabelColor = Color.Black
-                )
+            
+            // Logo centrado
+            Icon(
+                painter = painterResource(id = com.thinkthat.mamusckascaner.R.drawable.logos_y__1__05__1_),
+                contentDescription = "Logo",
+                tint = Color.White,
+                modifier = Modifier.size(400.dp)
             )
-            Spacer(modifier = Modifier.height(16.dp))
-            OutlinedTextField(
-               // placeholder = { Text(contrasena, color= Color.Black) },
-                value = contrasena,
-                onValueChange = {
-                    contrasena = it
-                    android.util.Log.d("LoginScreen", "Password input updated")
-                },
-                label = { Text("Contraseña",  color= Color.Gray) },
-                placeholder = { Text("Ingrese su contraseña", color = Color.Gray) },
-                singleLine = true,
-                visualTransformation = PasswordVisualTransformation(),
-                modifier = Modifier.fillMaxWidth(0.8f),
-                textStyle = LocalTextStyle.current.copy(
-                    color = if (contrasena.isBlank()) Color.Gray else Color.Black
-                ),
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    cursorColor = Color.Black,
-                    focusedBorderColor = Color(0xFF1976D2),
-                    unfocusedBorderColor = Color(0xFF1976D2),
-                    focusedLabelColor = Color.Black,
-                    unfocusedLabelColor = Color.Black
+            
+            // Si ya se identificó (hay empresas), mostrar solo labels
+            if (empresas.isNotEmpty()) {
+                // Usuario como label (no editable)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth(0.8f)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .background(Color.Transparent)
+                            .padding(16.dp)
+                    ) {
+                        Text(
+                            text = "Usuario: $usuario",
+                            color = Color.White,
+                            fontSize = 16.sp
+                        )
+                    }
+                }
+            } else {
+                // Usuario editable
+                OutlinedTextField(
+                    value = usuario,
+                    onValueChange = {
+                        usuario = it
+                        android.util.Log.d("LoginScreen", "User input updated: $usuario")
+                    },
+                    label = { Text("Usuario", color = Color.White) },
+                    placeholder = { Text("Ingrese su usuario", color = Color.White) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(0.8f),
+                    textStyle = LocalTextStyle.current.copy(
+                        color = Color.White
+                    ),
+                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                        cursorColor = Color.White,
+                        focusedBorderColor = Color.White,
+                        unfocusedBorderColor = Color.White,
+                        focusedLabelColor = Color.White,
+                        unfocusedLabelColor = Color.White
+                    )
                 )
-            )
-            Spacer(modifier = Modifier.height(16.dp))
+            }
+            
+            // Contraseña - solo mostrar si no hay empresas (no identificado aún)
+            if (empresas.isEmpty()) {
+                OutlinedTextField(
+                    value = contrasena,
+                    onValueChange = {
+                        contrasena = it
+                        android.util.Log.d("LoginScreen", "Password input updated")
+                    },
+                    label = { Text("Contraseña", color = Color.White) },
+                    placeholder = { Text("Ingrese su contraseña", color = Color.White) },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    modifier = Modifier.fillMaxWidth(0.8f),
+                    textStyle = LocalTextStyle.current.copy(
+                        color = Color.White
+                    ),
+                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                        cursorColor = Color.White,
+                        focusedBorderColor = Color.White,
+                        unfocusedBorderColor = Color.White,
+                        focusedLabelColor = Color.White,
+                        unfocusedLabelColor = Color.White
+                    )
+                )
+            }
             
             // Mostrar mensaje de error si existe
             if (errorMessage != null) {
@@ -113,30 +158,9 @@ fun LoginScreen(
                     message = errorMessage,
                     modifier = Modifier.fillMaxWidth(0.8f)
                 )
-                Spacer(modifier = Modifier.height(16.dp))
             }
             
-            // Mostrar botón Identificar solo si no hay empresas cargadas
-            if (empresas.isEmpty()) {
-                Button(
-                    onClick = {
-                        android.util.Log.d("LoginScreen", "Identificar button clicked")
-                        onLogin(usuario, contrasena, recordar, empresa)
-                    },
-                    enabled = !isLoading && usuario.isNotBlank(),
-                    modifier = Modifier
-                        .fillMaxWidth(0.8f)
-                        .height(48.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2))
-                ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-                    } else {
-                        Text("Identificar", color = Color.White)
-                    }
-                }
-            }
-            // Mostrar dropdown y botón Ingresar solo si hay empresas cargadas (login plano OK)
+            // Mostrar dropdown y campos solo si hay empresas cargadas (login plano OK)
             if (empresas.isNotEmpty()) {
                 // Dropdown de empresas
                 ExposedDropdownMenuBox(
@@ -145,24 +169,23 @@ fun LoginScreen(
                     modifier = Modifier.fillMaxWidth(0.8f)
                 ) {
                     val empresaTexto = empresas.find { it.first == empresa }?.second ?: "Selecciona empresa"
-                    val esSeleccionPorDefecto = empresaTexto == "Selecciona empresa"
                     
                     OutlinedTextField(
                         value = empresaTexto,
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Empresa", color = Color.Gray) },
+                        label = { Text("Empresa", color = Color.White) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                         modifier = Modifier.menuAnchor().fillMaxWidth(),
                         textStyle = LocalTextStyle.current.copy(
-                            color = if (esSeleccionPorDefecto) Color.Gray else Color.Black
+                            color = Color.White
                         ),
                         colors = TextFieldDefaults.outlinedTextFieldColors(
-                            cursorColor = Color.Black,
-                            focusedBorderColor = Color(0xFF1976D2),
-                            unfocusedBorderColor = Color(0xFF1976D2),
-                            focusedLabelColor = Color.Black,
-                            unfocusedLabelColor = Color.Black
+                            cursorColor = Color.White,
+                            focusedBorderColor = Color.White,
+                            unfocusedBorderColor = Color.White,
+                            focusedLabelColor = Color.White,
+                            unfocusedLabelColor = Color.White
                         )
                     )
                     ExposedDropdownMenu(
@@ -181,28 +204,26 @@ fun LoginScreen(
                         }
                     }
                 }
-                Spacer(modifier = Modifier.height(16.dp))
                 
                 // Campo de texto para Depósito
                 OutlinedTextField(
                     value = deposito,
                     onValueChange = { onDepositoChange(it) },
-                    label = { Text("Depósito", color = Color.Gray) },
-                    placeholder = { Text("Ingrese el código de depósito", color = Color.Gray) },
+                    label = { Text("Depósito", color = Color.White) },
+                    placeholder = { Text("Ingrese el código de depósito", color = Color.White) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(0.8f),
                     textStyle = LocalTextStyle.current.copy(
-                        color = if (deposito.isBlank()) Color.Gray else Color.Black
+                        color = Color.White
                     ),
                     colors = TextFieldDefaults.outlinedTextFieldColors(
-                        cursorColor = Color.Black,
-                        focusedBorderColor = Color(0xFF1976D2),
-                        unfocusedBorderColor = Color(0xFF1976D2),
-                        focusedLabelColor = Color.Black,
-                        unfocusedLabelColor = Color.Black
+                        cursorColor = Color.White,
+                        focusedBorderColor = Color.White,
+                        unfocusedBorderColor = Color.White,
+                        focusedLabelColor = Color.White,
+                        unfocusedLabelColor = Color.White
                     )
                 )
-                Spacer(modifier = Modifier.height(16.dp))
                 
                 // Checkbox Recordar
                 Row(
@@ -211,12 +232,52 @@ fun LoginScreen(
                 ) {
                     Checkbox(
                         checked = recordar,
-                        onCheckedChange = { recordar = it },
-
+                        onCheckedChange = { recordar = it }
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Recordar", fontSize = 16.sp, color= Color.Black)
+                    Text("Recordar", fontSize = 16.sp, color = Color.White)
                 }
+            }
+        } // Cierre del Column
+        
+        // Botón Identificar en posición fija (cuando no hay empresas)
+        if (empresas.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 16.dp)
+            ) {
+                Button(
+                    onClick = {
+                        android.util.Log.d("LoginScreen", "Identificar button clicked")
+                        onLogin(usuario, contrasena, recordar, empresa)
+                    },
+                    enabled = !isLoading && usuario.isNotBlank(),
+                    modifier = Modifier
+                        .fillMaxWidth(0.8f)
+                        .height(56.dp),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.White,
+                        disabledContainerColor = Color(0xFFCCCCCC)
+                    )
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(color = Color.Black, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                    } else {
+                        Text("Identificar", color = Color.Black, fontSize = 16.sp)
+                    }
+                }
+            }
+        }
+        
+        // Botón Ingresar en posición fija (cuando hay empresas)
+        if (empresas.isNotEmpty()) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 16.dp)
+            ) {
                 Button(
                     onClick = {
                         android.util.Log.d("LoginScreen", "Ingresar button clicked")
@@ -243,33 +304,16 @@ fun LoginScreen(
                     enabled = empresa.isNotBlank() && deposito.isNotBlank(),
                     modifier = Modifier
                         .fillMaxWidth(0.8f)
-                        .height(48.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2))
+                        .height(56.dp),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.White,
+                        disabledContainerColor = Color(0xFFCCCCCC)
+                    )
                 ) {
-                    Text("Ingresar", color = Color.White)
+                    Text("Ingresar", color = Color.Black, fontSize = 16.sp)
                 }
             }
         }
     }
-}
-
-@Preview(showBackground = true, name = "LoginScreen Preview")
-@Composable
-fun LoginScreenPreview() {
-    LoginScreen(
-        onLoginSuccess = {},
-        isLoading = false,
-        errorMessage = null,
-        empresas = listOf("1" to "Empresa Uno", "2" to "Empresa Dos"),
-        empresaSeleccionada = "1",
-        onEmpresaSeleccionada = {},
-        deposito = "DEP01",
-        onDepositoChange = {},
-        onLogin = { _, _, _, _ -> },
-        savedUser = "usuario",
-        savedPass = "",
-        savedRemember = false,
-        savedEmpresa = "1",
-        prefs = null
-    )
 }
