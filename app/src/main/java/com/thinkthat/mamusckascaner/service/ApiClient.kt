@@ -54,13 +54,30 @@ data class EstivarResponse(
     val message: String?
 )
 
+data class ArticuloResponse(
+    val codigo: String,
+    val codigoBarras: String,
+    val descripcion: String,
+    val id: Int,
+    val llevaStock: Boolean,
+    val perfil: String,
+    val requerido: Int? = null,
+    val saldoDisponible: Int,
+    val sinonimo: String,
+    val unidadMedida: String,
+    val usaEscalas: String,
+    val usaPartidas: Boolean,
+    val usaSeries: Boolean,
+    val userData: Any?
+)
+
 data class UbicacionResponse(
-    val numero: Number,
+    val numero: Int,
     val nombre: String,
     val alias: String,
-    var orden: Number,
-    val codArticulo: String,
-    val cantidad: Number
+    val orden: Int,
+    val articulos: List<ArticuloResponse>? = null,
+    val userData: Any? = null
 )
 
 data class EstibarPartida(
@@ -202,16 +219,6 @@ interface ApiService {
         
     ): retrofit2.Call<List<UbicacionResponse>>
 
-    // Alternate path-style endpoint to handle servers expecting IdOT in the URL path
-    @GET("PP082/UbicacionesParaRecolectar")
-    fun UbicacionesParaRecolectarByPath(
-        @Header("idOT") idOT: Int,
-        @Header("optimizaRecorrido") optimizaRecorrido: Boolean = false
-    ): retrofit2.Call<List<UbicacionResponse>>
-
-    // Alternate query-style endpoint to handle servers expecting IdOT as a query parameter
-
-    // New nested path variant: PP090/{idOT}/UbicacionesParaRecolectar
 
 }
 

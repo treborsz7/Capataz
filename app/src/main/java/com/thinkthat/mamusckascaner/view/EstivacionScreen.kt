@@ -50,6 +50,7 @@ import com.thinkthat.mamusckascaner.service.Services.EstibarPartidasRequest
 import com.thinkthat.mamusckascaner.service.Services.UbicacionResponse
 import com.thinkthat.mamusckascaner.utils.AppLogger
 import com.thinkthat.mamusckascaner.view.EstivacionSuccessActivity
+import com.thinkthat.mamusckascaner.view.components.ErrorMessage
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -139,8 +140,7 @@ fun EstivacionScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFFCD0914))
-            .padding(WindowInsets.systemBars.asPaddingValues()),
-        contentAlignment = Alignment.Center
+            .padding(WindowInsets.systemBars.asPaddingValues())
     ) {
         // Botón de volver en la esquina superior izquierda
         Box(
@@ -172,11 +172,10 @@ fun EstivacionScreen(
         
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier
-                .align(Alignment.Center)
-                .padding(top = 60.dp) // Add padding to account for title
-                .verticalScroll(rememberScrollState())
+                .fillMaxWidth()
+                .padding(top = 80.dp, start = 16.dp, end = 16.dp, bottom = 80.dp)
         ) {
             // Campo depósito con ícono de edición o guardado
             if (!depositoEditable) {
@@ -281,21 +280,7 @@ fun EstivacionScreen(
                                 fontSize = 16.sp
                             )
                         }
-                        IconButton(
-                            onClick = {
-                                if (hasCameraPermission) {
-                                    onStockearClick("producto")
-                                } else {
-                                    launcher.launch(android.Manifest.permission.CAMERA)
-                                }
-                            }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.CameraAlt,
-                                contentDescription = "Escanear partida",
-                                tint = Color.White
-                            )
-                        }
+                        // No mostrar ícono de cámara cuando el campo está vacío
                         IconButton(
                             onClick = { 
                                 partidaEditable = true
@@ -472,21 +457,7 @@ fun EstivacionScreen(
                                 fontSize = 16.sp
                             )
                         }
-                        IconButton(
-                            onClick = {
-                                if (hasCameraPermission) {
-                                    onStockearClick("ubicacion")
-                                } else {
-                                    launcher.launch(android.Manifest.permission.CAMERA)
-                                }
-                            }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.CameraAlt,
-                                contentDescription = "Escanear ubicación",
-                                tint = Color.White
-                            )
-                        }
+                        // No mostrar ícono de cámara cuando el campo está vacío
                         IconButton(
                             onClick = { 
                                 ubicacionEditable = true
@@ -851,9 +822,22 @@ fun EstivacionScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(4.dp))
 
             // Los botones de escaneo ya están integrados en la lógica secuencial arriba
+        }
+        
+        // Mostrar error de envío si existe (justo arriba del botón)
+        if (errorEnvio != null && partidaLocal.isNotBlank() && ubicacionLocal.isNotBlank()) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 80.dp) // Arriba del botón (56dp altura + 16dp padding + 8dp espacio)
+            ) {
+                ErrorMessage(
+                    message = errorEnvio!!,
+                    modifier = Modifier.fillMaxWidth(0.8f)
+                )
+            }
         }
         
         // Botón de enviar en la parte inferior de la pantalla
@@ -863,7 +847,6 @@ fun EstivacionScreen(
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 16.dp)
             ) {
-            Spacer(modifier = Modifier.height(32.dp))
             Button(
                 onClick = {
                     if (!isLoading) {
@@ -947,10 +930,6 @@ fun EstivacionScreen(
                     } else {
                         Text("Enviar", color = Color.Black, fontSize = 16.sp)
                     }
-                }
-                if (errorEnvio != null) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(errorEnvio ?: "", color = Color.Red, modifier = Modifier.fillMaxWidth(0.8f))
                 }
             }
         }

@@ -39,6 +39,7 @@ import com.thinkthat.mamusckascaner.service.Services.ReubicarPartida
 import com.thinkthat.mamusckascaner.service.Services.ReubicarPartidasRequest
 import com.thinkthat.mamusckascaner.view.EstivacionSuccessActivity
 import com.thinkthat.mamusckascaner.utils.AppLogger
+import com.thinkthat.mamusckascaner.view.components.ErrorMessage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -129,8 +130,7 @@ fun ReubicacionScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFFCD0914))
-            .padding(WindowInsets.systemBars.asPaddingValues()),
-        contentAlignment = Alignment.Center
+            .padding(WindowInsets.systemBars.asPaddingValues())
     ) {
         // Botón de volver en la esquina superior izquierda
         Box(
@@ -162,11 +162,10 @@ fun ReubicacionScreen(
         
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(32.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier
-                .align(Alignment.Center)
-                .padding(top = 60.dp) // Add padding to account for title
-                .verticalScroll(rememberScrollState())
+                .fillMaxWidth()
+                .padding(top = 80.dp, start = 16.dp, end = 16.dp, bottom = 80.dp)
         ) {
             // Campo depósito con ícono de edición o guardado
             if (!depositoEditable) {
@@ -269,21 +268,7 @@ fun ReubicacionScreen(
                                 fontSize = 16.sp
                             )
                         }
-                        IconButton(
-                            onClick = {
-                                if (hasCameraPermission) {
-                                    onReubicarClick("producto")
-                                } else {
-                                    launcher.launch(android.Manifest.permission.CAMERA)
-                                }
-                            }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.CameraAlt,
-                                contentDescription = "Escanear partida",
-                                tint = Color.White
-                            )
-                        }
+                        // No mostrar ícono de cámara cuando el campo está vacío
                         IconButton(
                             onClick = { 
                                 productoEditable = true
@@ -492,21 +477,7 @@ fun ReubicacionScreen(
                                 fontSize = 16.sp
                             )
                         }
-                        IconButton(
-                            onClick = {
-                                if (hasCameraPermission) {
-                                    onReubicarClick("ubicacion_origen")
-                                } else {
-                                    launcher.launch(android.Manifest.permission.CAMERA)
-                                }
-                            }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.CameraAlt,
-                                contentDescription = "Escanear ubicación origen",
-                                tint = Color.White
-                            )
-                        }
+                        // No mostrar ícono de cámara cuando el campo está vacío
                         IconButton(
                             onClick = { 
                                 ubicacionOrigenEditable = true
@@ -809,21 +780,7 @@ fun ReubicacionScreen(
                                 fontSize = 16.sp
                             )
                         }
-                        IconButton(
-                            onClick = {
-                                if (hasCameraPermission) {
-                                    onReubicarClick("ubicacion_destino")
-                                } else {
-                                    launcher.launch(android.Manifest.permission.CAMERA)
-                                }
-                            }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.CameraAlt,
-                                contentDescription = "Escanear ubicación destino",
-                                tint = Color.White
-                            )
-                        }
+                        // No mostrar ícono de cámara cuando el campo está vacío
                         IconButton(
                             onClick = { 
                                 ubicacionDestinoEditable = true
@@ -1206,6 +1163,20 @@ fun ReubicacionScreen(
 
             // Los botones de escaneo ya están integrados en la lógica secuencial arriba
         }
+        
+        // Mostrar error de envío si existe (justo arriba del botón)
+        if (errorEnvio != null && productoLocal.isNotBlank() && ubicacionOrigenLocal.isNotBlank() && ubicacionDestinoLocal.isNotBlank()) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 80.dp) // Arriba del botón (56dp altura + 16dp padding + 8dp espacio)
+            ) {
+                ErrorMessage(
+                    message = errorEnvio!!,
+                    modifier = Modifier.fillMaxWidth(0.8f)
+                )
+            }
+        }
            
         // Botón de enviar en la parte inferior de la pantalla
         if (productoLocal.isNotBlank() && ubicacionOrigenLocal.isNotBlank() && ubicacionDestinoLocal.isNotBlank() && deposito.isNotBlank()) {
@@ -1238,13 +1209,24 @@ fun ReubicacionScreen(
                                 reubicacion = 0
                             )
 
+                            AppLogger.logInfo("ReubicacionScreen", "Iniciando reubicación - Partida: $productoLocal, Origen: $ubicacionOrigenLocal, Destino: $ubicacionDestinoLocal, Depósito: $deposito")
+                            
                             CoroutineScope(Dispatchers.IO).launch {
                                 try {
+                                    AppLogger.logInfo("ReubicacionScreen", "Enviando request a ApiClient.apiService.reubicarPartidas...")
+                                    
                                     val response = ApiClient.apiService.reubicarPartidas(request).execute()
+                                    
+                                    AppLogger.logInfo("ReubicacionScreen", "Respuesta recibida - Código: ${response.code()}, Exitoso: ${response.isSuccessful}")
+                                    
                                     if (response.isSuccessful) {
-                                        AppLogger.logInfo("ReubicacionScreen", "Reubicación exitosa - Partida: $productoLocal, Origen: $ubicacionOrigenLocal, Destino: $ubicacionDestinoLocal")
+                                        val responseBody = response.body()?.string() ?: "Sin contenido"
+                                        AppLogger.logInfo("ReubicacionScreen", "Respuesta exitosa: $responseBody")
+                                        AppLogger.logInfo("ReubicacionScreen", "✅ Reubicación completada exitosamente - Partida: $productoLocal")
+                                        
                                         withContext(Dispatchers.Main) {
                                             isLoading = false
+                                            errorEnvio = null
                                             context.startActivity(Intent(context, EstivacionSuccessActivity::class.java))
                                             (context as? Activity)?.finish()
                                         }
@@ -1252,22 +1234,24 @@ fun ReubicacionScreen(
                                         val errorBody = response.errorBody()?.string() ?: "Error desconocido"
                                         AppLogger.logError(
                                             tag = "ReubicacionScreen",
-                                            message = "Error al reubicar partida: code=${response.code()}, error=$errorBody, partida=$productoLocal"
+                                            message = "Error en respuesta: code=${response.code()} body=$errorBody"
                                         )
+                                        
                                         withContext(Dispatchers.Main) {
                                             isLoading = false
-                                            errorEnvio = errorBody
+                                            errorEnvio = "No se pudo reubicar la partida. Intenta nuevamente."
                                         }
                                     }
                                 } catch (e: Exception) {
                                     AppLogger.logError(
                                         tag = "ReubicacionScreen",
-                                        message = "Excepción al reubicar partida: ${e.message}, partida=$productoLocal",
+                                        message = "Excepción durante el envío: ${e.message}",
                                         throwable = e
                                     )
+                                    
                                     withContext(Dispatchers.Main) {
                                         isLoading = false
-                                        errorEnvio = e.message ?: "Error desconocido"
+                                        errorEnvio = "No se pudo reubicar la partida por un problema de conexión."
                                     }
                                 }
                             }
@@ -1292,10 +1276,6 @@ fun ReubicacionScreen(
                     } else {
                         Text("Enviar", color = Color.Black, fontSize = 16.sp)
                     }
-                }
-                if (errorEnvio != null) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(errorEnvio ?: "", color = Color.Red, modifier = Modifier.fillMaxWidth(0.8f))
                 }
             }
         }

@@ -1,0 +1,114 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "🔨 Build Debug APK",
+            "type": "shell",
+            "command": ".\\gradlew.bat",
+            "args": [
+                "assembleDebug"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "🚀 Build & Install APK",
+            "type": "shell",
+            "command": ".\\gradlew.bat",
+            "args": [
+                "installDebug"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "🚀📱 Build, Install & Launch APK",
+            "type": "shell",
+            "command": ".\\gradlew.bat installDebug; if ($LASTEXITCODE -eq 0) { adb shell am start -n com.thinkthat.mamusckascaner/.view.MainActivity }",
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "🧹 Clean Project",
+            "type": "shell",
+            "command": ".\\gradlew.bat",
+            "args": [
+                "clean"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "🔧 Clean & Build APK",
+            "type": "shell",
+            "command": ".\\gradlew.bat",
+            "args": [
+                "clean",
+                "assembleDebug"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "📦 Build Release APK",
+            "type": "shell",
+            "command": ".\\gradlew.bat",
+            "args": [
+                "assembleRelease"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": []
+        }
+    ]
+}

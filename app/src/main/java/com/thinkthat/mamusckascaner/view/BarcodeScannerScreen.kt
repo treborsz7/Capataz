@@ -48,6 +48,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.systemBars
+import androidx.compose.ui.input.pointer.motionEventSpy
 import com.thinkthat.mamusckascaner.BarScanState
 import com.thinkthat.mamusckascaner.model.BarCodeAnalyzer
 import com.thinkthat.mamusckascaner.viewmodel.BarCodeScannerViewModel
@@ -102,7 +103,7 @@ fun BarcodeScannerScreen(
             Button(
                 onClick = onBack,
                 shape = RoundedCornerShape(50),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2)),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
                 modifier = Modifier.size(48.dp)
             ) {
                 Icon(
@@ -272,23 +273,29 @@ fun CameraPreview(
                 ) {
                     Text(
                         text = "Valor escaneado:",
+                        color = Color.White,
                         style = MaterialTheme.typography.titleMedium
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = cleaned,
-                        color = Color(0xFF1976D2),
+                        color = Color.White,
                         style = MaterialTheme.typography.titleLarge
                     )
                     Spacer(modifier = Modifier.height(24.dp))
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        Button(onClick = { onScanResult(cleaned) }) {
-                            Text("Usar este valor")
+                        Button(onClick = { onScanResult(cleaned) },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.White),)
+                        {
+                            Text("Usar este valor", color = Color.Black,)
+
                         }
-                        Button(onClick = { viewModel.resetState() }) {
-                            Text("Escanear nuevamente")
+                        Button(onClick = { viewModel.resetState() },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.White)
+                            ) {
+                            Text("Escanear nuevamente", color = Color.Black,)
                         }
                     }
                 }

@@ -1,0 +1,14 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "🚀📱 Build, Install & Launch",
+            "runtimeExecutable": "cmd",
+            "runtimeArgs": ["/c", "echo App installed and launched on device!"],
+            "console": "integratedTerminal",
+            "preLaunchTask": "🚀📱 Build, Install & Launch APK"
+        }
+    ]
+}

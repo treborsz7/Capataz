@@ -81,6 +81,7 @@ fun RecolectarScreen(
     var errorEnvio by remember { mutableStateOf<String?>(null) }
     var mensajeExito by remember { mutableStateOf<String?>(null) }
     var showSuccessScreen by remember { mutableStateOf(false) }
+    var isLoadingEnvio by remember { mutableStateOf(false) }
     
     // Estado para diálogos de confirmación
     var showBackDialog by remember { mutableStateOf(false) }
@@ -168,7 +169,8 @@ fun RecolectarScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(Color(0xFFCD0914))
+
             .padding(WindowInsets.systemBars.asPaddingValues())
     ) {
         // Estructura principal: columna con header fijo arriba y contenido scrolleable abajo
@@ -192,7 +194,7 @@ fun RecolectarScreen(
                     Text(
                         text = "Recolectar",
                         fontSize = 24.sp,
-                        color = Color(0xFF1976D2),
+                        color = Color.White,
                         modifier = Modifier.padding(vertical = 8.dp)
                     )
                     Spacer(Modifier.weight(1f))
@@ -242,7 +244,8 @@ fun RecolectarScreen(
                         onClick = onRetryUbicaciones,
                         modifier = Modifier.fillMaxWidth(0.6f),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF1976D2)
+
+                            containerColor = Color(0xFFCD0914)
                         ),
                         shape = RoundedCornerShape(8.dp)
                     ) {
@@ -347,11 +350,33 @@ fun RecolectarScreen(
                         val ubicaciones = mutableListOf<Map<String, Any>>()
                         for (i in 0 until jsonArray.length()) {
                             val ubicacion = jsonArray.getJSONObject(i)
-                            ubicaciones.add(mapOf(
-                                "numero" to ubicacion.optString("numero", "N/A"),
-                                "nombre" to ubicacion.optString("nombre", "N/A"),
-                                "codArticulo" to ubicacion.optString("codArticulo", "N/A")
-                            ))
+                            val numeroUbicacion = ubicacion.optString("numero", "N/A")
+                            
+                            // Obtener el array de artículos
+                            val articulosArray = ubicacion.optJSONArray("articulos")
+                            
+                            if (articulosArray != null && articulosArray.length() > 0) {
+                                // Por cada artículo, agregar una entrada a ubicaciones
+                                for (j in 0 until articulosArray.length()) {
+                                    val articulo = articulosArray.getJSONObject(j)
+                                    val nombreUbicacion = ubicacion.optString("nombre", "N/A")
+                                    ubicaciones.add(mapOf(
+                                        "numeroUbicacion" to numeroUbicacion,
+                                        "nombreUbicacion" to nombreUbicacion,
+                                        "descripcionProducto" to articulo.optString("descripcion", "N/A"),
+                                        "codArticulo" to articulo.optString("codigo", "N/A"),
+                                        "requerido" to articulo.optInt("requerido", 0)
+                                    ))
+                                }
+                            } 
+                            // else {
+                            //     // Si no hay artículos, agregar la ubicación sin artículo
+                            //     ubicaciones.add(mapOf(
+                            //         "numero" to numeroUbicacion,
+                            //         "nombre" to nombreUbicacion,
+                            //         "codArticulo" to "N/A"
+                            //     ))
+                            // }
                         }
                         Pair("array", ubicaciones)
                     } catch (e: Exception) {
@@ -372,9 +397,7 @@ fun RecolectarScreen(
                         .background(Color(0xFFF3E5F5), RoundedCornerShape(12.dp))
                         .padding(16.dp)
                 ) {
-                    Text("Ubicaciones para Recolectar:", color = Color(0xFF7B1FA2), fontSize = 18.sp)
-                    
-                    Spacer(modifier = Modifier.height(8.dp))
+
                     
                     when (ubicacionesParsed.first) {
                         "array" -> {
@@ -400,12 +423,31 @@ fun RecolectarScreen(
                                     Column(
                                         modifier = Modifier.padding(12.dp)
                                     ) {
-                                        // Título del artículo
+                                        // Título del artículo - obtener descripción del primer elemento del grupo
+                                        val descripcionArticulo = ubicacionesDelArticulo.firstOrNull()?.get("descripcionProducto") as? String ?: "N/A"
+                                        Text(
+                                            text = descripcionArticulo,
+                                            color = Color(0xFF1976D2),
+                                            fontSize = 16.sp,
+                                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                                        )
+                                        Spacer(modifier = Modifier.height(8.dp))
+
                                         Text(
                                             text = "Código Artículo: $codArticulo",
                                             color = Color(0xFF1976D2),
                                             fontSize = 16.sp,
                                             fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        
+                                        // Mostrar cantidad solicitada
+                                        val cantidadSolicitada = ubicacionesDelArticulo.firstOrNull()?.get("requerido") as? Int ?: 0
+                                        Text(
+                                            text = "Solicitado: $cantidadSolicitada",
+                                            color = Color(0xFF1976D2),
+                                            fontSize = 14.sp,
+                                            fontWeight = androidx.compose.ui.text.font.FontWeight.Normal
                                         )
                                         Spacer(modifier = Modifier.height(8.dp))
                                         
@@ -422,6 +464,16 @@ fun RecolectarScreen(
                                         
                                         // Estado de cantidad guardada para este artículo
                                         val cantidadGuardada = cantidadesGuardadas[codArticulo] ?: false
+                                        
+                                        // Auto-llenar cantidad con requerido cuando producto y ubicación estén completos
+                                        LaunchedEffect(productoEscaneado, ubicacionEscaneada, cantidadSolicitada) {
+                                            if (productoEscaneado?.isNotEmpty() == true && 
+                                                ubicacionEscaneada?.isNotEmpty() == true &&
+                                                cantidadArticulo.isEmpty() &&
+                                                cantidadSolicitada > 0) {
+                                                cantidadesPorArticulo = cantidadesPorArticulo + (codArticulo to cantidadSolicitada.toString())
+                                            }
+                                        }
                                         
                                         // Campos y botones secuenciales
                                         // Lógica secuencial: mostrar campos y botones según el estado
@@ -868,7 +920,7 @@ fun RecolectarScreen(
                                             val ubicacion = ubicacionesDelArticulo[0]
                                             Column {
                                                 Text(
-                                                    text = "Ubicación: ${ubicacion["nombre"]}",
+                                                    text = "Ubicación: ${ubicacion["nombreUbicacion"]}",
                                                     color = Color.Black,
                                                     fontSize = 14.sp
                                                 )
@@ -890,7 +942,10 @@ fun RecolectarScreen(
                                                             expandedItems + codArticulo
                                                         }
                                                     }
-                                                    .background(Color(0xFFE3F2FD), RoundedCornerShape(8.dp))
+                                                    .background(
+                                                        Color(0xFFE3F2FD),
+                                                        RoundedCornerShape(8.dp)
+                                                    )
                                                     .padding(12.dp),
                                                 horizontalArrangement = Arrangement.SpaceBetween,
                                                 verticalAlignment = Alignment.CenterVertically
@@ -929,17 +984,11 @@ fun RecolectarScreen(
                                                                 verticalAlignment = Alignment.CenterVertically
                                                             ) {
                                                                 Text(
-                                                                    text = "${ubicacion["nombre"]}",
+                                                                    text = "Ubicación: ${ubicacion["nombreUbicacion"]}",
                                                                     color = Color.Black,
                                                                     fontSize = 13.sp,
                                                                     fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
                                                                 )
-                                                                // Text(
-                                                                //     text = "Número: ${ubicacion["numero"]}",
-                                                                //     color = Color(0xFF2E7D32),
-                                                                //     fontSize = 12.sp,
-                                                                //     fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
-                                                                // )
                                                             }
                                                            
                                                         }
@@ -970,16 +1019,47 @@ fun RecolectarScreen(
             val ubicacionesParsed = remember(ubicacionesRecolectar) {
                 try {
                     val jsonArray = JSONArray(ubicacionesRecolectar ?: "[]")
+                    Log.d("RecolectarScreen", "${jsonArray.toString()}")
+
                     val ubicaciones = mutableListOf<Map<String, Any>>()
                     for (i in 0 until jsonArray.length()) {
                         val ubicacion = jsonArray.getJSONObject(i)
-                        ubicaciones.add(mapOf(
-                            "numero" to ubicacion.optString("numero", "N/A"),
-                            "nombre" to ubicacion.optString("nombre", "N/A"),
-                            "alias" to ubicacion.optString("alias", "N/A"),
-                            "orden" to ubicacion.optInt("orden", 0),
-                            "codArticulo" to ubicacion.optString("codArticulo", "N/A")
-                        ))
+                        val nombreUbicacion = ubicacion.optString("nombre", "N/A")
+                        val numeroUbicacion = ubicacion.optString("numero", "N/A")
+                        val aliasUbicacion = ubicacion.optString("alias", "N/A")
+                        val ordenUbicacion = ubicacion.optInt("orden", 0)
+                        
+                        // Obtener el array de artículos
+                        val articulosArray = ubicacion.optJSONArray("articulos")
+                        
+                        if (articulosArray != null && articulosArray.length() > 0) {
+                            // Por cada artículo, agregar una entrada a ubicaciones
+                            for (j in 0 until articulosArray.length()) {
+                                val articulo = articulosArray.getJSONObject(j)
+                                ubicaciones.add(mapOf(
+                                    "numero" to numeroUbicacion,
+                                    "nombre" to nombreUbicacion,
+                                    "alias" to aliasUbicacion,
+                                    "orden" to ordenUbicacion,
+                                    "codArticulo" to articulo.optString("codigo", "N/A"),
+                                    "codigoBarras" to articulo.optString("codigoBarras", "N/A"),
+                                    "descripcion" to articulo.optString("descripcion", "N/A"),
+                                    "requerido" to articulo.optInt("requerido", 0),
+                                    "saldoDisponible" to articulo.optInt("saldoDisponible", 0),
+                                    "usaPartidas" to articulo.optBoolean("usaPartidas", false),
+                                    "usaSeries" to articulo.optBoolean("usaSeries", false)
+                                ))
+                            }
+                        } else {
+                            // Si no hay artículos, agregar la ubicación sin artículo
+                            ubicaciones.add(mapOf(
+                                "numero" to numeroUbicacion,
+                                "nombre" to nombreUbicacion,
+                                "alias" to aliasUbicacion,
+                                "orden" to ordenUbicacion,
+                                "codArticulo" to "N/A"
+                            ))
+                        }
                     }
                     ubicaciones.groupBy { it["codArticulo"] as String }
                 } catch (e: Exception) {
@@ -1006,144 +1086,164 @@ fun RecolectarScreen(
             if (todasCompletas && tienePedido && tieneDeposito && datosListos) {
                 Button(
                     onClick = {
-                        errorEnvio = null
-                        mensajeExito = null
-                        
-                        val prefs = context.getSharedPreferences("QRCodeScannerPrefs", Context.MODE_PRIVATE)
-                        val usuario = prefs.getString("savedUser", "") ?: ""
-                        
-                        Log.d("RecolectarScreen", "=== INICIANDO ENVÍO DE RECOLECCIÓN ===")
-                        
-                        // Obtener el codDeposito efectivo
-                        val efectivoCodDeposito = when {
-                            qrData?.deposito?.isNotEmpty() == true -> qrData.deposito
-                            deposito.isNotEmpty() -> deposito
-                            else -> "DEFAULT_DEPOSITO"
-                        }
-                        
-                        Log.d("RecolectarScreen", "Usuario: $usuario")
-                        Log.d("RecolectarScreen", "CodDeposito efectivo: $efectivoCodDeposito")
-                        Log.d("RecolectarScreen", "QR Data: $qrData")
-                        Log.d("RecolectarScreen", "Deposito manual: $deposito")
-                        
-                        // Build JSON body con el nuevo formato
-                        val json = JSONObject()
-                        
-                        // Obtener idPedido del QR
-                        val idPedido = qrData?.pedido?.toIntOrNull() ?: 0
-                        json.put("idPedido", idPedido)
-                        
-                        Log.d("RecolectarScreen", "ID Pedido: $idPedido")
-                        
-                        // Array de recolecciones con datos individuales
-                        val recoleccionesArray = JSONArray()
-                        
-                        Log.d("RecolectarScreen", "=== DATOS DE RECOLECCIONES ===")
-                        scaneoIndividual.forEach { (codArticulo, datosEscaneo) ->
-                            val producto = datosEscaneo["producto"] ?: ""
-                            val ubicacion = datosEscaneo["ubicacion"] ?: ""
-                            val cantidad = cantidadesPorArticulo[codArticulo]?.toIntOrNull() ?: 0
+                        if (!isLoadingEnvio) {
+                            isLoadingEnvio = true
+                            errorEnvio = null
+                            mensajeExito = null
                             
-                            Log.d("RecolectarScreen", "Artículo: $codArticulo")
-                            Log.d("RecolectarScreen", "  - Producto: $producto")
-                            Log.d("RecolectarScreen", "  - Ubicación: $ubicacion")
-                            Log.d("RecolectarScreen", "  - Cantidad: $cantidad")
-                            Log.d("RecolectarScreen", "  - CodDeposito: $efectivoCodDeposito")
+                            val prefs = context.getSharedPreferences("QRCodeScannerPrefs", Context.MODE_PRIVATE)
+                            val usuario = prefs.getString("savedUser", "") ?: ""
                             
-                            val recoleccionObj = JSONObject()
-                            recoleccionObj.put("nombreUbi", ubicacion)
-                            recoleccionObj.put("cantidad", cantidad)
-                            recoleccionObj.put("codArticulo", codArticulo)
-                            recoleccionObj.put("codDeposito", efectivoCodDeposito)
-                            recoleccionObj.put("idEtiqueta", ubicacion)
-                            recoleccionObj.put("numPartida", producto)
-                            //recoleccionObj.put("numSerie", ubicacion)
-                            recoleccionObj.put("userData", usuario)
+                            Log.d("RecolectarScreen", "=== INICIANDO ENVÍO DE RECOLECCIÓN ===")
                             
-                            recoleccionesArray.put(recoleccionObj)
-                        }
-                        
-                        json.put("recolecciones", recoleccionesArray)
-                        json.put("codDeposito", efectivoCodDeposito)
-                        
-                        // Fecha actual en formato ISO
-                        val fechaActual = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.getDefault()).format(java.util.Date())
-                        json.put("fechaHora", fechaActual)
-                        
-                        json.put("observacion", usuario)
-                        json.put("userData", usuario)
-                        
-                        Log.d("RecolectarScreen", "=== JSON FINAL ===")
-                        Log.d("RecolectarScreen", json.toString(2))
-                        
-                        val body = RequestBody.create("application/json; charset=utf-8".toMediaTypeOrNull(), json.toString())
-                        
-                        CoroutineScope(Dispatchers.IO).launch {
-                            try {
-                                Log.d("RecolectarScreen", "Enviando request a ApiClient.apiService.recolectarPedido...")
+                            // Obtener el codDeposito efectivo
+                            val efectivoCodDeposito = when {
+                                qrData?.deposito?.isNotEmpty() == true -> qrData.deposito
+                                deposito.isNotEmpty() -> deposito
+                                else -> "DEFAULT_DEPOSITO"
+                            }
+                            
+                            Log.d("RecolectarScreen", "Usuario: $usuario")
+                            Log.d("RecolectarScreen", "CodDeposito efectivo: $efectivoCodDeposito")
+                            Log.d("RecolectarScreen", "QR Data: $qrData")
+                            Log.d("RecolectarScreen", "Deposito manual: $deposito")
+                            
+                            // Build JSON body con el nuevo formato
+                            val json = JSONObject()
+                            
+                            // Obtener idPedido del QR
+                            val idPedido = qrData?.pedido?.toIntOrNull() ?: 0
+                            json.put("idPedido", idPedido)
+                            
+                            Log.d("RecolectarScreen", "ID Pedido: $idPedido")
+                            
+                            // Array de recolecciones con datos individuales
+                            val recoleccionesArray = JSONArray()
+                            
+                            Log.d("RecolectarScreen", "=== DATOS DE RECOLECCIONES ===")
+                            scaneoIndividual.forEach { (codArticulo, datosEscaneo) ->
+                                val producto = datosEscaneo["producto"] ?: ""
+                                val ubicacion = datosEscaneo["ubicacion"] ?: ""
+                                val cantidad = cantidadesPorArticulo[codArticulo]?.toIntOrNull() ?: 0
                                 
-                                val response = ApiClient.apiService.recolectarPedido(body).execute()
+                                Log.d("RecolectarScreen", "Artículo: $codArticulo")
+                                Log.d("RecolectarScreen", "  - Producto: $producto")
+                                Log.d("RecolectarScreen", "  - Ubicación: $ubicacion")
+                                Log.d("RecolectarScreen", "  - Cantidad: $cantidad")
+                                Log.d("RecolectarScreen", "  - CodDeposito: $efectivoCodDeposito")
                                 
-                                Log.d("RecolectarScreen", "Respuesta recibida:")
-                                Log.d("RecolectarScreen", "  - Código: ${response.code()}")
-                                Log.d("RecolectarScreen", "  - Exitoso: ${response.isSuccessful}")
+                                val recoleccionObj = JSONObject()
+                                recoleccionObj.put("nombreUbi", ubicacion)
+                                recoleccionObj.put("cantidad", cantidad)
+                                recoleccionObj.put("codArticulo", codArticulo)
+                                recoleccionObj.put("codDeposito", efectivoCodDeposito)
+                                recoleccionObj.put("idEtiqueta", ubicacion)
+                                recoleccionObj.put("numPartida", producto)
+                                //recoleccionObj.put("numSerie", ubicacion)
+                                recoleccionObj.put("userData", usuario)
                                 
-                                if (response.isSuccessful) {
-                                    val responseBody = response.body()?.string() ?: "Sin contenido"
-                                    Log.d("RecolectarScreen", "  - Respuesta exitosa: $responseBody")
+                                recoleccionesArray.put(recoleccionObj)
+                            }
+                            
+                            json.put("recolecciones", recoleccionesArray)
+                            json.put("codDeposito", efectivoCodDeposito)
+                            
+                            // Fecha actual en formato ISO
+                            val fechaActual = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.getDefault()).format(java.util.Date())
+                            json.put("fechaHora", fechaActual)
+                            
+                            json.put("observacion", usuario)
+                            json.put("userData", usuario)
+                            
+                            Log.d("RecolectarScreen", "=== JSON FINAL ===")
+                            Log.d("RecolectarScreen", json.toString(2))
+                            
+                            val body = RequestBody.create("application/json; charset=utf-8".toMediaTypeOrNull(), json.toString())
+                            
+                            CoroutineScope(Dispatchers.IO).launch {
+                                try {
+                                    Log.d("RecolectarScreen", "Enviando request a ApiClient.apiService.recolectarPedido...")
                                     
-                                    withContext(Dispatchers.Main) {
-                                        // Limpiar datos después del envío exitoso
-                                        scaneoIndividual = mapOf()
-                                        cantidadesPorArticulo = mapOf()
-                                        cantidadesGuardadas = mapOf()
-                                        errorEnvio = null
-                                        mensajeExito = null
-                                        showSuccessScreen = true
-                                        Log.d("RecolectarScreen", "✅ Recolección completada exitosamente")
+                                    val response = ApiClient.apiService.recolectarPedido(body).execute()
+                                    
+                                    Log.d("RecolectarScreen", "Respuesta recibida:")
+                                    Log.d("RecolectarScreen", "  - Código: ${response.code()}")
+                                    Log.d("RecolectarScreen", "  - Exitoso: ${response.isSuccessful}")
+                                    
+                                    if (response.isSuccessful) {
+                                        val responseBody = response.body()?.string() ?: "Sin contenido"
+                                        Log.d("RecolectarScreen", "  - Respuesta exitosa: $responseBody")
+                                        
+                                        withContext(Dispatchers.Main) {
+                                            isLoadingEnvio = false
+                                            // Limpiar datos después del envío exitoso
+                                            scaneoIndividual = mapOf()
+                                            cantidadesPorArticulo = mapOf()
+                                            cantidadesGuardadas = mapOf()
+                                            errorEnvio = null
+                                            mensajeExito = null
+                                            showSuccessScreen = true
+                                            Log.d("RecolectarScreen", "✅ Recolección completada exitosamente")
+                                        }
+                                    } else {
+                                        val errorBody = response.errorBody()?.string() ?: "Error desconocido"
+                                        AppLogger.logError(
+                                            tag = "RecolectarScreen",
+                                            message = "Error en respuesta: code=${response.code()} body=$errorBody"
+                                        )
+                                        
+                                        withContext(Dispatchers.Main) {
+                                            isLoadingEnvio = false
+                                            errorEnvio = "No se pudo enviar la recolección. Intenta nuevamente."
+                                        }
                                     }
-                                } else {
-                                    val errorBody = response.errorBody()?.string() ?: "Error desconocido"
+                                } catch (e: Exception) {
                                     AppLogger.logError(
                                         tag = "RecolectarScreen",
-                                        message = "Error en respuesta: code=${response.code()} body=$errorBody"
+                                        message = "Excepción durante el envío: ${e.message}",
+                                        throwable = e
                                     )
                                     
                                     withContext(Dispatchers.Main) {
-                                        errorEnvio = "No se pudo enviar la recolección. Intenta nuevamente."
+                                        isLoadingEnvio = false
+                                        errorEnvio = "No se pudo enviar la recolección por un problema de conexión."
                                     }
-                                }
-                            } catch (e: Exception) {
-                                AppLogger.logError(
-                                    tag = "RecolectarScreen",
-                                    message = "Excepción durante el envío: ${e.message}",
-                                    throwable = e
-                                )
-                                
-                                withContext(Dispatchers.Main) {
-                                    errorEnvio = "No se pudo enviar la recolección por un problema de conexión."
                                 }
                             }
                         }
                     },
+                    enabled = !isLoadingEnvio,
                     modifier = Modifier
                         .fillMaxWidth(0.8f)
                         .height(56.dp),
                     shape = RoundedCornerShape(24.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2))
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.White,
+                        contentColor = Color.Black,
+                        disabledContainerColor = Color(0xFFCCCCCC),
+                        disabledContentColor = Color(0xFF666666)
+                    )
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Check,
-                            contentDescription = "Enviar recolección",
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp)
+                    if (isLoadingEnvio) {
+                        CircularProgressIndicator(
+                            color = Color.Black,
+                            modifier = Modifier.size(24.dp),
+                            strokeWidth = 2.dp
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Enviar Recolección", color = Color.White, fontSize = 16.sp)
+                    } else {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Check,
+                                contentDescription = "Enviar recolección",
+                                tint = Color.Black,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Enviar Recolección", color = Color.Black, fontSize = 16.sp)
+                        }
                     }
                 }
                 
