@@ -66,7 +66,8 @@ fun RecolectarScreen(
     qrData: QRData? = null,
     fromQR: Boolean = false,
     onRetryUbicaciones: () -> Unit = {},
-    onSuccess: () -> Unit = {}
+    onSuccess: () -> Unit = {},
+    onClearScanValues: () -> Unit = {}
 ) {
     val context = LocalContext.current
     var recolectarItems by remember { mutableStateOf(listOf<RecolectarItem>()) }
@@ -127,6 +128,8 @@ fun RecolectarScreen(
             // Limpiar banderas de escaneo para permitir próximos escaneos
             tipoEscaneoActual = null
             articuloActualEscaneando = null
+            // Limpiar valor escaneado de la memoria
+            onClearScanValues()
         } else {
             Log.d("RecolectarScreen", "[SCAN-IGNORED] Producto recibido pero sin target válido (articuloActualEscaneando=$articuloActualEscaneando tipoEscaneoActual=$tipoEscaneoActual)")
         }
@@ -153,6 +156,8 @@ fun RecolectarScreen(
             Log.d("RecolectarScreen", "[SCAN] Ubicacion asignada -> articulo=$articuloId valor=$ubicacion")
             tipoEscaneoActual = null
             articuloActualEscaneando = null
+            // Limpiar valor escaneado de la memoria
+            onClearScanValues()
         } else {
             Log.d("RecolectarScreen", "[SCAN-IGNORED] Ubicación recibida pero sin target válido (articuloActualEscaneando=$articuloActualEscaneando tipoEscaneoActual=$tipoEscaneoActual)")
         }

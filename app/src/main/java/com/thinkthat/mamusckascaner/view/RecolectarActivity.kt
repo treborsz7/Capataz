@@ -163,6 +163,12 @@ class RecolectarActivity : ComponentActivity() {
                             intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
                             startActivity(intent)
                             finish()
+                        },
+                        onClearScanValues = {
+                            // Limpiar valores escaneados después de ser asignados
+                            Log.d("RecolectarActivity", "Limpiando valores escaneados: producto=$producto, ubicacion=$ubicacion")
+                            producto = null
+                            ubicacion = null
                         }
                     )
                 }
