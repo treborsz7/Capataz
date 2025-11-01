@@ -4,6 +4,7 @@ import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,9 +15,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -38,7 +39,6 @@ import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.ButtonDefaults
@@ -48,7 +48,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.systemBars
-import androidx.compose.ui.input.pointer.motionEventSpy
+
 import com.thinkthat.mamusckascaner.BarScanState
 import com.thinkthat.mamusckascaner.model.BarCodeAnalyzer
 import com.thinkthat.mamusckascaner.viewmodel.BarCodeScannerViewModel
@@ -91,6 +91,7 @@ fun BarcodeScannerScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(Color(0xFFCD0914))
             .padding(WindowInsets.systemBars.asPaddingValues())
     ) {
         // Botón de volver arriba a la izquierda
@@ -100,17 +101,8 @@ fun BarcodeScannerScreen(
                 .padding(start = 16.dp, top = 8.dp, bottom = 8.dp),
             contentAlignment = Alignment.TopStart
         ) {
-            Button(
-                onClick = onBack,
-                shape = RoundedCornerShape(50),
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-                modifier = Modifier.size(48.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.ArrowBack,
-                    contentDescription = "Volver",
-                    tint = Color.White
-                )
+            androidx.compose.material3.IconButton(onClick = onBack) {
+                Icon(Icons.Filled.ArrowBack, contentDescription = "Volver", tint = Color.White)
             }
         }
         // Cámara y contenido debajo del botón de back
@@ -136,9 +128,12 @@ fun BarcodeScannerScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    Text("Camera permission is required for scanning barcodes")
-                    Button(onClick = { launcher.launch(android.Manifest.permission.CAMERA) }) {
-                        Text("Grant Permission")
+                    Text("Camera permission is required for scanning barcodes", color = Color.White)
+                    Button(
+                        onClick = { launcher.launch(android.Manifest.permission.CAMERA) },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.White)
+                    ) {
+                        Text("Grant Permission", color = Color.Black)
                     }
                 }
             }
@@ -178,8 +173,8 @@ fun CameraPreview(
     Column {
         Box(
             modifier = Modifier
-                .size(400.dp)
-                .padding(16.dp)
+                .fillMaxWidth()
+                .padding(8.dp)
         ) {
             // Mantener la cámara activa hasta detectar un código
             if (barScanState !is BarScanState.ScanSuccess) {
@@ -245,7 +240,7 @@ fun CameraPreview(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    Text("Position the barcode in front of the camera.")
+                    Text("Position the barcode in front of the camera.", color = Color.White)
                 }
             }
 
@@ -255,9 +250,9 @@ fun CameraPreview(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    CircularProgressIndicator()
+                    CircularProgressIndicator(color = Color.White)
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text("Scanning...")
+                    Text("Scanning...", color = Color.White)
                 }
             }
             is BarScanState.ScanSuccess -> {
@@ -269,7 +264,8 @@ fun CameraPreview(
                 Column(
                     modifier = Modifier.fillMaxSize(),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                    verticalArrangement = Arrangement.Center,
+                    
                 ) {
                     Text(
                         text = "Valor escaneado:",
@@ -286,16 +282,17 @@ fun CameraPreview(
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        Button(onClick = { onScanResult(cleaned) },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color.White),)
-                        {
-                            Text("Usar este valor", color = Color.Black,)
-
-                        }
-                        Button(onClick = { viewModel.resetState() },
+                        Button(
+                            onClick = { onScanResult(cleaned) },
                             colors = ButtonDefaults.buttonColors(containerColor = Color.White)
-                            ) {
-                            Text("Escanear nuevamente", color = Color.Black,)
+                        ) {
+                            Text("Usar este valor", color = Color.Black)
+                        }
+                        Button(
+                            onClick = { viewModel.resetState() },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.White)
+                        ) {
+                            Text("Escanear nuevamente", color = Color.Black)
                         }
                     }
                 }
@@ -310,17 +307,16 @@ fun CameraPreview(
                 ) {
                     Text(
                         text = barScanState.error,
-                        color = Color(0xFFD32F2F),
+                        color = Color.White,
                         style = MaterialTheme.typography.titleMedium,
                         textAlign = TextAlign.Center
                     )
                     Spacer(modifier = Modifier.height(16.dp))
-                    Button(onClick = { viewModel.resetState() }) {
-                        Text("Intentar nuevamente")
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    TextButton(onClick = { onBack() }) {
-                        Text("Volver")
+                    Button(
+                        onClick = { onBack() },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.White)
+                    ) {
+                        Text("Volver", color = Color.Black)
                     }
                 }
             }
@@ -328,33 +324,3 @@ fun CameraPreview(
     }
 }
 
-@Composable
-fun ScanResultContent(scanSuccess: BarScanState.ScanSuccess, onRescan: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        if (scanSuccess.barStateModel != null) {
-            // Display JSON content
-            Text("Invoice Id: ${scanSuccess.barStateModel.invoiceNumber}")
-            Text("Name: ${scanSuccess.barStateModel.client.name}")
-            Spacer(modifier = Modifier.height(8.dp))
-            Text("Purchases:", style = MaterialTheme.typography.titleMedium)
-            scanSuccess.barStateModel.purchase.forEach { item ->
-                Text("${item.item}: ${item.quantity} x $${item.price}")
-            }
-            Text("Total Amount: $${scanSuccess.barStateModel.totalAmount}")
-        } else {
-            // Display raw barcode content
-            Text("Format: ${scanSuccess.format}", style = MaterialTheme.typography.titleMedium)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text("Value: ${scanSuccess.rawValue}")
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = onRescan) {
-            Text("Scan Another")
-        }
-    }
-}

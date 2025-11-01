@@ -25,7 +25,7 @@ class BarCodeScannerViewModel : ViewModel() {
     fun onBarCodeDetected(barcodes: List<Barcode>) {
         viewModelScope.launch {
             if (barcodes.isEmpty()) {
-                _barScanState = BarScanState.Error("No se detectó ningún código.")
+                _barScanState = BarScanState.Error("No se detecta ningún código.")
                 return@launch
             }
 
