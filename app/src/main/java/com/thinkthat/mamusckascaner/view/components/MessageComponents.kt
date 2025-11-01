@@ -118,7 +118,7 @@ fun LoadingMessage(
         modifier = modifier
     ) {
         CircularProgressIndicator(
-            color = Color(0xFF1976D2),
+            color = Color.White,
             modifier = Modifier.size(32.dp)
         )
         Spacer(modifier = Modifier.height(8.dp))

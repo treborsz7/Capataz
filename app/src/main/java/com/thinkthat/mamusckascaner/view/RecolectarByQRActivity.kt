@@ -54,11 +54,12 @@ class RecolectarByQRActivity : ComponentActivity() {
                             qrScannerLauncher.launch(intent)
                         },
                         scannedResult = scannedResult,
-                        onProceedWithOrder = { qrCode ->
+                        onProceedWithOrder = { qrCode, optimizaRecorrido ->
                             // Navegar a RecolectarActivity con el deposito y ID del pedido escaneado
                             val intent = Intent(this@RecolectarByQRActivity, RecolectarActivity::class.java)
                             intent.putExtra("qrData", qrCode) // Pass the raw QR data
                             intent.putExtra("fromQR", true)
+                            intent.putExtra("optimizaRecorrido", optimizaRecorrido) // Pasar el valor del checkbox
                             recolectarLauncher.launch(intent)
                         }
                     )

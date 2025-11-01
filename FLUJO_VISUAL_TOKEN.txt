@@ -1,0 +1,273 @@
+# 🔄 Flujo Visual: Sistema de Validación de Tokens JWT
+
+```
+┌────────────────────────────────────────────────────────────────────────────┐
+│                         APLICACIÓN INICIA PETICIÓN HTTP                    │
+└────────────────────────────────────────────────────────────────────────────┘
+                                     │
+                                     ▼
+┌────────────────────────────────────────────────────────────────────────────┐
+│                          authInterceptor (PROACTIVO)                        │
+│                                                                             │
+│  1. ¿Es petición a /Login/Plano?                                          │
+│     SÍ → Enviar sin token ──────────────────────────────────────┐         │
+│     NO → Continuar ↓                                             │         │
+│                                                                   │         │
+│  2. Obtener token y idEmp de SharedPreferences                   │         │
+│                                                                   │         │
+│  3. ¿Token está vencido o por vencer (<60s)?                    │         │
+│     NO → Agregar headers y enviar ────────────────────┐         │         │
+│     SÍ → Intentar re-autenticación ↓                   │         │         │
+│                                                         │         │         │
+│  4. ¿Hay credenciales guardadas?                       │         │         │
+│     NO → Usar token actual ────────────────────┐      │         │         │
+│     SÍ → Hacer login con credenciales ↓         │      │         │         │
+│                                                  │      │         │         │
+│  5. ¿Login exitoso?                             │      │         │         │
+│     NO → Usar token actual ───────────┐        │      │         │         │
+│     SÍ → Guardar nuevo token ↓         │        │      │         │         │
+│                                        │        │      │         │         │
+│  6. ¿Nuevo token válido?               │        │      │         │         │
+│     SÍ → Usar nuevo token ──────┐     │        │      │         │         │
+│     NO → Usar token actual ──┐  │     │        │      │         │         │
+│                               │  │     │        │      │         │         │
+└───────────────────────────────┼──┼─────┼────────┼──────┼─────────┼─────────┘
+                                │  │     │        │      │         │
+                                └──┴─────┴────────┴──────┘         │
+                                         │                          │
+                                         ▼                          │
+┌────────────────────────────────────────────────────────────────────────────┐
+│                        PETICIÓN ENVIADA AL SERVIDOR                        │
+└────────────────────────────────────────────────────────────────────────────┘
+                                     │
+                                     ▼
+┌────────────────────────────────────────────────────────────────────────────┐
+│                      SERVIDOR PROCESA Y RESPONDE                           │
+└────────────────────────────────────────────────────────────────────────────┘
+                                     │
+                                     ▼
+┌────────────────────────────────────────────────────────────────────────────┐
+│                        reAuthInterceptor (REACTIVO)                        │
+│                                                                             │
+│  1. ¿Código de respuesta es 401?                                          │
+│     NO → Devolver respuesta ────────────────────────────────────┐         │
+│     SÍ → Continuar ↓                                             │         │
+│                                                                   │         │
+│  2. ¿Es respuesta de /Login/Plano?                               │         │
+│     SÍ → Devolver respuesta 401 ──────────────────────┐         │         │
+│     NO → Intentar re-autenticación ↓                   │         │         │
+│                                                         │         │         │
+│  3. ¿Hay credenciales guardadas?                       │         │         │
+│     NO → Devolver 401 ───────────────────────┐        │         │         │
+│     SÍ → Hacer login ↓                        │        │         │         │
+│                                                │        │         │         │
+│  4. ¿Login exitoso y nuevo token válido?      │        │         │         │
+│     NO → Devolver 401 ─────────────┐         │        │         │         │
+│     SÍ → Guardar token ↓            │         │        │         │         │
+│                                     │         │        │         │         │
+│  5. Reintentar petición original    │         │        │         │         │
+│     con nuevo token                 │         │        │         │         │
+│                                     │         │        │         │         │
+└─────────────────────────────────────┼─────────┼────────┼─────────┼─────────┘
+                                      │         │        │         │
+                                      └─────────┴────────┴─────────┘
+                                                │
+                                                ▼
+┌────────────────────────────────────────────────────────────────────────────┐
+│                        RESPUESTA FINAL A LA APP                            │
+└────────────────────────────────────────────────────────────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════════════
+                          FUNCIÓN isTokenExpired()
+═══════════════════════════════════════════════════════════════════════════
+
+    INPUT: token (String?)
+       │
+       ▼
+    ┌─────────────────────┐
+    │ ¿Token null/vacío?  │──SÍ──► return TRUE (expirado)
+    └─────────────────────┘
+              │ NO
+              ▼
+    ┌─────────────────────┐
+    │ Split por "."       │
+    └─────────────────────┘
+              │
+              ▼
+    ┌─────────────────────┐
+    │ ¿Tiene 3 partes?    │──NO──► return TRUE (malformado)
+    └─────────────────────┘
+              │ SÍ
+              ▼
+    ┌─────────────────────┐
+    │ Decodificar Base64  │
+    │ del payload (parte2)│
+    └─────────────────────┘
+              │
+              ▼
+    ┌─────────────────────┐
+    │ ¿Decodificación OK? │──NO──► return TRUE (corrupto)
+    └─────────────────────┘
+              │ SÍ
+              ▼
+    ┌─────────────────────┐
+    │ Parsear JSON        │
+    └─────────────────────┘
+              │
+              ▼
+    ┌─────────────────────┐
+    │ ¿Tiene claim "exp"? │──NO──► return FALSE (válido indefinidamente)
+    └─────────────────────┘
+              │ SÍ
+              ▼
+    ┌─────────────────────┐
+    │ Obtener timestamp   │
+    │ exp del payload     │
+    └─────────────────────┘
+              │
+              ▼
+    ┌─────────────────────┐
+    │ Obtener tiempo      │
+    │ actual (segundos)   │
+    └─────────────────────┘
+              │
+              ▼
+    ┌─────────────────────┐
+    │ Calcular:           │
+    │ actual >= (exp-60)  │
+    └─────────────────────┘
+              │
+              ▼
+         TRUE / FALSE
+              │
+              ▼
+    return RESULTADO
+
+
+═══════════════════════════════════════════════════════════════════════════
+                          LÍNEA DE TIEMPO TÍPICA
+═══════════════════════════════════════════════════════════════════════════
+
+  Token emitido         Margen de       Token expira       Ventana de
+  (iat: 10:00)         seguridad       (exp: 11:00)       error 401
+       │                 activa              │                 │
+       │                   │                 │                 │
+       ▼                   ▼                 ▼                 ▼
+  ─────●───────────────────●─────────────────●─────────────────●─────►
+       │                   │                 │                 │
+    10:00             10:59:00           11:00:00         11:00:00+
+       │                   │                 │                 │
+       │◄─── 59 min ───►  │                 │                 │
+       │    Token válido   │                 │                 │
+       │                   │◄─ 1 min ───►   │                 │
+       │                   │  Renovación    │                 │
+       │                   │  automática    │                 │
+       │                   │                 │◄─────────►     │
+       │                   │                 │  Servidor      │
+       │                   │                 │  rechaza       │
+       │                   │                 │                │
+
+  ✅ ZONA VERDE          ⚠️ ZONA AMARILLA  ❌ ZONA ROJA      💀 ERROR
+  (Token válido)        (Se renueva auto)  (Expirado)       (401 real)
+
+
+═══════════════════════════════════════════════════════════════════════════
+                        EJEMPLO DE TOKEN JWT REAL
+═══════════════════════════════════════════════════════════════════════════
+
+TOKEN COMPLETO:
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyMTIzIiwiZXhwIjoxNzI5NjcwNDAwLCJpYXQiOjE3Mjk2NjY4MDB9.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+
+ESTRUCTURA:
+┌─────────── HEADER ───────────┐   ┌──────── PAYLOAD ────────┐   ┌─ SIGNATURE ─┐
+│                               │   │                          │   │              │
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyMTIz...    .SflKxwRJSMeKK...
+│                               │   │                          │   │              │
+└───────────────────────────────┘   └──────────────────────────┘   └──────────────┘
+        Base64URL encode                  Base64URL encode           Base64URL encode
+
+DECODIFICADO:
+
+HEADER:                         PAYLOAD:                    SIGNATURE:
+{                              {                            (binary data)
+  "alg": "HS256",               "sub": "user123",           Verificada por
+  "typ": "JWT"                  "exp": 1729670400,          el servidor con
+}                               "iat": 1729666800           clave secreta
+                                "idEmp": "EMP001"
+                              }
+
+                                     ↓
+                              VALIDACIÓN:
+                                     │
+                    ┌────────────────┼────────────────┐
+                    │                                  │
+              exp: 1729670400                    ahora: 1729666800
+              (22/10/2025 15:00)                 (22/10/2025 14:00)
+                    │                                  │
+                    └──────── COMPARAR ────────────────┘
+                                  │
+                         ahora < (exp - 60)?
+                                  │
+                         ✅ SÍ → VÁLIDO
+                         ❌ NO → EXPIRADO
+
+
+═══════════════════════════════════════════════════════════════════════════
+                     ESCENARIOS DE USO Y RESULTADOS
+═══════════════════════════════════════════════════════════════════════════
+
+ESCENARIO 1: Token válido con mucho tiempo
+─────────────────────────────────────────
+Token expira en: 2 horas
+Estado: ✅ VÁLIDO
+Acción: Enviar petición normalmente
+Resultado: ✅ Éxito sin renovación
+
+ESCENARIO 2: Token por vencer (50 segundos)
+─────────────────────────────────────────
+Token expira en: 50 segundos
+Estado: ⚠️ POR VENCER (dentro de margen de 60s)
+Acción: Re-autenticar automáticamente
+Resultado: ✅ Nuevo token → Petición exitosa
+
+ESCENARIO 3: Token expirado (hace 10 minutos)
+─────────────────────────────────────────
+Token expira en: -10 minutos (pasado)
+Estado: ❌ EXPIRADO
+Acción: Re-autenticar automáticamente
+Resultado: ✅ Nuevo token → Petición exitosa
+
+ESCENARIO 4: Token expirado + credenciales incorrectas
+─────────────────────────────────────────
+Token expira en: -5 minutos
+Credenciales: ❌ Inválidas
+Acción: Intenta re-autenticar → Falla → Envía con token viejo
+Resultado: ❌ Servidor responde 401 → Interceptor reactivo intenta de nuevo
+
+ESCENARIO 5: Token malformado
+─────────────────────────────────────────
+Token: "abc.def" (solo 2 partes)
+Estado: ❌ INVÁLIDO
+Acción: Detectar como expirado → Re-autenticar
+Resultado: ✅ Nuevo token válido → Continuar
+
+ESCENARIO 6: Sin token (primera vez)
+─────────────────────────────────────────
+Token: null
+Estado: ❌ SIN TOKEN
+Acción: Usuario debe hacer login manual
+Resultado: ⚠️ App redirige a pantalla de login
+
+
+═══════════════════════════════════════════════════════════════════════════
+                           LOGS DE EJEMPLO
+═══════════════════════════════════════════════════════════════════════════
+
+[INFO] ApiClient: Token renovado exitosamente
+[WARN] ApiClient: Token expirado detectado, intentando re-autenticación...
+[ERROR] ApiClient: Error validando token: IllegalArgumentException: Invalid Base64
+[ERROR] ApiClient: Error durante re-autenticación proactiva: SocketTimeoutException
+
+═══════════════════════════════════════════════════════════════════════════
+```

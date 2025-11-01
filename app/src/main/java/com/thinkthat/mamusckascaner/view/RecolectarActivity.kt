@@ -40,6 +40,7 @@ class RecolectarActivity : ComponentActivity() {
                     // Obtener datos del QR y orden ID desde los extras
                     val qrData = intent.getStringExtra("qrData")
                     val fromQR = intent.getBooleanExtra("fromQR", false)
+                    val optimizaRecorrido = intent.getBooleanExtra("optimizaRecorrido", true) // Por defecto true
                     val ordenId = if (fromQR && qrData != null) {
                         // Parsear el QR para obtener el ID del pedido
                         parseQRData(qrData).pedido.toIntOrNull() ?: -1
@@ -64,7 +65,7 @@ class RecolectarActivity : ComponentActivity() {
 
                             ApiClient.apiService.UbicacionesParaRecolectar(
                                 idPed = ordenId,
-                                optimizaRecorrido = true
+                                optimizaRecorrido = optimizaRecorrido
                             ).enqueue(object : Callback<List<UbicacionResponse>> {
                                 override fun onResponse(
                                     call: Call<List<UbicacionResponse>>,

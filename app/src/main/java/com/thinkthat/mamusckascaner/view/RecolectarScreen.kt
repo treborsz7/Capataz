@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -396,17 +397,12 @@ fun RecolectarScreen(
                     }
                 }
                 
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth(0.8f)
-                        .background(Color(0xFFF3E5F5), RoundedCornerShape(12.dp))
-                        .padding(16.dp)
-                ) {
+               
 
                     
                     when (ubicacionesParsed.first) {
                         "array" -> {
-                            Text("Ubicaciones:", color = Color(0xFF7B1FA2), fontSize = 14.sp)
+                           
                             val ubicaciones = ubicacionesParsed.second as List<Map<String, Any>>
                             
                             // Agrupar por codArticulo
@@ -418,7 +414,7 @@ fun RecolectarScreen(
                             ubicacionesGrouped.forEach { (codArticulo, ubicacionesDelArticulo) ->
                                 Card(
                                     modifier = Modifier
-                                        .fillMaxWidth()
+                                        .fillMaxWidth(0.8f)
                                         .padding(vertical = 4.dp),
                                     colors = CardDefaults.cardColors(
                                         containerColor = Color(0xFFF8F8F8)
@@ -432,7 +428,7 @@ fun RecolectarScreen(
                                         val descripcionArticulo = ubicacionesDelArticulo.firstOrNull()?.get("descripcionProducto") as? String ?: "N/A"
                                         Text(
                                             text = descripcionArticulo,
-                                            color = Color(0xFF1976D2),
+                                            color = Color.Black,
                                             fontSize = 16.sp,
                                             fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                                         )
@@ -440,7 +436,7 @@ fun RecolectarScreen(
 
                                         Text(
                                             text = "Código Artículo: $codArticulo",
-                                            color = Color(0xFF1976D2),
+                                            color = Color.Black,
                                             fontSize = 16.sp,
                                             fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                                         )
@@ -450,7 +446,7 @@ fun RecolectarScreen(
                                         val cantidadSolicitada = ubicacionesDelArticulo.firstOrNull()?.get("requerido") as? Int ?: 0
                                         Text(
                                             text = "Solicitado: $cantidadSolicitada",
-                                            color = Color(0xFF1976D2),
+                                            color = Color.Black,
                                             fontSize = 14.sp,
                                             fontWeight = androidx.compose.ui.text.font.FontWeight.Normal
                                         )
@@ -484,49 +480,80 @@ fun RecolectarScreen(
                                         // Lógica secuencial: mostrar campos y botones según el estado
                                         if (productoEscaneado?.isEmpty() != false) {
                                             // 1. Mostrar campo producto + botón escanear producto
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                modifier = Modifier.fillMaxWidth()
-                                            ) {
-                                                OutlinedTextField(
-                                                    value = productoEscaneado ?: "",
-                                                    onValueChange = { newValue ->
-                                                        if (productoEditable) {
+                                            if (!productoEditable) {
+                                                // Modo solo lectura - sin bordes, texto negro
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    modifier = Modifier.fillMaxWidth()
+                                                ) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .weight(1f)
+                                                            .background(Color.Transparent)
+                                                            .padding(16.dp)
+                                                    ) {
+                                                        Text(
+                                                            text = "Producto:",
+                                                            color = Color.Black,
+                                                            fontSize = 16.sp
+                                                        )
+                                                    }
+                                                    IconButton(
+                                                        onClick = {
+                                                            val articuloId = codArticulo
+                                                            val camposActuales = camposEditables[articuloId] ?: mapOf("producto" to false, "ubicacion" to false)
+                                                            camposEditables = camposEditables + (articuloId to (camposActuales + ("producto" to true)))
+                                                        }
+                                                    ) {
+                                                        Icon(
+                                                            Icons.Filled.Edit,
+                                                            contentDescription = "Editar producto",
+                                                            tint = Color.Black,
+                                                            modifier = Modifier.size(20.dp)
+                                                        )
+                                                    }
+                                                }
+                                            } else {
+                                                // Modo edición - campo normal con ícono de guardar
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    modifier = Modifier.fillMaxWidth()
+                                                ) {
+                                                    OutlinedTextField(
+                                                        value = productoEscaneado ?: "",
+                                                        onValueChange = { newValue ->
                                                             val articuloId = codArticulo
                                                             val datosActuales = scaneoIndividual[articuloId] ?: mapOf()
                                                             scaneoIndividual = scaneoIndividual + (articuloId to (datosActuales + ("producto" to newValue)))
-                                                        }
-                                                    },
-                                                    label = { Text("Producto", color = Color.Black) },
-                                                    singleLine = true,
-                                                    modifier = Modifier.weight(1f),
-                                                    textStyle = LocalTextStyle.current.copy(color = Color.Black),
-                                                    colors = TextFieldDefaults.outlinedTextFieldColors(
-                                                        cursorColor = Color.Black,
-                                                        focusedBorderColor = Color(0xFF1976D2),
-                                                        unfocusedBorderColor = Color(0xFF1976D2),
-                                                        focusedLabelColor = Color.Black,
-                                                        unfocusedLabelColor = Color.Black
-                                                    ),
-                                                    placeholder = { Text("Código del producto", color = Color.Gray) },
-                                                    enabled = productoEditable,
-                                                    readOnly = !productoEditable
-                                                )
-                                                Spacer(modifier = Modifier.width(8.dp))
-                                                // Se elimina el ícono de cámara pequeño inicial: el primer escaneo se hace solo con el botón grande.
-                                                IconButton(
-                                                    onClick = {
-                                                        val articuloId = codArticulo
-                                                        val camposActuales = camposEditables[articuloId] ?: mapOf("producto" to false, "ubicacion" to false)
-                                                        camposEditables = camposEditables + (articuloId to (camposActuales + ("producto" to !productoEditable)))
-                                                    }
-                                                ) {
-                                                    Icon(
-                                                        Icons.Filled.Edit,
-                                                        contentDescription = if (productoEditable) "Deshabilitar edición" else "Habilitar edición",
-                                                        tint = if (productoEditable) Color(0xFF4CAF50) else Color(0xFF1976D2),
-                                                        modifier = Modifier.size(20.dp)
+                                                        },
+                                                        label = { Text("Producto", color = Color.Black) },
+                                                        singleLine = true,
+                                                        modifier = Modifier.weight(1f),
+                                                        textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                                                        colors = TextFieldDefaults.outlinedTextFieldColors(
+                                                            cursorColor = Color.Black,
+                                                            focusedBorderColor = Color.Black,
+                                                            unfocusedBorderColor = Color.Black,
+                                                            focusedLabelColor = Color.Black,
+                                                            unfocusedLabelColor = Color.Black
+                                                        ),
+                                                        placeholder = { Text("Código del producto", color = Color.Gray) }
                                                     )
+                                                    Spacer(modifier = Modifier.width(8.dp))
+                                                    IconButton(
+                                                        onClick = {
+                                                            val articuloId = codArticulo
+                                                            val camposActuales = camposEditables[articuloId] ?: mapOf("producto" to false, "ubicacion" to false)
+                                                            camposEditables = camposEditables + (articuloId to (camposActuales + ("producto" to false)))
+                                                        }
+                                                    ) {
+                                                        Icon(
+                                                            Icons.Filled.Save,
+                                                            contentDescription = "Guardar producto",
+                                                            tint = Color.Black,
+                                                            modifier = Modifier.size(20.dp)
+                                                        )
+                                                    }
                                                 }
                                             }
                                             
@@ -540,7 +567,7 @@ fun RecolectarScreen(
                                                 },
                                                 modifier = Modifier.fillMaxWidth(),
                                                 colors = ButtonDefaults.buttonColors(
-                                                    containerColor = Color(0xFF1976D2)
+                                                    containerColor = Color.Red
                                                 ),
                                                 shape = RoundedCornerShape(8.dp)
                                             ) {
@@ -564,110 +591,173 @@ fun RecolectarScreen(
                                             }
                                         } else if (ubicacionEscaneada?.isEmpty() != false) {
                                             // 2. Mostrar campo producto (ya escaneado) + campo ubicación + botón escanear ubicación
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                modifier = Modifier.fillMaxWidth()
-                                            ) {
-                                                OutlinedTextField(
-                                                    value = productoEscaneado ?: "",
-                                                    onValueChange = { newValue ->
-                                                        if (productoEditable) {
+                                            if (!productoEditable) {
+                                                // Modo solo lectura - sin bordes
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    modifier = Modifier.fillMaxWidth()
+                                                ) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .weight(1f)
+                                                            .background(Color.Transparent)
+                                                            .padding(16.dp)
+                                                    ) {
+                                                        Text(
+                                                            text = "Producto: ${productoEscaneado ?: ""}",
+                                                            color = Color.Black,
+                                                            fontSize = 16.sp
+                                                        )
+                                                    }
+                                                    IconButton(
+                                                        onClick = {
+                                                            articuloActualEscaneando = codArticulo
+                                                            tipoEscaneoActual = "producto"
+                                                            onStockearClick("producto")
+                                                        }
+                                                    ) {
+                                                        Icon(
+                                                            Icons.Filled.CameraAlt,
+                                                            contentDescription = "Escanear producto",
+                                                            tint = Color.White,
+                                                            modifier = Modifier.size(20.dp)
+                                                        )
+                                                    }
+                                                    IconButton(
+                                                        onClick = {
+                                                            val articuloId = codArticulo
+                                                            val camposActuales = camposEditables[articuloId] ?: mapOf("producto" to false, "ubicacion" to false)
+                                                            camposEditables = camposEditables + (articuloId to (camposActuales + ("producto" to true)))
+                                                        }
+                                                    ) {
+                                                        Icon(
+                                                            Icons.Filled.Edit,
+                                                            contentDescription = "Editar producto",
+                                                            tint = Color.Black,
+                                                            modifier = Modifier.size(20.dp)
+                                                        )
+                                                    }
+                                                }
+                                            } else {
+                                                // Modo edición
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    modifier = Modifier.fillMaxWidth()
+                                                ) {
+                                                    OutlinedTextField(
+                                                        value = productoEscaneado ?: "",
+                                                        onValueChange = { newValue ->
                                                             val articuloId = codArticulo
                                                             val datosActuales = scaneoIndividual[articuloId] ?: mapOf()
                                                             scaneoIndividual = scaneoIndividual + (articuloId to (datosActuales + ("producto" to newValue)))
+                                                        },
+                                                        label = { Text("Producto", color = Color.Black) },
+                                                        singleLine = true,
+                                                        modifier = Modifier.weight(1f),
+                                                        textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                                                        colors = TextFieldDefaults.outlinedTextFieldColors(
+                                                            cursorColor = Color.Black,
+                                                            focusedBorderColor = Color.Black,
+                                                            unfocusedBorderColor = Color.Black,
+                                                            focusedLabelColor = Color.Black,
+                                                            unfocusedLabelColor = Color.Black
+                                                        ),
+                                                        placeholder = { Text("Código del producto", color = Color.Gray) }
+                                                    )
+                                                    Spacer(modifier = Modifier.width(8.dp))
+                                                    IconButton(
+                                                        onClick = {
+                                                            val articuloId = codArticulo
+                                                            val camposActuales = camposEditables[articuloId] ?: mapOf("producto" to false, "ubicacion" to false)
+                                                            camposEditables = camposEditables + (articuloId to (camposActuales + ("producto" to false)))
                                                         }
-                                                    },
-                                                    label = { Text("Producto", color = Color.Black) },
-                                                    singleLine = true,
-                                                    modifier = Modifier.weight(1f),
-                                                    textStyle = LocalTextStyle.current.copy(color = Color.Black),
-                                                    colors = TextFieldDefaults.outlinedTextFieldColors(
-                                                        cursorColor = Color.Black,
-                                                        focusedBorderColor = Color(0xFF1976D2),
-                                                        unfocusedBorderColor = Color(0xFF1976D2),
-                                                        focusedLabelColor = Color.Black,
-                                                        unfocusedLabelColor = Color.Black
-                                                    ),
-                                                    placeholder = { Text("Código del producto", color = Color.Gray) },
-                                                    enabled = productoEditable,
-                                                    readOnly = !productoEditable
-                                                )
-                                                Spacer(modifier = Modifier.width(8.dp))
-                                                IconButton(
-                                                    onClick = {
-                                                        articuloActualEscaneando = codArticulo
-                                                        tipoEscaneoActual = "producto"
-                                                        onStockearClick("producto")
+                                                    ) {
+                                                        Icon(
+                                                            Icons.Filled.Save,
+                                                            contentDescription = "Guardar producto",
+                                                            tint = Color.Black,
+                                                            modifier = Modifier.size(20.dp)
+                                                        )
                                                     }
-                                                ) {
-                                                    Icon(
-                                                        Icons.Filled.CameraAlt,
-                                                        contentDescription = "Escanear producto",
-                                                        tint = Color.White,
-                                                        modifier = Modifier.size(20.dp)
-                                                    )
-                                                }
-                                                IconButton(
-                                                    onClick = {
-                                                        val articuloId = codArticulo
-                                                        val camposActuales = camposEditables[articuloId] ?: mapOf("producto" to false, "ubicacion" to false)
-                                                        camposEditables = camposEditables + (articuloId to (camposActuales + ("producto" to !productoEditable)))
-                                                    }
-                                                ) {
-                                                    Icon(
-                                                        Icons.Filled.Edit,
-                                                        contentDescription = if (productoEditable) "Deshabilitar edición" else "Habilitar edición",
-                                                        tint = if (productoEditable) Color(0xFF4CAF50) else Color(0xFF1976D2),
-                                                        modifier = Modifier.size(20.dp)
-                                                    )
                                                 }
                                             }
                                             
                                             Spacer(modifier = Modifier.height(8.dp))
                                             
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                modifier = Modifier.fillMaxWidth()
-                                            ) {
-                                                OutlinedTextField(
-                                                    value = ubicacionEscaneada ?: "",
-                                                    onValueChange = { newValue ->
-                                                        if (ubicacionEditable) {
+                                            if (!ubicacionEditable) {
+                                                // Modo solo lectura - sin bordes
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    modifier = Modifier.fillMaxWidth()
+                                                ) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .weight(1f)
+                                                            .background(Color.Transparent)
+                                                            .padding(16.dp)
+                                                    ) {
+                                                        Text(
+                                                            text = "Ubicación:",
+                                                            color = Color.Black,
+                                                            fontSize = 16.sp
+                                                        )
+                                                    }
+                                                    IconButton(
+                                                        onClick = {
+                                                            val articuloId = codArticulo
+                                                            val camposActuales = camposEditables[articuloId] ?: mapOf("producto" to false, "ubicacion" to false)
+                                                            camposEditables = camposEditables + (articuloId to (camposActuales + ("ubicacion" to true)))
+                                                        }
+                                                    ) {
+                                                        Icon(
+                                                            Icons.Filled.Edit,
+                                                            contentDescription = "Editar ubicación",
+                                                            tint = Color.Black,
+                                                            modifier = Modifier.size(20.dp)
+                                                        )
+                                                    }
+                                                }
+                                            } else {
+                                                // Modo edición
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    modifier = Modifier.fillMaxWidth()
+                                                ) {
+                                                    OutlinedTextField(
+                                                        value = ubicacionEscaneada ?: "",
+                                                        onValueChange = { newValue ->
                                                             val articuloId = codArticulo
                                                             val datosActuales = scaneoIndividual[articuloId] ?: mapOf()
                                                             scaneoIndividual = scaneoIndividual + (articuloId to (datosActuales + ("ubicacion" to newValue)))
-                                                        }
-                                                    },
-                                                    label = { Text("Ubicación", color = Color.Black) },
-                                                    singleLine = true,
-                                                    modifier = Modifier.weight(1f),
-                                                    textStyle = LocalTextStyle.current.copy(color = Color.Black),
-                                                    colors = TextFieldDefaults.outlinedTextFieldColors(
-                                                        cursorColor = Color.Black,
-                                                        focusedBorderColor = Color(0xFF1976D2),
-                                                        unfocusedBorderColor = Color(0xFF1976D2),
-                                                        focusedLabelColor = Color.Black,
-                                                        unfocusedLabelColor = Color.Black
-                                                    ),
-                                                    placeholder = { Text("Código de ubicación", color = Color.Gray) },
-                                                    enabled = ubicacionEditable,
-                                                    readOnly = !ubicacionEditable
-                                                )
-                                                Spacer(modifier = Modifier.width(8.dp))
-                                                // Ícono de re-scan de ubicación oculto mientras el campo está vacío; se usa solo el botón grande debajo.
-                                                IconButton(
-                                                    onClick = {
-                                                        val articuloId = codArticulo
-                                                        val camposActuales = camposEditables[articuloId] ?: mapOf("producto" to false, "ubicacion" to false)
-                                                        camposEditables = camposEditables + (articuloId to (camposActuales + ("ubicacion" to !ubicacionEditable)))
-                                                    }
-                                                ) {
-                                                    Icon(
-                                                        Icons.Filled.Edit,
-                                                        contentDescription = if (ubicacionEditable) "Deshabilitar edición" else "Habilitar edición",
-                                                        tint = if (ubicacionEditable) Color(0xFF4CAF50) else Color(0xFF1976D2),
-                                                        modifier = Modifier.size(20.dp)
+                                                        },
+                                                        label = { Text("Ubicación", color = Color.Black) },
+                                                        singleLine = true,
+                                                        modifier = Modifier.weight(1f),
+                                                        textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                                                        colors = TextFieldDefaults.outlinedTextFieldColors(
+                                                            cursorColor = Color.Black,
+                                                            focusedBorderColor = Color.Black,
+                                                            unfocusedBorderColor = Color.Black,
+                                                            focusedLabelColor = Color.Black,
+                                                            unfocusedLabelColor = Color.Black
+                                                        ),
+                                                        placeholder = { Text("Código de ubicación", color = Color.Gray) }
                                                     )
+                                                    Spacer(modifier = Modifier.width(8.dp))
+                                                    IconButton(
+                                                        onClick = {
+                                                            val articuloId = codArticulo
+                                                            val camposActuales = camposEditables[articuloId] ?: mapOf("producto" to false, "ubicacion" to false)
+                                                            camposEditables = camposEditables + (articuloId to (camposActuales + ("ubicacion" to false)))
+                                                        }
+                                                    ) {
+                                                        Icon(
+                                                            Icons.Filled.Save,
+                                                            contentDescription = "Guardar ubicación",
+                                                            tint = Color.Black,
+                                                            modifier = Modifier.size(20.dp)
+                                                        )
+                                                    }
                                                 }
                                             }
                                             
@@ -681,7 +771,7 @@ fun RecolectarScreen(
                                                 },
                                                 modifier = Modifier.fillMaxWidth(),
                                                 colors = ButtonDefaults.buttonColors(
-                                                    containerColor = Color(0xFF1976D2)
+                                                    containerColor = Color.Red
                                                 ),
                                                 shape = RoundedCornerShape(8.dp)
                                             ) {
@@ -705,123 +795,187 @@ fun RecolectarScreen(
                                             }
                                         } else {
                                             // 3. Mostrar ambos campos (ya escaneados) + botones de reescaneo
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                modifier = Modifier.fillMaxWidth()
-                                            ) {
-                                                OutlinedTextField(
-                                                    value = productoEscaneado ?: "",
-                                                    onValueChange = { newValue ->
-                                                        if (productoEditable) {
+                                            if (!productoEditable) {
+                                                // Modo solo lectura - sin bordes
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    modifier = Modifier.fillMaxWidth()
+                                                ) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .weight(1f)
+                                                            .background(Color.Transparent)
+                                                            .padding(16.dp)
+                                                    ) {
+                                                        Text(
+                                                            text = "Producto: ${productoEscaneado ?: ""}",
+                                                            color = Color.Black,
+                                                            fontSize = 16.sp
+                                                        )
+                                                    }
+                                                    IconButton(
+                                                        onClick = {
+                                                            articuloActualEscaneando = codArticulo
+                                                            tipoEscaneoActual = "producto"
+                                                            onStockearClick("producto")
+                                                        }
+                                                    ) {
+                                                        Icon(
+                                                            Icons.Filled.CameraAlt,
+                                                            contentDescription = "Escanear producto",
+                                                            tint = Color.White,
+                                                            modifier = Modifier.size(20.dp)
+                                                        )
+                                                    }
+                                                    IconButton(
+                                                        onClick = {
+                                                            val articuloId = codArticulo
+                                                            val camposActuales = camposEditables[articuloId] ?: mapOf("producto" to false, "ubicacion" to false)
+                                                            camposEditables = camposEditables + (articuloId to (camposActuales + ("producto" to true)))
+                                                        }
+                                                    ) {
+                                                        Icon(
+                                                            Icons.Filled.Edit,
+                                                            contentDescription = "Editar producto",
+                                                            tint = Color.Black,
+                                                            modifier = Modifier.size(20.dp)
+                                                        )
+                                                    }
+                                                }
+                                            } else {
+                                                // Modo edición
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    modifier = Modifier.fillMaxWidth()
+                                                ) {
+                                                    OutlinedTextField(
+                                                        value = productoEscaneado ?: "",
+                                                        onValueChange = { newValue ->
                                                             val articuloId = codArticulo
                                                             val datosActuales = scaneoIndividual[articuloId] ?: mapOf()
                                                             scaneoIndividual = scaneoIndividual + (articuloId to (datosActuales + ("producto" to newValue)))
+                                                        },
+                                                        label = { Text("Producto", color = Color.Black) },
+                                                        singleLine = true,
+                                                        modifier = Modifier.weight(1f),
+                                                        textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                                                        colors = TextFieldDefaults.outlinedTextFieldColors(
+                                                            cursorColor = Color.Black,
+                                                            focusedBorderColor = Color.Black,
+                                                            unfocusedBorderColor = Color.Black,
+                                                            focusedLabelColor = Color.Black,
+                                                            unfocusedLabelColor = Color.Black
+                                                        ),
+                                                        placeholder = { Text("Código del producto", color = Color.Gray) }
+                                                    )
+                                                    Spacer(modifier = Modifier.width(8.dp))
+                                                    IconButton(
+                                                        onClick = {
+                                                            val articuloId = codArticulo
+                                                            val camposActuales = camposEditables[articuloId] ?: mapOf("producto" to false, "ubicacion" to false)
+                                                            camposEditables = camposEditables + (articuloId to (camposActuales + ("producto" to false)))
                                                         }
-                                                    },
-                                                    label = { Text("Producto", color = Color.Black) },
-                                                    singleLine = true,
-                                                    modifier = Modifier.weight(1f),
-                                                    textStyle = LocalTextStyle.current.copy(color = Color.Black),
-                                                    colors = TextFieldDefaults.outlinedTextFieldColors(
-                                                        cursorColor = Color.Black,
-                                                        focusedBorderColor = Color(0xFF1976D2),
-                                                        unfocusedBorderColor = Color(0xFF1976D2),
-                                                        focusedLabelColor = Color.Black,
-                                                        unfocusedLabelColor = Color.Black
-                                                    ),
-                                                    placeholder = { Text("Código del producto", color = Color.Gray) },
-                                                    enabled = productoEditable,
-                                                    readOnly = !productoEditable
-                                                )
-                                                Spacer(modifier = Modifier.width(8.dp))
-                                                IconButton(
-                                                    onClick = {
-                                                        articuloActualEscaneando = codArticulo
-                                                        tipoEscaneoActual = "producto"
-                                                        onStockearClick("producto")
+                                                    ) {
+                                                        Icon(
+                                                            Icons.Filled.Save,
+                                                            contentDescription = "Guardar producto",
+                                                            tint = Color.Black,
+                                                            modifier = Modifier.size(20.dp)
+                                                        )
                                                     }
-                                                ) {
-                                                    Icon(
-                                                        Icons.Filled.CameraAlt,
-                                                        contentDescription = "Escanear producto",
-                                                        tint = Color.White,
-                                                        modifier = Modifier.size(20.dp)
-                                                    )
-                                                }
-                                                IconButton(
-                                                    onClick = {
-                                                        val articuloId = codArticulo
-                                                        val camposActuales = camposEditables[articuloId] ?: mapOf("producto" to false, "ubicacion" to false)
-                                                        camposEditables = camposEditables + (articuloId to (camposActuales + ("producto" to !productoEditable)))
-                                                    }
-                                                ) {
-                                                    Icon(
-                                                        Icons.Filled.Edit,
-                                                        contentDescription = if (productoEditable) "Deshabilitar edición" else "Habilitar edición",
-                                                        tint = if (productoEditable) Color(0xFF4CAF50) else Color(0xFF1976D2),
-                                                        modifier = Modifier.size(20.dp)
-                                                    )
                                                 }
                                             }
                                             
                                             Spacer(modifier = Modifier.height(8.dp))
                                             
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                modifier = Modifier.fillMaxWidth()
-                                            ) {
-                                                OutlinedTextField(
-                                                    value = ubicacionEscaneada ?: "",
-                                                    onValueChange = { newValue ->
-                                                        if (ubicacionEditable) {
+                                            if (!ubicacionEditable) {
+                                                // Modo solo lectura - sin bordes
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    modifier = Modifier.fillMaxWidth()
+                                                ) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .weight(1f)
+                                                            .background(Color.Transparent)
+                                                            .padding(16.dp)
+                                                    ) {
+                                                        Text(
+                                                            text = "Ubicación: ${ubicacionEscaneada ?: ""}",
+                                                            color = Color.Black,
+                                                            fontSize = 16.sp
+                                                        )
+                                                    }
+                                                    IconButton(
+                                                        onClick = {
+                                                            articuloActualEscaneando = codArticulo
+                                                            tipoEscaneoActual = "ubicacion"
+                                                            onStockearClick("ubicacion")
+                                                        }
+                                                    ) {
+                                                        Icon(
+                                                            Icons.Filled.CameraAlt,
+                                                            contentDescription = "Escanear ubicación",
+                                                            tint = Color.White,
+                                                            modifier = Modifier.size(20.dp)
+                                                        )
+                                                    }
+                                                    IconButton(
+                                                        onClick = {
+                                                            val articuloId = codArticulo
+                                                            val camposActuales = camposEditables[articuloId] ?: mapOf("producto" to false, "ubicacion" to false)
+                                                            camposEditables = camposEditables + (articuloId to (camposActuales + ("ubicacion" to true)))
+                                                        }
+                                                    ) {
+                                                        Icon(
+                                                            Icons.Filled.Edit,
+                                                            contentDescription = "Editar ubicación",
+                                                            tint = Color.Black,
+                                                            modifier = Modifier.size(20.dp)
+                                                        )
+                                                    }
+                                                }
+                                            } else {
+                                                // Modo edición
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    modifier = Modifier.fillMaxWidth()
+                                                ) {
+                                                    OutlinedTextField(
+                                                        value = ubicacionEscaneada ?: "",
+                                                        onValueChange = { newValue ->
                                                             val articuloId = codArticulo
                                                             val datosActuales = scaneoIndividual[articuloId] ?: mapOf()
                                                             scaneoIndividual = scaneoIndividual + (articuloId to (datosActuales + ("ubicacion" to newValue)))
+                                                        },
+                                                        label = { Text("Ubicación", color = Color.Black) },
+                                                        singleLine = true,
+                                                        modifier = Modifier.weight(1f),
+                                                        textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                                                        colors = TextFieldDefaults.outlinedTextFieldColors(
+                                                            cursorColor = Color.Black,
+                                                            focusedBorderColor = Color.Black,
+                                                            unfocusedBorderColor = Color.Black,
+                                                            focusedLabelColor = Color.Black,
+                                                            unfocusedLabelColor = Color.Black
+                                                        ),
+                                                        placeholder = { Text("Código de ubicación", color = Color.Gray) }
+                                                    )
+                                                    Spacer(modifier = Modifier.width(8.dp))
+                                                    IconButton(
+                                                        onClick = {
+                                                            val articuloId = codArticulo
+                                                            val camposActuales = camposEditables[articuloId] ?: mapOf("producto" to false, "ubicacion" to false)
+                                                            camposEditables = camposEditables + (articuloId to (camposActuales + ("ubicacion" to false)))
                                                         }
-                                                    },
-                                                    label = { Text("Ubicación", color = Color.Black) },
-                                                    singleLine = true,
-                                                    modifier = Modifier.weight(1f),
-                                                    textStyle = LocalTextStyle.current.copy(color = Color.Black),
-                                                    colors = TextFieldDefaults.outlinedTextFieldColors(
-                                                        cursorColor = Color.Black,
-                                                        focusedBorderColor = Color(0xFF1976D2),
-                                                        unfocusedBorderColor = Color(0xFF1976D2),
-                                                        focusedLabelColor = Color.Black,
-                                                        unfocusedLabelColor = Color.Black
-                                                    ),
-                                                    placeholder = { Text("Código de ubicación", color = Color.Gray) },
-                                                    enabled = ubicacionEditable,
-                                                    readOnly = !ubicacionEditable
-                                                )
-                                                Spacer(modifier = Modifier.width(8.dp))
-                                                IconButton(
-                                                    onClick = {
-                                                        articuloActualEscaneando = codArticulo
-                                                        tipoEscaneoActual = "ubicacion"
-                                                        onStockearClick("ubicacion")
+                                                    ) {
+                                                        Icon(
+                                                            Icons.Filled.Save,
+                                                            contentDescription = "Guardar ubicación",
+                                                            tint = Color.Black,
+                                                            modifier = Modifier.size(20.dp)
+                                                        )
                                                     }
-                                                ) {
-                                                    Icon(
-                                                        Icons.Filled.CameraAlt,
-                                                        contentDescription = "Escanear ubicación",
-                                                        tint = Color.White,
-                                                        modifier = Modifier.size(20.dp)
-                                                    )
-                                                }
-                                                IconButton(
-                                                    onClick = {
-                                                        val articuloId = codArticulo
-                                                        val camposActuales = camposEditables[articuloId] ?: mapOf("producto" to false, "ubicacion" to false)
-                                                        camposEditables = camposEditables + (articuloId to (camposActuales + ("ubicacion" to !ubicacionEditable)))
-                                                    }
-                                                ) {
-                                                    Icon(
-                                                        Icons.Filled.Edit,
-                                                        contentDescription = if (ubicacionEditable) "Deshabilitar edición" else "Habilitar edición",
-                                                        tint = if (ubicacionEditable) Color(0xFF4CAF50) else Color(0xFF1976D2),
-                                                        modifier = Modifier.size(20.dp)
-                                                    )
                                                 }
                                             }
                                         }
@@ -851,30 +1005,26 @@ fun RecolectarScreen(
                                                         textStyle = LocalTextStyle.current.copy(color = Color.Black),
                                                         colors = TextFieldDefaults.outlinedTextFieldColors(
                                                             cursorColor = Color.Black,
-                                                            focusedBorderColor = Color(0xFF1976D2),
-                                                            unfocusedBorderColor = Color(0xFF1976D2),
+                                                            focusedBorderColor = Color.Black,
+                                                            unfocusedBorderColor = Color.Black,
                                                             focusedLabelColor = Color.Black,
                                                             unfocusedLabelColor = Color.Black
                                                         ),
                                                         placeholder = { Text("Ingrese la cantidad", color = Color.Gray) }
                                                     )
                                                     Spacer(modifier = Modifier.width(8.dp))
-                                                    Button(
+                                                    IconButton(
                                                         onClick = {
                                                             if (cantidadArticulo.isNotEmpty()) {
                                                                 cantidadesGuardadas = cantidadesGuardadas + (codArticulo to true)
                                                             }
                                                         },
-                                                        enabled = cantidadArticulo.isNotEmpty(),
-                                                        colors = ButtonDefaults.buttonColors(
-                                                            containerColor = Color(0xFF4CAF50)
-                                                        ),
-                                                        shape = RoundedCornerShape(8.dp)
+                                                        enabled = cantidadArticulo.isNotEmpty()
                                                     ) {
                                                         Icon(
                                                             Icons.Filled.Check,
                                                             contentDescription = "Guardar cantidad",
-                                                            tint = Color.White,
+                                                            tint = if (cantidadArticulo.isNotEmpty()) Color(0xFF4CAF50) else Color.Gray,
                                                             modifier = Modifier.size(24.dp)
                                                         )
                                                     }
@@ -894,8 +1044,8 @@ fun RecolectarScreen(
                                                         textStyle = LocalTextStyle.current.copy(color = Color.Black),
                                                         colors = TextFieldDefaults.outlinedTextFieldColors(
                                                             cursorColor = Color.Black,
-                                                            focusedBorderColor = Color(0xFF1976D2),
-                                                            unfocusedBorderColor = Color(0xFF1976D2),
+                                                            focusedBorderColor = Color.Black,
+                                                            unfocusedBorderColor = Color.Black,
                                                             focusedLabelColor = Color.Black,
                                                             unfocusedLabelColor = Color.Black
                                                         ),
@@ -911,7 +1061,7 @@ fun RecolectarScreen(
                                                         Icon(
                                                             Icons.Filled.Edit,
                                                             contentDescription = "Editar cantidad",
-                                                            tint = Color.White,
+                                                            tint = Color.Black,
                                                             modifier = Modifier.size(20.dp)
                                                         )
                                                     }
@@ -957,13 +1107,13 @@ fun RecolectarScreen(
                                             ) {
                                                 Text(
                                                     text = "Ubicaciones (${ubicacionesDelArticulo.size})",
-                                                    color = Color(0xFF1976D2),
+                                                    color = Color.Black,
                                                     fontSize = 14.sp,
                                                     fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
                                                 )
                                                 Text(
                                                     text = if (isExpanded) "▼" else "▶",
-                                                    color = Color(0xFF1976D2),
+                                                    color = Color.Black,
                                                     fontSize = 16.sp
                                                 )
                                             }
@@ -1016,7 +1166,7 @@ fun RecolectarScreen(
                             )
                         }
                     }
-                }
+                
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
@@ -1142,7 +1292,7 @@ fun RecolectarScreen(
                                 recoleccionObj.put("cantidad", cantidad)
                                 recoleccionObj.put("codArticulo", codArticulo)
                                 recoleccionObj.put("codDeposito", efectivoCodDeposito)
-                                recoleccionObj.put("idEtiqueta", ubicacion)
+                                recoleccionObj.put("idEtiqueta", codArticulo)
                                 recoleccionObj.put("numPartida", producto)
                                 //recoleccionObj.put("numSerie", ubicacion)
                                 recoleccionObj.put("userData", usuario)
@@ -1294,11 +1444,13 @@ fun RecolectarScreen(
         // Diálogo de confirmación para regresar
         if (showBackDialog) {
             AlertDialog(
+
+                containerColor = Color.White,
                 onDismissRequest = { showBackDialog = false },
                 title = {
                     Text(
                         text = "Confirmar regreso",
-                        color = Color(0xFF1976D2),
+                        color = Color.Black,
                         fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                     )
                 },
@@ -1315,7 +1467,7 @@ fun RecolectarScreen(
                             onBack()
                         }
                     ) {
-                        Text("Sí, regresar", color = Color(0xFF1976D2))
+                        Text("Sí, regresar", color = Color.Black)
                     }
                 },
                 dismissButton = {
@@ -1327,15 +1479,16 @@ fun RecolectarScreen(
                 }
             )
         }
-        
+
         // Diálogo de confirmación para ir a main
         if (showCloseDialog) {
             AlertDialog(
+                containerColor = Color.White,
                 onDismissRequest = { showCloseDialog = false },
                 title = {
                     Text(
                         text = "Confirmar salida",
-                        color = Color(0xFF1976D2),
+                        color = Color.Black,
                         fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                     )
                 },
@@ -1352,7 +1505,7 @@ fun RecolectarScreen(
                             onClose()
                         }
                     ) {
-                        Text("Sí, ir al menú", color = Color(0xFF1976D2))
+                        Text("Sí, ir al menú", color = Color.Black)
                     }
                 },
                 dismissButton = {

@@ -30,7 +30,7 @@ fun RecolectarByQRScreen(
     onBack: () -> Unit = {},
     onScanQR: () -> Unit = {},
     scannedResult: String? = null,
-    onProceedWithOrder: (String) -> Unit = {}
+    onProceedWithOrder: (String, Boolean) -> Unit = { _, _ -> }
 ) {
     val context = LocalContext.current
     var hasCameraPermission by remember {
@@ -42,6 +42,7 @@ fun RecolectarByQRScreen(
         )
     }
     
+    var optimizaRecorrido by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     
     val launcher = rememberLauncherForActivityResult(
@@ -62,7 +63,7 @@ fun RecolectarByQRScreen(
             if (parsedData.deposito.isNotEmpty() && parsedData.pedido.isNotEmpty()) {
                 // QR válido - limpiar error y redirigir automáticamente
                 errorMessage = null
-                onProceedWithOrder(scannedResult)
+                onProceedWithOrder(scannedResult, optimizaRecorrido)
             } else {
                 // QR inválido - mostrar error
                 AppLogger.logError(
@@ -218,7 +219,44 @@ fun RecolectarByQRScreen(
                     lineHeight = 24.sp
                 )
                 
-                Spacer(modifier = Modifier.height(48.dp))
+                Spacer(modifier = Modifier.height(32.dp))
+                
+                // Checkbox para optimizar recorrido
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color.White.copy(alpha = 0.2f)
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "¿Optimizar Recorrido?",
+                            fontSize = 16.sp,
+                            color = Color.White,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Checkbox(
+                            checked = optimizaRecorrido,
+                            onCheckedChange = { optimizaRecorrido = it },
+                            colors = CheckboxDefaults.colors(
+                                checkedColor = Color.White,
+                                uncheckedColor = Color.White,
+                                checkmarkColor = Color(0xFFCD0914)
+                            )
+                        )
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(32.dp))
                 
                 // Botón principal de escanear
                 Button(

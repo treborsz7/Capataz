@@ -1,6 +1,7 @@
 package com.thinkthat.mamusckascaner.service.Services
 
 import android.content.Context
+import android.util.Base64
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -208,7 +209,8 @@ interface ApiService {
     fun recolectarPedido(
         @Body body: okhttp3.RequestBody,
         @Header("avisosComoError") avisosComoError: Boolean = false,
-        @Header("generaRemitoDePic") generaRemitoDePic: Boolean = false
+        @Header("generaRemitoDePic") generaRemitoDePic: Boolean = false,
+        @Header("RECOLECTAR_PEDIDOS.verifica_id_unico_de_etiqueta") verificaIdUnicoDeEtiqueta: String = "Flexible"
 
     ): retrofit2.Call<okhttp3.ResponseBody>
 
@@ -232,15 +234,119 @@ object ApiClient {
         this.context = context.applicationContext
     }
 
+    /**
+     * Valida si un token JWT está vencido.
+     * @param token El token JWT a validar
+     * @return true si el token está vencido o es inválido, false si aún es válido
+     */
+    fun isTokenExpired(token: String?): Boolean {
+        if (token.isNullOrBlank()) return true
+        
+        try {
+            // Un JWT tiene el formato: header.payload.signature
+            val parts = token.split(".")
+            if (parts.size != 3) return true
+            
+            // Decodificar el payload (segunda parte)
+            val payload = parts[1]
+            
+            // Decodificar de Base64URL a String
+            val decodedBytes = Base64.decode(payload, Base64.URL_SAFE or Base64.NO_WRAP)
+            val decodedString = String(decodedBytes, Charsets.UTF_8)
+            
+            // Parsear el JSON del payload
+            val jsonPayload = JSONObject(decodedString)
+            
+            // Obtener el claim 'exp' (expiration time en segundos Unix)
+            if (!jsonPayload.has("exp")) {
+                // Si no tiene campo exp, consideramos que no expira nunca
+                return false
+            }
+            
+            val exp = jsonPayload.getLong("exp")
+            val currentTimeInSeconds = System.currentTimeMillis() / 1000
+            
+            // Agregar un margen de 60 segundos antes de que expire
+            // para re-autenticar proactivamente
+            return currentTimeInSeconds >= (exp - 60)
+            
+        } catch (e: Exception) {
+            // Si hay cualquier error decodificando, asumir que está vencido
+            android.util.Log.e("ApiClient", "Error validando token: ${e.message}")
+            return true
+        }
+    }
+    
+    /**
+     * Obtiene el token actual de SharedPreferences
+     */
+    fun getCurrentToken(): String? {
+        val prefs = context?.getSharedPreferences("QRCodeScannerPrefs", Context.MODE_PRIVATE)
+        return prefs?.getString("token", null)
+    }
+    
+    /**
+     * Valida si el token actual está vencido
+     */
+    fun isCurrentTokenExpired(): Boolean {
+        return isTokenExpired(getCurrentToken())
+    }
+
     private val authInterceptor = Interceptor { chain ->
         val originalRequest: Request = chain.request()
         // No agregar token ni idEmp si es loginPlano
         if (originalRequest.url.encodedPath.endsWith("/Login/Plano")) {
             return@Interceptor chain.proceed(originalRequest)
         }
+        
         val prefs = context?.getSharedPreferences("QRCodeScannerPrefs", Context.MODE_PRIVATE)
-        val token = prefs?.getString("token", null)
+        var token = prefs?.getString("token", null)
         val idEmp = prefs?.getString("savedEmpresa", null)
+        
+        // Validar si el token está vencido antes de usarlo
+        if (isTokenExpired(token)) {
+            android.util.Log.w("ApiClient", "Token expirado detectado, intentando re-autenticación...")
+            
+            val savedUser = prefs?.getString("savedUser", null)
+            val savedPassword = prefs?.getString("savedPass", null)
+            
+            if (!savedUser.isNullOrBlank() && !savedPassword.isNullOrBlank()) {
+                try {
+                    // Intentar obtener un nuevo token
+                    val loginRequest = Request.Builder()
+                        .url("${BASE_URL}Login/Plano")
+                        .post(okhttp3.RequestBody.create("text/plain".toMediaTypeOrNull(), ""))
+                        .addHeader("nombreUsuario", savedUser)
+                        .addHeader("pass", savedPassword)
+                        .build()
+                    
+                    val loginResponse = chain.proceed(loginRequest)
+                    
+                    if (loginResponse.isSuccessful) {
+                        val responseBody = loginResponse.body?.string()
+                        if (!responseBody.isNullOrBlank()) {
+                            try {
+                                val jsonResponse = JSONObject(responseBody)
+                                val newToken = jsonResponse.optString("token")
+                                
+                                if (!newToken.isNullOrBlank() && !isTokenExpired(newToken)) {
+                                    // Guardar el nuevo token
+                                    prefs?.edit()?.putString("token", newToken)?.apply()
+                                    token = newToken
+                                    android.util.Log.i("ApiClient", "Token renovado exitosamente")
+                                }
+                            } catch (e: Exception) {
+                                android.util.Log.e("ApiClient", "Error parseando respuesta de login: ${e.message}")
+                            }
+                        }
+                    }
+                    loginResponse.close()
+                } catch (e: Exception) {
+                    android.util.Log.e("ApiClient", "Error durante re-autenticación proactiva: ${e.message}")
+                }
+            }
+        }
+        
         val builder = originalRequest.newBuilder()
         if (!token.isNullOrBlank()) {
             builder.addHeader("Authorization", "Bearer $token")
