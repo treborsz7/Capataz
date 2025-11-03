@@ -22,6 +22,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.compose.ui.platform.LocalConfiguration
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -65,6 +66,18 @@ fun EstivacionScreen(
     ubicacion: String?
 ) {
     val context = LocalContext.current
+    val configuration = LocalConfiguration.current
+    val screenHeight = configuration.screenHeightDp.dp
+    val screenWidth = configuration.screenWidthDp.dp
+    
+    // Responsive values based on screen size
+    val horizontalPadding = maxOf(minOf(screenWidth * 0.08f, 32.dp), 16.dp)
+    val logoSize = maxOf(minOf(screenWidth * 0.6f, 350.dp), 200.dp)
+    val formWidth = 0.85f
+    val topOffset = -maxOf(minOf(screenHeight * 0.05f, 40.dp), 20.dp)
+    val titleFontSize = maxOf(minOf((screenWidth * 0.06f).value, 28f), 20f).sp
+    val bodyFontSize = maxOf(minOf((screenWidth * 0.04f).value, 18f), 14f).sp
+    val buttonHeight = maxOf(minOf(screenHeight * 0.07f, 64.dp), 48.dp)
     var hasCameraPermission by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(
@@ -147,7 +160,7 @@ fun EstivacionScreen(
         Box(
             modifier = Modifier
                 .align(Alignment.TopStart)
-                .padding(16.dp)
+                .padding(horizontalPadding / 2)
         ) {
             IconButton(onClick = onBack) {
                 Icon(Icons.Filled.ArrowBack, contentDescription = "Volver", tint = Color.White)
@@ -158,11 +171,11 @@ fun EstivacionScreen(
         Box(
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .padding(top = 16.dp)
+                .padding(top = horizontalPadding / 2)
         ) {
             Text(
                 text = "Estivación",
-                fontSize = 24.sp,
+                fontSize = titleFontSize,
                 color = Color.White,
                 modifier = Modifier.padding(vertical = 8.dp)
             )
@@ -170,11 +183,11 @@ fun EstivacionScreen(
         
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy((screenHeight * 0.015f).coerceAtLeast(8.dp).coerceAtMost(16.dp)),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 32.dp)
-                .offset(y = (-40).dp)
+                .padding(horizontal = horizontalPadding)
+                .offset(y = topOffset)
                 .align(Alignment.Center)
         ) {
             // Logo centrado
@@ -182,25 +195,25 @@ fun EstivacionScreen(
                 painter = painterResource(id = com.thinkthat.mamusckascaner.R.drawable.logos_y__1__05__1_),
                 contentDescription = "Logo",
                 tint = Color.White,
-                modifier = Modifier.size(400.dp)
+                modifier = Modifier.size(logoSize)
             )
             // Campo depósito con ícono de edición o guardado
             if (!depositoEditable) {
                 // Modo solo lectura - sin bordes, texto gris
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth(0.8f)
+                    modifier = Modifier.fillMaxWidth(formWidth)
                 ) {
                     Box(
                         modifier = Modifier
                             .weight(1f)
                             .background(Color.Transparent)
-                            .padding(16.dp)
+                            .padding(horizontalPadding / 2)
                     ) {
                         Text(
                             text = if (deposito.isBlank()) "Depósito:" else "Depósito: $deposito",
                             color = Color.White,
-                            fontSize = 16.sp
+                            fontSize = bodyFontSize
                         )
                     }
                     IconButton(
@@ -223,7 +236,7 @@ fun EstivacionScreen(
                 // Modo edición - campo normal con ícono de guardar
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth(0.8f)
+                    modifier = Modifier.fillMaxWidth(formWidth)
                 ) {
                     OutlinedTextField(
                         value = depositoFieldValue,
@@ -273,18 +286,18 @@ fun EstivacionScreen(
                     // Modo solo lectura - sin bordes, texto gris
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth(0.8f)
+                        modifier = Modifier.fillMaxWidth(formWidth)
                     ) {
                         Box(
                             modifier = Modifier
                                 .weight(1f)
                                 .background(Color.Transparent)
-                                .padding(16.dp)
+                                .padding(horizontalPadding / 2)
                         ) {
                             Text(
                                 text = "Partida:",
                                 color = Color.White,
-                                fontSize = 16.sp
+                                fontSize = bodyFontSize
                             )
                         }
                         // No mostrar ícono de cámara cuando el campo está vacío
@@ -308,7 +321,7 @@ fun EstivacionScreen(
                     // Modo edición - campo normal con ícono de guardar
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth(0.8f)
+                        modifier = Modifier.fillMaxWidth(formWidth)
                     ) {
                         OutlinedTextField(
                             value = partidaFieldValue,
@@ -355,18 +368,18 @@ fun EstivacionScreen(
                 if (!partidaEditable) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth(0.8f)
+                        modifier = Modifier.fillMaxWidth(formWidth)
                     ) {
                         Box(
                             modifier = Modifier
                                 .weight(1f)
                                 .background(Color.Transparent)
-                                .padding(16.dp)
+                                .padding(horizontalPadding / 2)
                         ) {
                             Text(
                                 text = "Partida: $partidaLocal",
                                 color = Color.White,
-                                fontSize = 16.sp
+                                fontSize = bodyFontSize
                             )
                         }
                         IconButton(
@@ -403,7 +416,7 @@ fun EstivacionScreen(
                 } else {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth(0.8f)
+                        modifier = Modifier.fillMaxWidth(formWidth)
                     ) {
                         OutlinedTextField(
                             value = partidaFieldValue,
@@ -450,18 +463,18 @@ fun EstivacionScreen(
                 if (!ubicacionEditable) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth(0.8f)
+                        modifier = Modifier.fillMaxWidth(formWidth)
                     ) {
                         Box(
                             modifier = Modifier
                                 .weight(1f)
                                 .background(Color.Transparent)
-                                .padding(16.dp)
+                                .padding(horizontalPadding / 2)
                         ) {
                             Text(
                                 text = "Ubicación:",
                                 color = Color.White,
-                                fontSize = 16.sp
+                                fontSize = bodyFontSize
                             )
                         }
                         // No mostrar ícono de cámara cuando el campo está vacío
@@ -484,7 +497,7 @@ fun EstivacionScreen(
                 } else {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth(0.8f)
+                        modifier = Modifier.fillMaxWidth(formWidth)
                     ) {
                         OutlinedTextField(
                             value = ubicacionFieldValue,
@@ -530,18 +543,18 @@ fun EstivacionScreen(
                 if (!partidaEditable) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth(0.8f)
+                        modifier = Modifier.fillMaxWidth(formWidth)
                     ) {
                         Box(
                             modifier = Modifier
                                 .weight(1f)
                                 .background(Color.Transparent)
-                                .padding(16.dp)
+                                .padding(horizontalPadding / 2)
                         ) {
                             Text(
                                 text = "Partida: $partidaLocal",
                                 color = Color.White,
-                                fontSize = 16.sp
+                                fontSize = bodyFontSize
                             )
                         }
                         IconButton(
@@ -578,7 +591,7 @@ fun EstivacionScreen(
                 } else {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth(0.8f)
+                        modifier = Modifier.fillMaxWidth(formWidth)
                     ) {
                         OutlinedTextField(
                             value = partidaFieldValue,
@@ -623,18 +636,18 @@ fun EstivacionScreen(
                 if (!ubicacionEditable) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth(0.8f)
+                        modifier = Modifier.fillMaxWidth(formWidth)
                     ) {
                         Box(
                             modifier = Modifier
                                 .weight(1f)
                                 .background(Color.Transparent)
-                                .padding(16.dp)
+                                .padding(horizontalPadding / 2)
                         ) {
                             Text(
                                 text = "Ubicación: $ubicacionLocal",
                                 color = Color.White,
-                                fontSize = 16.sp
+                                fontSize = bodyFontSize
                             )
                         }
                         IconButton(
@@ -671,7 +684,7 @@ fun EstivacionScreen(
                 } else {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth(0.8f)
+                        modifier = Modifier.fillMaxWidth(formWidth)
                     ) {
                         OutlinedTextField(
                             value = ubicacionFieldValue,
@@ -717,7 +730,7 @@ fun EstivacionScreen(
             if (ubicaciones.isNotEmpty()) {
                 Column(
                     modifier = Modifier
-                        .fillMaxWidth(0.8f)
+                        .fillMaxWidth(formWidth)
                         .background(Color(0xFFF5F5F5), RoundedCornerShape(12.dp))
                         .padding(8.dp)
                 ) {
@@ -759,7 +772,7 @@ fun EstivacionScreen(
             ) {
                 ErrorMessage(
                     message = errorEnvio!!,
-                    modifier = Modifier.fillMaxWidth(0.8f)
+                    modifier = Modifier.fillMaxWidth(formWidth)
                 )
             }
         }
@@ -783,8 +796,8 @@ fun EstivacionScreen(
                     shape = RoundedCornerShape(24.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color.White),
                     modifier = Modifier
-                        .fillMaxWidth(0.8f)
-                        .height(56.dp)
+                        .fillMaxWidth(formWidth)
+                        .height(buttonHeight)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -801,7 +814,7 @@ fun EstivacionScreen(
                         Text(
                             text = "Escanear Partida",
                             color = Color.Black,
-                            fontSize = 16.sp
+                            fontSize = bodyFontSize
                         )
                     }
                 }
@@ -824,8 +837,8 @@ fun EstivacionScreen(
                     shape = RoundedCornerShape(24.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color.White),
                     modifier = Modifier
-                        .fillMaxWidth(0.8f)
-                        .height(56.dp)
+                        .fillMaxWidth(formWidth)
+                        .height(buttonHeight)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -842,7 +855,7 @@ fun EstivacionScreen(
                         Text(
                             text = "Escanear Ubicación",
                             color = Color.Black,
-                            fontSize = 16.sp
+                            fontSize = bodyFontSize
                         )
                     }
                 }
@@ -927,8 +940,8 @@ fun EstivacionScreen(
                     disabledContainerColor = Color(0xFFCCCCCC)
                 ),
                 modifier = Modifier
-                    .fillMaxWidth(0.8f)
-                    .height(56.dp)
+                    .fillMaxWidth(formWidth)
+                    .height(buttonHeight)
             ) {
                     if (isLoading) {
                         CircularProgressIndicator(
@@ -937,7 +950,7 @@ fun EstivacionScreen(
                             strokeWidth = 2.dp
                         )
                     } else {
-                        Text("Enviar", color = Color.Black, fontSize = 16.sp)
+                        Text("Enviar", color = Color.Black, fontSize = bodyFontSize)
                     }
                 }
             }

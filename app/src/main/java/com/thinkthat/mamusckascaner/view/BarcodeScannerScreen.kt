@@ -31,6 +31,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import com.google.common.util.concurrent.ListenableFuture
@@ -46,8 +49,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.systemBars
+import androidx.compose.ui.platform.LocalConfiguration
 
 import com.thinkthat.mamusckascaner.BarScanState
 import com.thinkthat.mamusckascaner.model.BarCodeAnalyzer
@@ -66,6 +71,14 @@ fun BarcodeScannerScreen(
     }
 
     val context = LocalContext.current
+    val configuration = LocalConfiguration.current
+    val screenHeight = configuration.screenHeightDp.dp
+    val screenWidth = configuration.screenWidthDp.dp
+    
+    // Responsive values
+    val horizontalPadding = maxOf(minOf(screenWidth * 0.08f, 32.dp), 16.dp)
+    val buttonHeight = maxOf(minOf(screenHeight * 0.07f, 64.dp), 48.dp)
+    val bodyFontSize = maxOf(minOf((screenWidth * 0.04f).value, 18f), 14f).sp
     var hasCameraPermission by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(
@@ -98,7 +111,7 @@ fun BarcodeScannerScreen(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 16.dp, top = 8.dp, bottom = 8.dp),
+                .padding(start = horizontalPadding / 2, top = 8.dp, bottom = 8.dp),
             contentAlignment = Alignment.TopStart
         ) {
             androidx.compose.material3.IconButton(onClick = onBack) {
@@ -119,7 +132,10 @@ fun BarcodeScannerScreen(
                     CameraPreview(
                         viewModel = viewModel,
                         onScanResult = onScanResult,
-                        onBack = onBack
+                        onBack = onBack,
+                        horizontalPadding = horizontalPadding,
+                        buttonHeight = buttonHeight,
+                        bodyFontSize = bodyFontSize
                     )
                 }
             } else {
@@ -128,12 +144,13 @@ fun BarcodeScannerScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    Text("Camera permission is required for scanning barcodes", color = Color.White)
+                    Text("Camera permission is required for scanning barcodes", color = Color.White, fontSize = bodyFontSize)
                     Button(
                         onClick = { launcher.launch(android.Manifest.permission.CAMERA) },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.White)
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                        modifier = Modifier.height(buttonHeight)
                     ) {
-                        Text("Grant Permission", color = Color.Black)
+                        Text("Grant Permission", color = Color.Black, fontSize = bodyFontSize)
                     }
                 }
             }
@@ -145,7 +162,10 @@ fun BarcodeScannerScreen(
 fun CameraPreview(
     viewModel: BarCodeScannerViewModel,
     onScanResult: (String) -> Unit = {},
-    onBack: () -> Unit = {}
+    onBack: () -> Unit = {},
+    horizontalPadding: Dp = 16.dp,
+    buttonHeight: Dp = 56.dp,
+    bodyFontSize: TextUnit = 16.sp
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -174,14 +194,14 @@ fun CameraPreview(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(8.dp)
+                .padding(horizontal = 8.dp)
         ) {
             // Mantener la cámara activa hasta detectar un código
             if (barScanState !is BarScanState.ScanSuccess) {
                 AndroidView(
                     factory = { androidViewContext ->
                         PreviewView(androidViewContext).apply {
-                            this.scaleType = PreviewView.ScaleType.FILL_START
+                            this.scaleType = PreviewView.ScaleType.FILL_CENTER
                             layoutParams = ViewGroup.LayoutParams(
                                 ViewGroup.LayoutParams.MATCH_PARENT,
                                 ViewGroup.LayoutParams.MATCH_PARENT
@@ -189,7 +209,9 @@ fun CameraPreview(
                             implementationMode = PreviewView.ImplementationMode.COMPATIBLE
                         }
                     },
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(3f / 4f),
                     update = { previewView ->
                         val cameraSelector = CameraSelector.Builder()
                             .requireLensFacing(CameraSelector.LENS_FACING_BACK)

@@ -17,6 +17,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.compose.ui.platform.LocalConfiguration
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -44,6 +45,18 @@ fun MainScreen(
     onLogout: () -> Unit = {}
 ) {
     val context = LocalContext.current
+    val configuration = LocalConfiguration.current
+    val screenHeight = configuration.screenHeightDp.dp
+    val screenWidth = configuration.screenWidthDp.dp
+    
+    // Responsive values
+    val horizontalPadding = maxOf(minOf(screenWidth * 0.08f, 32.dp), 16.dp)
+    val logoSize = maxOf(minOf(screenWidth * 0.7f, 450.dp), 300.dp)
+    val buttonWidth = maxOf(minOf(screenWidth * 0.7f, 300.dp), 200.dp)
+    val buttonHeight = maxOf(minOf(screenHeight * 0.08f, 70.dp), 50.dp)
+    val buttonSpacing = maxOf(minOf(screenHeight * 0.02f, 20.dp), 12.dp)
+    val buttonFontSize = maxOf(minOf((screenWidth * 0.045f).value, 20f), 16f).sp
+    val topOffset = -maxOf(minOf(screenHeight * 0.05f, 50.dp), 30.dp)
     var hasCameraPermission by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(
@@ -119,17 +132,17 @@ fun MainScreen(
         // Agrupar los botones en un Column centrado
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(buttonSpacing),
             modifier = Modifier
-                .padding(horizontal = 32.dp)
-                .offset(y = (-40).dp) // Mover todo el contenido hacia arriba
+                .padding(horizontal = horizontalPadding)
+                .offset(y = topOffset) // Mover todo el contenido hacia arriba
         ) {
             // Icono de la app centrado
             Icon(
                 painter = painterResource(id = com.thinkthat.mamusckascaner.R.drawable.logos_y__1__05__1_),
                 contentDescription = "Logo",
                 tint = Color.White,
-                modifier = Modifier.size(400.dp)
+                modifier = Modifier.size(logoSize)
 
             )
 
@@ -141,7 +154,7 @@ fun MainScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
+                    .height(buttonHeight),
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color.White,
@@ -167,7 +180,7 @@ fun MainScreen(
                     Text(
                         text = "Recolectar Pedido",
                         color = Color.Black,
-                        fontSize = 16.sp
+                        fontSize = buttonFontSize
                     )
                 }
             }
@@ -183,7 +196,7 @@ fun MainScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
+                    .height(buttonHeight),
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color.White,
@@ -209,7 +222,7 @@ fun MainScreen(
                     Text(
                         text = "Estibar Partidas",
                         color = Color.Black,
-                        fontSize = 16.sp
+                        fontSize = buttonFontSize
                     )
                 }
             }
@@ -222,7 +235,7 @@ fun MainScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
+                    .height(buttonHeight),
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color.White,
@@ -248,7 +261,7 @@ fun MainScreen(
                     Text(
                         text = "Reubicar Partidas",
                         color = Color.Black,
-                        fontSize = 16.sp
+                        fontSize = buttonFontSize
                     )
                 }
             }

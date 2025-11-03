@@ -20,6 +20,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.compose.ui.platform.LocalConfiguration
 import com.thinkthat.mamusckascaner.utils.AppLogger
 import com.thinkthat.mamusckascaner.utils.QRData
 import com.thinkthat.mamusckascaner.utils.parseQRData
@@ -33,6 +34,17 @@ fun RecolectarByQRScreen(
     onProceedWithOrder: (String, Boolean) -> Unit = { _, _ -> }
 ) {
     val context = LocalContext.current
+    val configuration = LocalConfiguration.current
+    val screenHeight = configuration.screenHeightDp.dp
+    val screenWidth = configuration.screenWidthDp.dp
+    
+    // Responsive values
+    val horizontalPadding = maxOf(minOf(screenWidth * 0.08f, 32.dp), 16.dp)
+    val iconSize = maxOf(minOf(screenWidth * 0.3f, 140.dp), 80.dp)
+    val titleFontSize = maxOf(minOf((screenWidth * 0.06f).value, 28f), 20f).sp
+    val bodyFontSize = maxOf(minOf((screenWidth * 0.04f).value, 18f), 14f).sp
+    val buttonHeight = maxOf(minOf(screenHeight * 0.07f, 64.dp), 48.dp)
+    val spacing = maxOf(minOf(screenHeight * 0.04f, 32.dp), 16.dp)
     var hasCameraPermission by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(
@@ -89,7 +101,7 @@ fun RecolectarByQRScreen(
         Box(
             modifier = Modifier
                 .align(Alignment.TopStart)
-                .padding(16.dp)
+                .padding(horizontalPadding / 2)
         ) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onBack) {
@@ -103,12 +115,11 @@ fun RecolectarByQRScreen(
         Box(
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .padding(top = 16.dp)
+                .padding(top = horizontalPadding / 2)
         ) {
             Text(
-                
                 text = "Recolectar",
-                fontSize = 24.sp,
+                fontSize = titleFontSize,
                 color = Color.White,
                 modifier = Modifier.padding(vertical = 8.dp)
             )
@@ -120,50 +131,50 @@ fun RecolectarByQRScreen(
             verticalArrangement = Arrangement.Center,
             modifier = Modifier
                 .align(Alignment.Center)
-                .padding(horizontal = 32.dp)
+                .padding(horizontal = horizontalPadding)
         ) {
             // Ícono principal
             Icon(
                 imageVector = Icons.Filled.QrCodeScanner,
                 contentDescription = "Escanear QR",
                 tint = Color.White,
-                modifier = Modifier.size(120.dp)
+                modifier = Modifier.size(iconSize)
             )
             
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(spacing))
             
             if (errorMessage != null) {
                 // Mostrar mensaje de error
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
+                        .padding(horizontal = horizontalPadding / 2),
                     colors = CardDefaults.cardColors(
                         containerColor = Color(0xFFFFEBEE)
                     ),
                     elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                 ) {
                     Column(
-                        modifier = Modifier.padding(16.dp),
+                        modifier = Modifier.padding(horizontalPadding / 2),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
                             text = "Error:",
-                            fontSize = 14.sp,
+                            fontSize = bodyFontSize,
                             color = Color(0xFFD32F2F),
                             fontWeight = FontWeight.Bold
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = errorMessage!!,
-                            fontSize = 14.sp,
+                            fontSize = bodyFontSize,
                             color = Color(0xFFD32F2F),
                             modifier = Modifier.padding(horizontal = 8.dp)
                         )
                     }
                 }
                 
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(spacing))
                 
                 // Botón para intentar escanear de nuevo
                 Button(
@@ -177,7 +188,7 @@ fun RecolectarByQRScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp),
+                        .height(buttonHeight),
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color.White,
@@ -203,7 +214,7 @@ fun RecolectarByQRScreen(
                         Text(
                             text = "Intentar de nuevo",
                             color = Color.Black,
-                            fontSize = 18.sp,
+                            fontSize = maxOf(minOf((screenWidth * 0.045f).value, 20f), 16f).sp,
                             fontWeight = FontWeight.Medium
                         )
                     }
@@ -213,7 +224,7 @@ fun RecolectarByQRScreen(
                 // Estado inicial - sin resultado
                 Text(
                     text = "Escanea el código QR del pedido que deseas recolectar",
-                    fontSize = 16.sp,
+                    fontSize = bodyFontSize,
                     color = Color.White,
                     modifier = Modifier.padding(horizontal = 16.dp),
                     lineHeight = 24.sp
@@ -240,7 +251,7 @@ fun RecolectarByQRScreen(
                     ) {
                         Text(
                             text = "¿Optimizar Recorrido?",
-                            fontSize = 16.sp,
+                            fontSize = bodyFontSize,
                             color = Color.White,
                             fontWeight = FontWeight.Medium
                         )
@@ -269,7 +280,7 @@ fun RecolectarByQRScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp),
+                        .height(buttonHeight),
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color.White,
@@ -295,7 +306,7 @@ fun RecolectarByQRScreen(
                         Text(
                             text = "Escanear QR",
                             color = Color.Black,
-                            fontSize = 18.sp,
+                            fontSize = maxOf(minOf((screenWidth * 0.045f).value, 20f), 16f).sp,
                             fontWeight = FontWeight.Medium
                         )
                     }

@@ -22,6 +22,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.compose.ui.platform.LocalConfiguration
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -59,6 +60,23 @@ fun ReubicacionScreen(
     ubicacionDestino: String? = null
 ) {
     val context = LocalContext.current
+    val configuration = LocalConfiguration.current
+    val screenHeight = configuration.screenHeightDp.dp
+    val screenWidth = configuration.screenWidthDp.dp
+    
+    // Responsive values based on screen size
+    val horizontalPadding = maxOf(minOf(screenWidth * 0.08f, 32.dp), 16.dp)
+    val logoSize = maxOf(minOf(screenWidth * 0.6f, 350.dp), 200.dp)
+    val formWidth = 0.85f
+    val topOffset = -maxOf(minOf(screenHeight * 0.05f, 40.dp), 20.dp)
+    val buttonHeight = maxOf(minOf(screenHeight * 0.07f, 64.dp), 48.dp)
+    val verticalSpacing = maxOf(minOf(screenHeight * 0.015f, 16.dp), 8.dp)
+    val errorBottomPadding = maxOf(minOf(screenHeight * 0.12f, 100.dp), 60.dp)
+    
+    // Font sizes - usando maxOf/minOf para TextUnit
+    val titleFontSize = maxOf(minOf((screenWidth * 0.06f).value, 28f), 20f).sp
+    val bodyFontSize = maxOf(minOf((screenWidth * 0.04f).value, 18f), 14f).sp
+    
     var hasCameraPermission by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(
@@ -137,7 +155,7 @@ fun ReubicacionScreen(
         Box(
             modifier = Modifier
                 .align(Alignment.TopStart)
-                .padding(16.dp)
+                .padding(horizontalPadding / 2)
         ) {
             IconButton(onClick = onBack) {
                 Icon(Icons.Filled.ArrowBack, contentDescription = "Volver", tint = Color.White)
@@ -148,11 +166,11 @@ fun ReubicacionScreen(
         Box(
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .padding(top = 16.dp)
+                .padding(top = horizontalPadding / 2)
         ) {
             Text(
                 text = "Reubicar",
-                fontSize = 24.sp,
+                fontSize = titleFontSize,
                 color = Color.White,
                 modifier = Modifier.padding(vertical = 8.dp)
             )
@@ -160,11 +178,11 @@ fun ReubicacionScreen(
         
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(verticalSpacing),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 32.dp)
-                .offset(y = (-40).dp)
+                .padding(horizontal = horizontalPadding)
+                .offset(y = topOffset)
                 .align(Alignment.Center)
         ) {
             // Logo centrado
@@ -172,25 +190,25 @@ fun ReubicacionScreen(
                 painter = painterResource(id = com.thinkthat.mamusckascaner.R.drawable.logos_y__1__05__1_),
                 contentDescription = "Logo",
                 tint = Color.White,
-                modifier = Modifier.size(400.dp)
+                modifier = Modifier.size(logoSize)
             )
             // Campo depósito con ícono de edición o guardado
             if (!depositoEditable) {
                 // Modo solo lectura - sin bordes, texto gris
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth(0.8f)
+                    modifier = Modifier.fillMaxWidth(formWidth)
                 ) {
                     Box(
                         modifier = Modifier
                             .weight(1f)
                             .background(Color.Transparent)
-                            .padding(16.dp)
+                            .padding(horizontalPadding / 2)
                     ) {
                         Text(
                             text = if (deposito.isBlank()) "Depósito:" else "Depósito: $deposito",
                             color = Color.White,
-                            fontSize = 16.sp
+                            fontSize = bodyFontSize
                         )
                     }
                     IconButton(
@@ -213,7 +231,7 @@ fun ReubicacionScreen(
                 // Modo edición - campo normal con ícono de guardar
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth(0.8f)
+                    modifier = Modifier.fillMaxWidth(formWidth)
                 ) {
                     OutlinedTextField(
                         value = depositoFieldValue,
@@ -261,18 +279,18 @@ fun ReubicacionScreen(
                 if (!productoEditable) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth(0.8f)
+                        modifier = Modifier.fillMaxWidth(formWidth)
                     ) {
                         Box(
                             modifier = Modifier
                                 .weight(1f)
                                 .background(Color.Transparent)
-                                .padding(16.dp)
+                                .padding(horizontalPadding / 2)
                         ) {
                             Text(
                                 text = "Partida:",
                                 color = Color.White,
-                                fontSize = 16.sp
+                                fontSize = bodyFontSize
                             )
                         }
                         // No mostrar ícono de cámara cuando el campo está vacío
@@ -295,7 +313,7 @@ fun ReubicacionScreen(
                 } else {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth(0.8f)
+                        modifier = Modifier.fillMaxWidth(formWidth)
                     ) {
                         OutlinedTextField(
                             value = productoFieldValue,
@@ -342,18 +360,18 @@ fun ReubicacionScreen(
                 if (!productoEditable) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth(0.8f)
+                        modifier = Modifier.fillMaxWidth(formWidth)
                     ) {
                         Box(
                             modifier = Modifier
                                 .weight(1f)
                                 .background(Color.Transparent)
-                                .padding(16.dp)
+                                .padding(horizontalPadding / 2)
                         ) {
                             Text(
                                 text = "Partida: $productoLocal",
                                 color = Color.White,
-                                fontSize = 16.sp
+                                fontSize = bodyFontSize
                             )
                         }
                         IconButton(
@@ -390,7 +408,7 @@ fun ReubicacionScreen(
                 } else {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth(0.8f)
+                        modifier = Modifier.fillMaxWidth(formWidth)
                     ) {
                         OutlinedTextField(
                             value = productoFieldValue,
@@ -434,18 +452,18 @@ fun ReubicacionScreen(
                 if (!ubicacionOrigenEditable) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth(0.8f)
+                        modifier = Modifier.fillMaxWidth(formWidth)
                     ) {
                         Box(
                             modifier = Modifier
                                 .weight(1f)
                                 .background(Color.Transparent)
-                                .padding(16.dp)
+                                .padding(horizontalPadding / 2)
                         ) {
                             Text(
                                 text = "Ubicación Origen:",
                                 color = Color.White,
-                                fontSize = 16.sp
+                                fontSize = bodyFontSize
                             )
                         }
                         // No mostrar ícono de cámara cuando el campo está vacío
@@ -468,7 +486,7 @@ fun ReubicacionScreen(
                 } else {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth(0.8f)
+                        modifier = Modifier.fillMaxWidth(formWidth)
                     ) {
                         OutlinedTextField(
                             value = ubicacionOrigenFieldValue,
@@ -515,18 +533,18 @@ fun ReubicacionScreen(
                 if (!productoEditable) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth(0.8f)
+                        modifier = Modifier.fillMaxWidth(formWidth)
                     ) {
                         Box(
                             modifier = Modifier
                                 .weight(1f)
                                 .background(Color.Transparent)
-                                .padding(16.dp)
+                                .padding(horizontalPadding / 2)
                         ) {
                             Text(
                                 text = "Partida: $productoLocal",
                                 color = Color.White,
-                                fontSize = 16.sp
+                                fontSize = bodyFontSize
                             )
                         }
                         IconButton(
@@ -563,7 +581,7 @@ fun ReubicacionScreen(
                 } else {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth(0.8f)
+                        modifier = Modifier.fillMaxWidth(formWidth)
                     ) {
                         OutlinedTextField(
                             value = productoFieldValue,
@@ -607,18 +625,18 @@ fun ReubicacionScreen(
                 if (!ubicacionOrigenEditable) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth(0.8f)
+                        modifier = Modifier.fillMaxWidth(formWidth)
                     ) {
                         Box(
                             modifier = Modifier
                                 .weight(1f)
                                 .background(Color.Transparent)
-                                .padding(16.dp)
+                                .padding(horizontalPadding / 2)
                         ) {
                             Text(
                                 text = "Ubicación Origen: $ubicacionOrigenLocal",
                                 color = Color.White,
-                                fontSize = 16.sp
+                                fontSize = bodyFontSize
                             )
                         }
                         IconButton(
@@ -655,7 +673,7 @@ fun ReubicacionScreen(
                 } else {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth(0.8f)
+                        modifier = Modifier.fillMaxWidth(formWidth)
                     ) {
                         OutlinedTextField(
                             value = ubicacionOrigenFieldValue,
@@ -699,18 +717,18 @@ fun ReubicacionScreen(
                 if (!ubicacionDestinoEditable) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth(0.8f)
+                        modifier = Modifier.fillMaxWidth(formWidth)
                     ) {
                         Box(
                             modifier = Modifier
                                 .weight(1f)
                                 .background(Color.Transparent)
-                                .padding(16.dp)
+                                .padding(horizontalPadding / 2)
                         ) {
                             Text(
                                 text = "Ubicación Destino:",
                                 color = Color.White,
-                                fontSize = 16.sp
+                                fontSize = bodyFontSize
                             )
                         }
                         // No mostrar ícono de cámara cuando el campo está vacío
@@ -733,7 +751,7 @@ fun ReubicacionScreen(
                 } else {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth(0.8f)
+                        modifier = Modifier.fillMaxWidth(formWidth)
                     ) {
                         OutlinedTextField(
                             value = ubicacionDestinoFieldValue,
@@ -780,18 +798,18 @@ fun ReubicacionScreen(
                 if (!productoEditable) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth(0.8f)
+                        modifier = Modifier.fillMaxWidth(formWidth)
                     ) {
                         Box(
                             modifier = Modifier
                                 .weight(1f)
                                 .background(Color.Transparent)
-                                .padding(16.dp)
+                                .padding(horizontalPadding / 2)
                         ) {
                             Text(
                                 text = "Partida: $productoLocal",
                                 color = Color.White,
-                                fontSize = 16.sp
+                                fontSize = bodyFontSize
                             )
                         }
                         IconButton(
@@ -828,7 +846,7 @@ fun ReubicacionScreen(
                 } else {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth(0.8f)
+                        modifier = Modifier.fillMaxWidth(formWidth)
                     ) {
                         OutlinedTextField(
                             value = productoFieldValue,
@@ -872,18 +890,18 @@ fun ReubicacionScreen(
                 if (!ubicacionOrigenEditable) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth(0.8f)
+                        modifier = Modifier.fillMaxWidth(formWidth)
                     ) {
                         Box(
                             modifier = Modifier
                                 .weight(1f)
                                 .background(Color.Transparent)
-                                .padding(16.dp)
+                                .padding(horizontalPadding / 2)
                         ) {
                             Text(
                                 text = "Ubicación Origen: $ubicacionOrigenLocal",
                                 color = Color.White,
-                                fontSize = 16.sp
+                                fontSize = bodyFontSize
                             )
                         }
                         IconButton(
@@ -920,7 +938,7 @@ fun ReubicacionScreen(
                 } else {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth(0.8f)
+                        modifier = Modifier.fillMaxWidth(formWidth)
                     ) {
                         OutlinedTextField(
                             value = ubicacionOrigenFieldValue,
@@ -964,18 +982,18 @@ fun ReubicacionScreen(
                 if (!ubicacionDestinoEditable) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth(0.8f)
+                        modifier = Modifier.fillMaxWidth(formWidth)
                     ) {
                         Box(
                             modifier = Modifier
                                 .weight(1f)
                                 .background(Color.Transparent)
-                                .padding(16.dp)
+                                .padding(horizontalPadding / 2)
                         ) {
                             Text(
                                 text = "Ubicación Destino: $ubicacionDestinoLocal",
                                 color = Color.White,
-                                fontSize = 16.sp
+                                fontSize = bodyFontSize
                             )
                         }
                         IconButton(
@@ -1012,7 +1030,7 @@ fun ReubicacionScreen(
                 } else {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth(0.8f)
+                        modifier = Modifier.fillMaxWidth(formWidth)
                     ) {
                         OutlinedTextField(
                             value = ubicacionDestinoFieldValue,
@@ -1062,11 +1080,11 @@ fun ReubicacionScreen(
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = 80.dp) // Arriba del botón (56dp altura + 16dp padding + 8dp espacio)
+                    .padding(bottom = errorBottomPadding) // Arriba del botón (56dp altura + 16dp padding + 8dp espacio)
             ) {
                 ErrorMessage(
                     message = errorEnvio!!,
-                    modifier = Modifier.fillMaxWidth(0.8f)
+                    modifier = Modifier.fillMaxWidth(formWidth)
                 )
             }
         }
@@ -1077,7 +1095,7 @@ fun ReubicacionScreen(
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = 16.dp)
+                    .padding(bottom = horizontalPadding / 2)
             ) {
                 Button(
                     onClick = {
@@ -1090,8 +1108,8 @@ fun ReubicacionScreen(
                     shape = RoundedCornerShape(24.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color.White),
                     modifier = Modifier
-                        .fillMaxWidth(0.8f)
-                        .height(56.dp)
+                        .fillMaxWidth(formWidth)
+                        .height(buttonHeight)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -1108,7 +1126,7 @@ fun ReubicacionScreen(
                         Text(
                             text = "Escanear Producto",
                             color = Color.Black,
-                            fontSize = 16.sp
+                            fontSize = bodyFontSize
                         )
                     }
                 }
@@ -1118,7 +1136,7 @@ fun ReubicacionScreen(
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = 16.dp)
+                    .padding(bottom = horizontalPadding / 2)
             ) {
                 Button(
                     onClick = {
@@ -1131,8 +1149,8 @@ fun ReubicacionScreen(
                     shape = RoundedCornerShape(24.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color.White),
                     modifier = Modifier
-                        .fillMaxWidth(0.8f)
-                        .height(56.dp)
+                        .fillMaxWidth(formWidth)
+                        .height(buttonHeight)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -1149,7 +1167,7 @@ fun ReubicacionScreen(
                         Text(
                             text = "Escanear Ubicación Origen",
                             color = Color.Black,
-                            fontSize = 16.sp
+                            fontSize = bodyFontSize
                         )
                     }
                 }
@@ -1159,7 +1177,7 @@ fun ReubicacionScreen(
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = 16.dp)
+                    .padding(bottom = horizontalPadding / 2)
             ) {
                 Button(
                     onClick = {
@@ -1172,8 +1190,8 @@ fun ReubicacionScreen(
                     shape = RoundedCornerShape(24.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color.White),
                     modifier = Modifier
-                        .fillMaxWidth(0.8f)
-                        .height(56.dp)
+                        .fillMaxWidth(formWidth)
+                        .height(buttonHeight)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -1190,7 +1208,7 @@ fun ReubicacionScreen(
                         Text(
                             text = "Escanear Ubicación Destino",
                             color = Color.Black,
-                            fontSize = 16.sp
+                            fontSize = bodyFontSize
                         )
                     }
                 }
@@ -1202,7 +1220,7 @@ fun ReubicacionScreen(
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = 16.dp)
+                    .padding(bottom = horizontalPadding / 2)
             ) {
                 Button(
                     onClick = {
@@ -1283,8 +1301,8 @@ fun ReubicacionScreen(
                         disabledContainerColor = Color(0xFFE0E0E0)
                     ),
                     modifier = Modifier
-                        .fillMaxWidth(0.8f)
-                        .height(56.dp)
+                        .fillMaxWidth(formWidth)
+                        .height(buttonHeight)
                 ) {
                     if (isLoading) {
                         CircularProgressIndicator(
@@ -1293,7 +1311,7 @@ fun ReubicacionScreen(
                             strokeWidth = 2.dp
                         )
                     } else {
-                        Text("Enviar", color = Color.Black, fontSize = 16.sp)
+                        Text("Enviar", color = Color.Black, fontSize = bodyFontSize)
                     }
                 }
             }

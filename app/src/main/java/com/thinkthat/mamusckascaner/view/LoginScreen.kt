@@ -15,6 +15,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.platform.LocalConfiguration
 import com.thinkthat.mamusckascaner.view.components.ErrorMessage
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -35,6 +36,20 @@ fun LoginScreen(
     savedEmpresa: String = "31",
     prefs: SharedPreferences?
 ) {
+    val configuration = LocalConfiguration.current
+    val screenHeight = configuration.screenHeightDp.dp
+    val screenWidth = configuration.screenWidthDp.dp
+    
+    // Responsive values
+    val horizontalPadding = maxOf(minOf(screenWidth * 0.08f, 32.dp), 16.dp)
+    val logoSize = maxOf(minOf(screenWidth * 0.8f, 450.dp), 300.dp)
+    val formWidth = 0.8f
+    val titleFontSize = maxOf(minOf((screenWidth * 0.06f).value, 28f), 20f).sp
+    val bodyFontSize = maxOf(minOf((screenWidth * 0.04f).value, 18f), 14f).sp
+    val buttonHeight = maxOf(minOf(screenHeight * 0.07f, 64.dp), 48.dp)
+    val topOffset = -maxOf(minOf(screenHeight * 0.05f, 50.dp), 30.dp)
+    val buttonWidth = maxOf(minOf(screenWidth * 0.6f, 250.dp), 150.dp)
+    
     android.util.Log.d("LoginScreen", "LoginScreen composable is being rendered")
     var usuario by remember { mutableStateOf(savedUser) }
     var contrasena by remember { mutableStateOf(savedPass) }
@@ -52,11 +67,11 @@ fun LoginScreen(
         Box(
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .padding(top = 16.dp)
+                .padding(top = horizontalPadding / 2)
         ) {
             Text(
                 text = "Login",
-                fontSize = 24.sp,
+                fontSize = titleFontSize,
                 color = Color.White,
                 modifier = Modifier.padding(vertical = 8.dp)
             )
@@ -64,11 +79,11 @@ fun LoginScreen(
         
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy((screenHeight * 0.02f).coerceAtLeast(12.dp).coerceAtMost(20.dp)),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 32.dp)
-                .offset(y = (-40).dp)
+                .padding(horizontal = horizontalPadding)
+                .offset(y = topOffset)
                 .align(Alignment.Center)
         ) {
             android.util.Log.d("LoginScreen", "Rendering login form")
@@ -78,7 +93,7 @@ fun LoginScreen(
                 painter = painterResource(id = com.thinkthat.mamusckascaner.R.drawable.logos_y__1__05__1_),
                 contentDescription = "Logo",
                 tint = Color.White,
-                modifier = Modifier.size(400.dp)
+                modifier = Modifier.size(logoSize)
             )
             
             // Si ya se identificó (hay empresas), mostrar solo labels
@@ -86,7 +101,7 @@ fun LoginScreen(
                 // Usuario como label (no editable)
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth(0.8f)
+                    modifier = Modifier.fillMaxWidth(formWidth)
                 ) {
                     Box(
                         modifier = Modifier
@@ -97,7 +112,7 @@ fun LoginScreen(
                         Text(
                             text = "Usuario: $usuario",
                             color = Color.White,
-                            fontSize = 16.sp
+                            fontSize = bodyFontSize
                         )
                     }
                 }
@@ -112,7 +127,7 @@ fun LoginScreen(
                     label = { Text("Usuario", color = Color.White) },
                     placeholder = { Text("Ingrese su usuario", color = Color.White) },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth(0.8f),
+                    modifier = Modifier.fillMaxWidth(formWidth),
                     textStyle = LocalTextStyle.current.copy(
                         color = Color.White
                     ),
@@ -138,7 +153,7 @@ fun LoginScreen(
                     placeholder = { Text("Ingrese su contraseña", color = Color.White) },
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
-                    modifier = Modifier.fillMaxWidth(0.8f),
+                    modifier = Modifier.fillMaxWidth(formWidth),
                     textStyle = LocalTextStyle.current.copy(
                         color = Color.White
                     ),
@@ -156,7 +171,7 @@ fun LoginScreen(
             if (errorMessage != null) {
                 ErrorMessage(
                     message = errorMessage,
-                    modifier = Modifier.fillMaxWidth(0.8f)
+                    modifier = Modifier.fillMaxWidth(formWidth)
                 )
             }
             
@@ -166,7 +181,7 @@ fun LoginScreen(
                 ExposedDropdownMenuBox(
                     expanded = expanded,
                     onExpandedChange = { expanded = !expanded },
-                    modifier = Modifier.fillMaxWidth(0.8f)
+                    modifier = Modifier.fillMaxWidth(formWidth)
                 ) {
                     val empresaTexto = empresas.find { it.first == empresa }?.second ?: "Selecciona empresa"
                     
@@ -212,7 +227,7 @@ fun LoginScreen(
                     label = { Text("Depósito", color = Color.White) },
                     placeholder = { Text("Ingrese el código de depósito", color = Color.White) },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth(0.8f),
+                    modifier = Modifier.fillMaxWidth(formWidth),
                     textStyle = LocalTextStyle.current.copy(
                         color = Color.White
                     ),
@@ -228,14 +243,14 @@ fun LoginScreen(
                 // Checkbox Recordar
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth(0.8f)
+                    modifier = Modifier.fillMaxWidth(formWidth)
                 ) {
                     Checkbox(
                         checked = recordar,
                         onCheckedChange = { recordar = it }
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Recordar", fontSize = 16.sp, color = Color.White)
+                    Text("Recordar", fontSize = bodyFontSize, color = Color.White)
                 }
             }
         } // Cierre del Column
@@ -254,8 +269,8 @@ fun LoginScreen(
                     },
                     enabled = !isLoading && usuario.isNotBlank(),
                     modifier = Modifier
-                        .fillMaxWidth(0.8f)
-                        .height(56.dp),
+                        .width(buttonWidth)
+                        .height(buttonHeight),
                     shape = RoundedCornerShape(24.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color.White,
@@ -265,7 +280,7 @@ fun LoginScreen(
                     if (isLoading) {
                         CircularProgressIndicator(color = Color.Black, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
                     } else {
-                        Text("Identificar", color = Color.Black, fontSize = 16.sp)
+                        Text("Identificar", color = Color.Black, fontSize = bodyFontSize)
                     }
                 }
             }
@@ -284,34 +299,40 @@ fun LoginScreen(
 
                         if (prefs != null) {
                             if (recordar) {
-                                // Guardar todo si recordar está activado
+                                // Guardar TODO si recordar está activado (incluyendo credenciales)
                                 prefs.edit()
+                                    .putString("savedUser", usuario)
+                                    .putString("savedPass", contrasena)
                                     .putString("savedEmpresa", empresaSeleccionada)
                                     .putString("savedDeposito", deposito)
-                                    .putBoolean("savedRemember", recordar)
+                                    .putBoolean("savedRemember", true)
                                     .apply()
+                                android.util.Log.d("LoginScreen", "Guardadas credenciales completas para auto-login")
                             } else {
-                                // Solo guardar recordar = false, limpiar el resto
+                                // Limpiar TODAS las credenciales guardadas
                                 prefs.edit()
+                                    .remove("savedUser")
+                                    .remove("savedPass")
                                     .remove("savedEmpresa")
                                     .remove("savedDeposito")
-                                    .putBoolean("savedRemember", recordar)
+                                    .putBoolean("savedRemember", false)
                                     .apply()
+                                android.util.Log.d("LoginScreen", "Limpiadas todas las credenciales")
                             }
                         }
                         onLoginSuccess()
                     },
                     enabled = empresa.isNotBlank() && deposito.isNotBlank(),
                     modifier = Modifier
-                        .fillMaxWidth(0.8f)
-                        .height(56.dp),
+                        .width(buttonWidth)
+                        .height(buttonHeight),
                     shape = RoundedCornerShape(24.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color.White,
                         disabledContainerColor = Color(0xFFCCCCCC)
                     )
                 ) {
-                    Text("Ingresar", color = Color.Black, fontSize = 16.sp)
+                    Text("Ingresar", color = Color.Black, fontSize = bodyFontSize)
                 }
             }
         }

@@ -36,7 +36,11 @@ class LoginActivity : ComponentActivity() {
         val savedPass = prefs.getString("savedPass", "") ?: ""
         val savedRemember = prefs.getBoolean("savedRemember", false)
         val savedEmpresa = prefs.getString("savedEmpresa", "") ?: ""
-        if (savedRemember && savedUser.isNotBlank() && savedPass.isNotBlank()) {
+        val savedDeposito = prefs.getString("savedDeposito", "") ?: ""
+        
+        // Auto-login si recordar está activado, hay credenciales, empresa Y depósito
+        if (savedRemember && savedUser.isNotBlank() && savedPass.isNotBlank() && 
+            savedEmpresa.isNotBlank() && savedDeposito.isNotBlank()) {
             // Llamar automáticamente a loginPlano
             ApiClient.apiService.loginPlano(nombreUsuario = savedUser, pass = savedPass).enqueue(object : retrofit2.Callback<okhttp3.ResponseBody> {
                 override fun onResponse(
@@ -51,6 +55,7 @@ class LoginActivity : ComponentActivity() {
                             .putString("savedPass", savedPass)
                             .putBoolean("savedRemember", savedRemember)
                             .putString("savedEmpresa", savedEmpresa)
+                            .putString("savedDeposito", savedDeposito)
                             .apply()
                         // Llamar a EmpresasGet
                         ApiClient.apiService.EmpresasGet().enqueue(object : retrofit2.Callback<List<LoginEmpresaResponse>> {
@@ -60,8 +65,8 @@ class LoginActivity : ComponentActivity() {
                             ) {
                                 if (response.isSuccessful && response.body() != null) {
                                     val empresasResponse = response.body()!!
-                                    // Guardar empresas y navegar si ya hay empresa seleccionada
-                                    if (savedEmpresa.isNotBlank()) {
+                                    // Si hay empresa y depósito guardados, ir directo a MainActivity
+                                    if (savedEmpresa.isNotBlank() && savedDeposito.isNotBlank()) {
                                         val intent = Intent(this@LoginActivity, MainActivity::class.java)
                                         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                                         startActivity(intent)
@@ -176,13 +181,12 @@ class LoginActivity : ComponentActivity() {
                                             .putString("token", rawBody)
                                             
                                         if (recordar) {
-                                            // Guardar todo si recordar está activado
+                                            // Guardar credenciales si recordar está activado
                                             editor
                                                 .putString("savedUser", nombreUsuario)
                                                 .putString("savedPass", pass)
-                                                .putString("savedDeposito", deposito)
-                                                .putBoolean("savedRemember", recordar)
-                                                .putString("savedEmpresa", empresaSeleccionada)
+                                                .putBoolean("savedRemember", true)
+                                            // Nota: savedEmpresa y savedDeposito se guardarán en el botón Ingresar
                                         } else {
                                             // Solo guardar recordar = false, limpiar el resto
                                             editor
@@ -190,7 +194,7 @@ class LoginActivity : ComponentActivity() {
                                                 .remove("savedPass")
                                                 .remove("savedDeposito")
                                                 .remove("savedEmpresa")
-                                                .putBoolean("savedRemember", recordar)
+                                                .putBoolean("savedRemember", false)
                                         }
                                         editor.apply()
                                         // Llamar a EmpresasGet
