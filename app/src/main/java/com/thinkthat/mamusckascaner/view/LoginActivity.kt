@@ -16,7 +16,9 @@ import com.thinkthat.mamusckascaner.ui.theme.BarCodeScannerTheme
 import com.thinkthat.mamusckascaner.utils.AppLogger
 
 class LoginActivity : ComponentActivity() {
-    private var empresasList: List<Pair<String, String>> = emptyList() // id, nombre
+    // Valores fijos para empresa y depósito
+    private val EMPRESA_FIJA = "3"
+    private val DEPOSITO_FIJO = "2B"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -35,12 +37,15 @@ class LoginActivity : ComponentActivity() {
         val savedUser = prefs.getString("savedUser", "") ?: ""
         val savedPass = prefs.getString("savedPass", "") ?: ""
         val savedRemember = prefs.getBoolean("savedRemember", false)
-        val savedEmpresa = prefs.getString("savedEmpresa", "") ?: ""
-        val savedDeposito = prefs.getString("savedDeposito", "") ?: ""
         
-        // Auto-login si recordar está activado, hay credenciales, empresa Y depósito
-        if (savedRemember && savedUser.isNotBlank() && savedPass.isNotBlank() && 
-            savedEmpresa.isNotBlank() && savedDeposito.isNotBlank()) {
+        // Asegurar que empresa y depósito siempre estén guardados
+        prefs.edit()
+            .putString("savedEmpresa", EMPRESA_FIJA)
+            .putString("savedDeposito", DEPOSITO_FIJO)
+            .apply()
+        
+        // Auto-login si recordar está activado y hay credenciales
+        if (savedRemember && savedUser.isNotBlank() && savedPass.isNotBlank()) {
             // Llamar automáticamente a loginPlano
             ApiClient.apiService.loginPlano(nombreUsuario = savedUser, pass = savedPass).enqueue(object : retrofit2.Callback<okhttp3.ResponseBody> {
                 override fun onResponse(
@@ -51,64 +56,19 @@ class LoginActivity : ComponentActivity() {
                     if (response.isSuccessful && rawBody != null) {
                         prefs.edit()
                             .putString("token", rawBody)
-                            .putString("savedUser", savedUser)
-                            .putString("savedPass", savedPass)
-                            .putBoolean("savedRemember", savedRemember)
-                            .putString("savedEmpresa", savedEmpresa)
-                            .putString("savedDeposito", savedDeposito)
                             .apply()
-                        // Llamar a EmpresasGet
-                        ApiClient.apiService.EmpresasGet().enqueue(object : retrofit2.Callback<List<LoginEmpresaResponse>> {
-                            override fun onResponse(
-                                call: retrofit2.Call<List<LoginEmpresaResponse>>,
-                                response: retrofit2.Response<List<LoginEmpresaResponse>>
-                            ) {
-                                if (response.isSuccessful && response.body() != null) {
-                                    val empresasResponse = response.body()!!
-                                    // Si hay empresa y depósito guardados, ir directo a MainActivity
-                                    if (savedEmpresa.isNotBlank() && savedDeposito.isNotBlank()) {
-                                        val intent = Intent(this@LoginActivity, MainActivity::class.java)
-                                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                                        startActivity(intent)
-                                        finish()
-                                    } else {
-                                        mostrarPantallaLogin(savedUser, savedPass, savedRemember, savedEmpresa,prefs)
-                                    }
-                                } else {
-                                    AppLogger.logError(
-                                        tag = "LoginActivity",
-                                        message = "EmpresasGet falló en auto login: code=${response.code()} message=${response.message()}"
-                                    )
-                                    mostrarPantallaLogin(savedUser, savedPass, savedRemember, savedEmpresa,prefs)
-                                }
-                            }
-                            override fun onFailure(call: retrofit2.Call<List<LoginEmpresaResponse>>, t: Throwable) {
-                                AppLogger.logError(
-                                    tag = "LoginActivity",
-                                    message = "EmpresasGet onFailure durante auto login: ${t.message}",
-                                    throwable = t
-                                )
-                                mostrarPantallaLogin(
-                                    savedUser,
-                                    savedPass,
-                                    savedRemember,
-                                    savedEmpresa,
-                                    prefs
-                                )
-                            }
-                        })
+                        
+                        // Ir directo a MainActivity
+                        val intent = Intent(this@LoginActivity, MainActivity::class.java)
+                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                        startActivity(intent)
+                        finish()
                     } else {
                         AppLogger.logError(
                             tag = "LoginActivity",
                             message = "LoginPlano falló en auto login: code=${response.code()} message=${response.message()}"
                         )
-                        mostrarPantallaLogin(
-                            savedUser,
-                            savedPass,
-                            savedRemember,
-                            savedEmpresa,
-                            prefs
-                        )
+                        mostrarPantallaLogin(savedUser, savedPass, savedRemember, prefs)
                     }
                 }
                 override fun onFailure(call: retrofit2.Call<okhttp3.ResponseBody>, t: Throwable) {
@@ -117,11 +77,11 @@ class LoginActivity : ComponentActivity() {
                         message = "LoginPlano onFailure en auto login: ${t.message}",
                         throwable = t
                     )
-                    mostrarPantallaLogin(savedUser, savedPass, savedRemember, savedEmpresa, prefs)
+                    mostrarPantallaLogin(savedUser, savedPass, savedRemember, prefs)
                 }
             })
         } else {
-            mostrarPantallaLogin(savedUser, savedPass, savedRemember, savedEmpresa, prefs)
+            mostrarPantallaLogin(savedUser, savedPass, savedRemember, prefs)
         }
     }
 
@@ -129,24 +89,16 @@ class LoginActivity : ComponentActivity() {
         savedUser: String,
         savedPass: String,
         savedRemember: Boolean,
-        savedEmpresa: String,
         prefs: SharedPreferences
     ) {
-
-
         setContent {
             var isLoading by remember { mutableStateOf(false) }
             var errorMessage by remember { mutableStateOf<String?>(null) }
-            var empresas by remember { mutableStateOf<List<Pair<String, String>>>(emptyList()) }
-            var empresaSeleccionada by remember { mutableStateOf(savedEmpresa) }
-            var recordar by remember { mutableStateOf(savedRemember) }
-            var deposito by remember { mutableStateOf(prefs.getString("savedDeposito", "") ?: "") }
-            var prefs by remember { mutableStateOf(prefs) }
+            
             BarCodeScannerTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     LoginScreen(
                         onLoginSuccess = {
-
                             android.util.Log.d("LoginActivity", "Login successful, navigating to MainActivity")
                             val intent = Intent(this, MainActivity::class.java)
                             intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
@@ -156,20 +108,16 @@ class LoginActivity : ComponentActivity() {
                         prefs = prefs,
                         isLoading = isLoading,
                         errorMessage = errorMessage,
-                        empresas = empresas,
-                        empresaSeleccionada = empresaSeleccionada,
-                        onEmpresaSeleccionada = { empresaSeleccionada = it },
-                        deposito = deposito,
-                        onDepositoChange = { deposito = it },
-                        onLogin = { nombreUsuario, pass, recordar, _ ->
+                        onLogin = { nombreUsuario, pass, recordar ->
                             isLoading = true
                             errorMessage = null
+                            
                             if (nombreUsuario.isBlank()) {
                                 errorMessage = "El usuario no puede estar vacío."
                                 isLoading = false
                                 return@LoginScreen
                             }
-                            val prefs = this@LoginActivity.getSharedPreferences("QRCodeScannerPrefs", MODE_PRIVATE)
+                            
                             ApiClient.apiService.loginPlano(nombreUsuario = nombreUsuario, pass = pass).enqueue(object : retrofit2.Callback<okhttp3.ResponseBody> {
                                 override fun onResponse(
                                     call: retrofit2.Call<okhttp3.ResponseBody>,
@@ -179,6 +127,8 @@ class LoginActivity : ComponentActivity() {
                                     if (response.isSuccessful && rawBody != null) {
                                         val editor = prefs.edit()
                                             .putString("token", rawBody)
+                                            .putString("savedEmpresa", EMPRESA_FIJA)
+                                            .putString("savedDeposito", DEPOSITO_FIJO)
                                             
                                         if (recordar) {
                                             // Guardar credenciales si recordar está activado
@@ -186,71 +136,44 @@ class LoginActivity : ComponentActivity() {
                                                 .putString("savedUser", nombreUsuario)
                                                 .putString("savedPass", pass)
                                                 .putBoolean("savedRemember", true)
-                                            // Nota: savedEmpresa y savedDeposito se guardarán en el botón Ingresar
                                         } else {
-                                            // Solo guardar recordar = false, limpiar el resto
+                                            // Solo limpiar usuario, contraseña y recordar
                                             editor
                                                 .remove("savedUser")
                                                 .remove("savedPass")
-                                                .remove("savedDeposito")
-                                                .remove("savedEmpresa")
                                                 .putBoolean("savedRemember", false)
                                         }
                                         editor.apply()
-                                        // Llamar a EmpresasGet
-                                        ApiClient.apiService.EmpresasGet().enqueue(object : retrofit2.Callback<List<LoginEmpresaResponse>> {
-                                            override fun onResponse(
-                                                call: retrofit2.Call<List<LoginEmpresaResponse>>,
-                                                response: retrofit2.Response<List<LoginEmpresaResponse>>
-                                            ) {
-                                                isLoading = false
-                                                if (response.isSuccessful && response.body() != null) {
-                                                    val empresasResponse = response.body()!!
-                                                    empresas = empresasResponse.map { Pair(it.id.toString(), it.nombre) }
-                                                    errorMessage = null
-                                                } else {
-                                                        val errorBody = response.errorBody()?.string()
-                                                        AppLogger.logError(
-                                                            tag = "LoginActivity",
-                                                            message = "EmpresasGet falló: code=${response.code()} message=${response.message()} body=${errorBody ?: "sin cuerpo"}"
-                                                        )
-                                                        errorMessage = "No se pudieron obtener las empresas. Intenta nuevamente."
-                                                }
-                                            }
-                                            override fun onFailure(call: retrofit2.Call<List<LoginEmpresaResponse>>, t: Throwable) {
-                                                isLoading = false
-                                                    AppLogger.logError(
-                                                        tag = "LoginActivity",
-                                                        message = "EmpresasGet onFailure: ${t.message}",
-                                                        throwable = t
-                                                    )
-                                                    errorMessage = "No se pudieron obtener las empresas. Verifica tu conexión."
-                                            }
-                                        })
+                                        
+                                        isLoading = false
+                                        // Ir directo a MainActivity
+                                        val intent = Intent(this@LoginActivity, MainActivity::class.java)
+                                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                                        startActivity(intent)
+                                        finish()
                                     } else {
                                         isLoading = false
-                                            AppLogger.logError(
-                                                tag = "LoginActivity",
-                                                message = "LoginPlano falló: code=${response.code()} message=${response.message()} body=${rawBody ?: "sin cuerpo"}"
-                                            )
-                                            errorMessage = "No se pudo iniciar sesión. Revisa tus credenciales."
-                                    }
-                                }
-                                    override fun onFailure(call: retrofit2.Call<okhttp3.ResponseBody>, t: Throwable) {
-                                    isLoading = false
                                         AppLogger.logError(
                                             tag = "LoginActivity",
-                                            message = "LoginPlano onFailure: ${t.message}",
-                                            throwable = t
+                                            message = "LoginPlano falló: code=${response.code()} message=${response.message()}"
                                         )
-                                        errorMessage = "No se pudo iniciar sesión por un problema de conexión."
+                                        errorMessage = "No se pudo iniciar sesión. Revisa tus credenciales."
+                                    }
+                                }
+                                override fun onFailure(call: retrofit2.Call<okhttp3.ResponseBody>, t: Throwable) {
+                                    isLoading = false
+                                    AppLogger.logError(
+                                        tag = "LoginActivity",
+                                        message = "LoginPlano onFailure: ${t.message}",
+                                        throwable = t
+                                    )
+                                    errorMessage = "No se pudo iniciar sesión por un problema de conexión."
                                 }
                             })
                         },
                         savedUser = savedUser,
                         savedPass = savedPass,
-                        savedRemember = savedRemember,
-                        savedEmpresa = empresaSeleccionada
+                        savedRemember = savedRemember
                     )
                 }
             }

@@ -55,7 +55,7 @@ fun RecolectarScreen(
     onBack: () -> Unit = {},
     onClose: () -> Unit = {},
     onStockearClick: (boton: String) -> Unit = {},
-    producto: String? = null,
+    partida: String? = null,
     ubicacion: String? = null,
     ordenCompleta: com.thinkthat.mamusckascaner.service.Services.OrdenTrabajoCompleta? = null,
     isLoadingOrden: Boolean = false,
@@ -71,11 +71,9 @@ fun RecolectarScreen(
     onClearScanValues: () -> Unit = {}
 ) {
     val context = LocalContext.current
-    var recolectarItems by remember { mutableStateOf(listOf<RecolectarItem>()) }
-    var scanStep by remember { mutableStateOf("producto") }
-    var productoActual by remember { mutableStateOf<String?>(null) }
+    var scanStep by remember { mutableStateOf("partida") }
+    var partidaActual by remember { mutableStateOf<String?>(null) }
     var ubicacionActual by remember { mutableStateOf<String?>(null) }
-    var cantidadActual by remember { mutableStateOf("") }
 
     var deposito by remember { 
         mutableStateOf(if (fromQR && qrData != null) qrData.deposito else "") 
@@ -106,33 +104,33 @@ fun RecolectarScreen(
     // Manejo de escaneo (individual por ítem). Cada botón establece articuloActualEscaneando y tipoEscaneoActual
     // El valor escaneado SIEMPRE debe sobrescribir (override) el existente del mismo ítem y solo de ese ítem.
     // Incluimos las banderas en la key para permitir re-escaneo con el mismo valor (p.ej. escanear de nuevo tras editar manualmente)
-    LaunchedEffect(producto, articuloActualEscaneando, tipoEscaneoActual) {
-        if (producto.isNullOrBlank()) return@LaunchedEffect
+    LaunchedEffect(partida, articuloActualEscaneando, tipoEscaneoActual) {
+        if (partida.isNullOrBlank()) return@LaunchedEffect
 
         // Flujo legacy secuencial (solo si se usa aún scanStep global). No afecta la lógica individual.
-        if (scanStep == "producto" && articuloActualEscaneando == null && tipoEscaneoActual == null) {
-            productoActual = producto
+        if (scanStep == "partida" && articuloActualEscaneando == null && tipoEscaneoActual == null) {
+            partidaActual = partida
             scanStep = "ubicacion"
         }
 
-        if (articuloActualEscaneando != null && tipoEscaneoActual == "producto") {
+        if (articuloActualEscaneando != null && tipoEscaneoActual == "partida") {
             val articuloId = articuloActualEscaneando!!
             val datosPrevios = scaneoIndividual[articuloId] ?: emptyMap()
-            val nuevoMapa = datosPrevios + ("producto" to producto)
+            val nuevoMapa = datosPrevios + ("partida" to partida)
             scaneoIndividual = scaneoIndividual + (articuloId to nuevoMapa)
 
             // Forzamos el campo a editable para visualizar inmediato el valor escaneado
-            val camposPrevios = camposEditables[articuloId] ?: mapOf("producto" to false, "ubicacion" to false)
-            camposEditables = camposEditables + (articuloId to (camposPrevios + ("producto" to true)))
+            val camposPrevios = camposEditables[articuloId] ?: mapOf("partida" to false, "ubicacion" to false)
+            camposEditables = camposEditables + (articuloId to (camposPrevios + ("partida" to true)))
 
-            Log.d("RecolectarScreen", "[SCAN] Producto asignado -> articulo=$articuloId valor=$producto")
+
             // Limpiar banderas de escaneo para permitir próximos escaneos
             tipoEscaneoActual = null
             articuloActualEscaneando = null
             // Limpiar valor escaneado de la memoria
             onClearScanValues()
         } else {
-            Log.d("RecolectarScreen", "[SCAN-IGNORED] Producto recibido pero sin target válido (articuloActualEscaneando=$articuloActualEscaneando tipoEscaneoActual=$tipoEscaneoActual)")
+            Log.d("RecolectarScreen", "[SCAN-IGNORED] Partida recibido pero sin target válido (articuloActualEscaneando=$articuloActualEscaneando tipoEscaneoActual=$tipoEscaneoActual)")
         }
     }
 
@@ -151,7 +149,7 @@ fun RecolectarScreen(
             val nuevoMapa = datosPrevios + ("ubicacion" to ubicacion)
             scaneoIndividual = scaneoIndividual + (articuloId to nuevoMapa)
 
-            val camposPrevios = camposEditables[articuloId] ?: mapOf("producto" to false, "ubicacion" to false)
+            val camposPrevios = camposEditables[articuloId] ?: mapOf("partida" to false, "ubicacion" to false)
             camposEditables = camposEditables + (articuloId to (camposPrevios + ("ubicacion" to true)))
 
             Log.d("RecolectarScreen", "[SCAN] Ubicacion asignada -> articulo=$articuloId valor=$ubicacion")
@@ -369,7 +367,7 @@ fun RecolectarScreen(
                                     ubicaciones.add(mapOf(
                                         "numeroUbicacion" to numeroUbicacion,
                                         "nombreUbicacion" to nombreUbicacion,
-                                        "descripcionProducto" to articulo.optString("descripcion", "N/A"),
+                                        "descripcionPartida" to articulo.optString("descripcion", "N/A"),
                                         "codArticulo" to articulo.optString("codigo", "N/A"),
                                         "requerido" to articulo.optInt("requerido", 0)
                                     ))
@@ -425,7 +423,7 @@ fun RecolectarScreen(
                                         modifier = Modifier.padding(12.dp)
                                     ) {
                                         // Título del artículo - obtener descripción del primer elemento del grupo
-                                        val descripcionArticulo = ubicacionesDelArticulo.firstOrNull()?.get("descripcionProducto") as? String ?: "N/A"
+                                        val descripcionArticulo = ubicacionesDelArticulo.firstOrNull()?.get("descripcionPartida") as? String ?: "N/A"
                                         Text(
                                             text = descripcionArticulo,
                                             color = Color.Black,
@@ -454,21 +452,21 @@ fun RecolectarScreen(
                                         
                                         // Estado del escaneo para este artículo
                                         val datosEscaneo = scaneoIndividual[codArticulo] ?: mapOf()
-                                        val productoEscaneado = datosEscaneo["producto"]
+                                        val partidaEscaneado = datosEscaneo["partida"]
                                         val ubicacionEscaneada = datosEscaneo["ubicacion"]
                                         val cantidadArticulo = cantidadesPorArticulo[codArticulo] ?: ""
                                         
                                         // Estado de campos editables para este artículo
-                                        val camposArticulo = camposEditables[codArticulo] ?: mapOf("producto" to false, "ubicacion" to false)
-                                        val productoEditable = camposArticulo["producto"] ?: false
+                                        val camposArticulo = camposEditables[codArticulo] ?: mapOf("partida" to false, "ubicacion" to false)
+                                        val partidaEditable = camposArticulo["partida"] ?: false
                                         val ubicacionEditable = camposArticulo["ubicacion"] ?: false
                                         
                                         // Estado de cantidad guardada para este artículo
                                         val cantidadGuardada = cantidadesGuardadas[codArticulo] ?: false
                                         
-                                        // Auto-llenar cantidad con requerido cuando producto y ubicación estén completos
-                                        LaunchedEffect(productoEscaneado, ubicacionEscaneada, cantidadSolicitada) {
-                                            if (productoEscaneado?.isNotEmpty() == true && 
+                                        // Auto-llenar cantidad con requerido cuando partida y ubicación estén completos
+                                        LaunchedEffect(partidaEscaneado, ubicacionEscaneada, cantidadSolicitada) {
+                                            if (partidaEscaneado?.isNotEmpty() == true && 
                                                 ubicacionEscaneada?.isNotEmpty() == true &&
                                                 cantidadArticulo.isEmpty() &&
                                                 cantidadSolicitada > 0) {
@@ -478,9 +476,9 @@ fun RecolectarScreen(
                                         
                                         // Campos y botones secuenciales
                                         // Lógica secuencial: mostrar campos y botones según el estado
-                                        if (productoEscaneado?.isEmpty() != false) {
-                                            // 1. Mostrar campo producto + botón escanear producto
-                                            if (!productoEditable) {
+                                        if (partidaEscaneado?.isEmpty() != false) {
+                                            // 1. Mostrar campo partida + botón escanear partida
+                                            if (!partidaEditable) {
                                                 // Modo solo lectura - sin bordes, texto negro
                                                 Row(
                                                     verticalAlignment = Alignment.CenterVertically,
@@ -493,7 +491,7 @@ fun RecolectarScreen(
                                                             .padding(16.dp)
                                                     ) {
                                                         Text(
-                                                            text = "Producto:",
+                                                            text = "Partida: \n ",
                                                             color = Color.Black,
                                                             fontSize = 16.sp
                                                         )
@@ -501,13 +499,13 @@ fun RecolectarScreen(
                                                     IconButton(
                                                         onClick = {
                                                             val articuloId = codArticulo
-                                                            val camposActuales = camposEditables[articuloId] ?: mapOf("producto" to false, "ubicacion" to false)
-                                                            camposEditables = camposEditables + (articuloId to (camposActuales + ("producto" to true)))
+                                                            val camposActuales = camposEditables[articuloId] ?: mapOf("partida" to false, "ubicacion" to false)
+                                                            camposEditables = camposEditables + (articuloId to (camposActuales + ("partida" to true)))
                                                         }
                                                     ) {
                                                         Icon(
                                                             Icons.Filled.Edit,
-                                                            contentDescription = "Editar producto",
+                                                            contentDescription = "Editar partida",
                                                             tint = Color.Black,
                                                             modifier = Modifier.size(20.dp)
                                                         )
@@ -520,13 +518,13 @@ fun RecolectarScreen(
                                                     modifier = Modifier.fillMaxWidth()
                                                 ) {
                                                     OutlinedTextField(
-                                                        value = productoEscaneado ?: "",
+                                                        value = partidaEscaneado ?: "",
                                                         onValueChange = { newValue ->
                                                             val articuloId = codArticulo
                                                             val datosActuales = scaneoIndividual[articuloId] ?: mapOf()
-                                                            scaneoIndividual = scaneoIndividual + (articuloId to (datosActuales + ("producto" to newValue)))
+                                                            scaneoIndividual = scaneoIndividual + (articuloId to (datosActuales + ("partida" to newValue)))
                                                         },
-                                                        label = { Text("Producto", color = Color.Black) },
+                                                        label = { Text("Partida", color = Color.Black) },
                                                         singleLine = true,
                                                         modifier = Modifier.weight(1f),
                                                         textStyle = LocalTextStyle.current.copy(color = Color.Black),
@@ -537,20 +535,20 @@ fun RecolectarScreen(
                                                             focusedLabelColor = Color.Black,
                                                             unfocusedLabelColor = Color.Black
                                                         ),
-                                                        placeholder = { Text("Código del producto", color = Color.Gray) }
+                                                        placeholder = { Text("Código del partida", color = Color.Gray) }
                                                     )
                                                     Spacer(modifier = Modifier.width(8.dp))
                                                     IconButton(
                                                         onClick = {
                                                             val articuloId = codArticulo
-                                                            val camposActuales = camposEditables[articuloId] ?: mapOf("producto" to false, "ubicacion" to false)
-                                                            camposEditables = camposEditables + (articuloId to (camposActuales + ("producto" to false)))
+                                                            val camposActuales = camposEditables[articuloId] ?: mapOf("partida" to false, "ubicacion" to false)
+                                                            camposEditables = camposEditables + (articuloId to (camposActuales + ("partida" to false)))
                                                         }
                                                     ) {
                                                         Icon(
                                                             Icons.Filled.Save,
-                                                            contentDescription = "Guardar producto",
-                                                            tint = Color.Black,
+                                                            contentDescription = "Guardar partida",
+                                                            tint = if (partidaEscaneado != "" ) Color(0xFF4CAF50) else Color.Gray,
                                                             modifier = Modifier.size(20.dp)
                                                         )
                                                     }
@@ -562,8 +560,8 @@ fun RecolectarScreen(
                                             Button(
                                                 onClick = {
                                                     articuloActualEscaneando = codArticulo
-                                                    tipoEscaneoActual = "producto"
-                                                    onStockearClick("producto")
+                                                    tipoEscaneoActual = "partida"
+                                                    onStockearClick("partida")
                                                 },
                                                 modifier = Modifier.fillMaxWidth(),
                                                 colors = ButtonDefaults.buttonColors(
@@ -577,21 +575,21 @@ fun RecolectarScreen(
                                                 ) {
                                                     Icon(
                                                         imageVector = Icons.Filled.QrCodeScanner,
-                                                        contentDescription = "Escanear producto",
+                                                        contentDescription = "Escanear partida",
                                                         tint = Color.White,
                                                         modifier = Modifier.size(24.dp)
                                                     )
                                                     Spacer(modifier = Modifier.width(4.dp))
                                                     Text(
-                                                        text = "Escanear Producto",
+                                                        text = "Escanear Partida",
                                                         color = Color.White,
                                                         fontSize = 12.sp
                                                     )
                                                 }
                                             }
                                         } else if (ubicacionEscaneada?.isEmpty() != false) {
-                                            // 2. Mostrar campo producto (ya escaneado) + campo ubicación + botón escanear ubicación
-                                            if (!productoEditable) {
+                                            // 2. Mostrar campo partida (ya escaneado) + campo ubicación + botón escanear ubicación
+                                            if (!partidaEditable) {
                                                 // Modo solo lectura - sin bordes
                                                 Row(
                                                     verticalAlignment = Alignment.CenterVertically,
@@ -604,7 +602,7 @@ fun RecolectarScreen(
                                                             .padding(16.dp)
                                                     ) {
                                                         Text(
-                                                            text = "Producto: ${productoEscaneado ?: ""}",
+                                                            text = "Partida:\n${partidaEscaneado ?: ""}",
                                                             color = Color.Black,
                                                             fontSize = 16.sp
                                                         )
@@ -612,27 +610,27 @@ fun RecolectarScreen(
                                                     IconButton(
                                                         onClick = {
                                                             articuloActualEscaneando = codArticulo
-                                                            tipoEscaneoActual = "producto"
-                                                            onStockearClick("producto")
+                                                            tipoEscaneoActual = "partida"
+                                                            onStockearClick("partida")
                                                         }
                                                     ) {
                                                         Icon(
                                                             Icons.Filled.CameraAlt,
-                                                            contentDescription = "Escanear producto",
-                                                            tint = Color.White,
+                                                            contentDescription = "Escanear partida",
+                                                            tint = Color.Black,
                                                             modifier = Modifier.size(20.dp)
                                                         )
                                                     }
                                                     IconButton(
                                                         onClick = {
                                                             val articuloId = codArticulo
-                                                            val camposActuales = camposEditables[articuloId] ?: mapOf("producto" to false, "ubicacion" to false)
-                                                            camposEditables = camposEditables + (articuloId to (camposActuales + ("producto" to true)))
+                                                            val camposActuales = camposEditables[articuloId] ?: mapOf("partida" to false, "ubicacion" to false)
+                                                            camposEditables = camposEditables + (articuloId to (camposActuales + ("partida" to true)))
                                                         }
                                                     ) {
                                                         Icon(
                                                             Icons.Filled.Edit,
-                                                            contentDescription = "Editar producto",
+                                                            contentDescription = "Editar partida",
                                                             tint = Color.Black,
                                                             modifier = Modifier.size(20.dp)
                                                         )
@@ -645,13 +643,13 @@ fun RecolectarScreen(
                                                     modifier = Modifier.fillMaxWidth()
                                                 ) {
                                                     OutlinedTextField(
-                                                        value = productoEscaneado ?: "",
+                                                        value = partidaEscaneado ?: "",
                                                         onValueChange = { newValue ->
                                                             val articuloId = codArticulo
                                                             val datosActuales = scaneoIndividual[articuloId] ?: mapOf()
-                                                            scaneoIndividual = scaneoIndividual + (articuloId to (datosActuales + ("producto" to newValue)))
+                                                            scaneoIndividual = scaneoIndividual + (articuloId to (datosActuales + ("partida" to newValue)))
                                                         },
-                                                        label = { Text("Producto", color = Color.Black) },
+                                                        label = { Text("Partida", color = Color.Black) },
                                                         singleLine = true,
                                                         modifier = Modifier.weight(1f),
                                                         textStyle = LocalTextStyle.current.copy(color = Color.Black),
@@ -662,20 +660,20 @@ fun RecolectarScreen(
                                                             focusedLabelColor = Color.Black,
                                                             unfocusedLabelColor = Color.Black
                                                         ),
-                                                        placeholder = { Text("Código del producto", color = Color.Gray) }
+                                                        placeholder = { Text("Numero del Partida", color = Color.Gray) }
                                                     )
                                                     Spacer(modifier = Modifier.width(8.dp))
                                                     IconButton(
                                                         onClick = {
                                                             val articuloId = codArticulo
-                                                            val camposActuales = camposEditables[articuloId] ?: mapOf("producto" to false, "ubicacion" to false)
-                                                            camposEditables = camposEditables + (articuloId to (camposActuales + ("producto" to false)))
+                                                            val camposActuales = camposEditables[articuloId] ?: mapOf("partida" to false, "ubicacion" to false)
+                                                            camposEditables = camposEditables + (articuloId to (camposActuales + ("partida" to false)))
                                                         }
                                                     ) {
                                                         Icon(
                                                             Icons.Filled.Save,
-                                                            contentDescription = "Guardar producto",
-                                                            tint = Color.Black,
+                                                            contentDescription = "Guardar Partida",
+                                                            tint = if (partidaEscaneado.isNotEmpty()) Color(0xFF4CAF50) else Color.Gray,
                                                             modifier = Modifier.size(20.dp)
                                                         )
                                                     }
@@ -697,7 +695,7 @@ fun RecolectarScreen(
                                                             .padding(16.dp)
                                                     ) {
                                                         Text(
-                                                            text = "Ubicación:",
+                                                            text = "Ubicación: \n",
                                                             color = Color.Black,
                                                             fontSize = 16.sp
                                                         )
@@ -705,7 +703,7 @@ fun RecolectarScreen(
                                                     IconButton(
                                                         onClick = {
                                                             val articuloId = codArticulo
-                                                            val camposActuales = camposEditables[articuloId] ?: mapOf("producto" to false, "ubicacion" to false)
+                                                            val camposActuales = camposEditables[articuloId] ?: mapOf("partida" to false, "ubicacion" to false)
                                                             camposEditables = camposEditables + (articuloId to (camposActuales + ("ubicacion" to true)))
                                                         }
                                                     ) {
@@ -747,14 +745,14 @@ fun RecolectarScreen(
                                                     IconButton(
                                                         onClick = {
                                                             val articuloId = codArticulo
-                                                            val camposActuales = camposEditables[articuloId] ?: mapOf("producto" to false, "ubicacion" to false)
+                                                            val camposActuales = camposEditables[articuloId] ?: mapOf("partida" to false, "ubicacion" to false)
                                                             camposEditables = camposEditables + (articuloId to (camposActuales + ("ubicacion" to false)))
                                                         }
                                                     ) {
                                                         Icon(
                                                             Icons.Filled.Save,
                                                             contentDescription = "Guardar ubicación",
-                                                            tint = Color.Black,
+                                                            tint = if (ubicacionEscaneada != "") Color(0xFF4CAF50) else Color.Gray,
                                                             modifier = Modifier.size(20.dp)
                                                         )
                                                     }
@@ -795,7 +793,7 @@ fun RecolectarScreen(
                                             }
                                         } else {
                                             // 3. Mostrar ambos campos (ya escaneados) + botones de reescaneo
-                                            if (!productoEditable) {
+                                            if (!partidaEditable) {
                                                 // Modo solo lectura - sin bordes
                                                 Row(
                                                     verticalAlignment = Alignment.CenterVertically,
@@ -808,7 +806,7 @@ fun RecolectarScreen(
                                                             .padding(16.dp)
                                                     ) {
                                                         Text(
-                                                            text = "Producto: ${productoEscaneado ?: ""}",
+                                                            text = "Partida:\n ${partidaEscaneado ?: ""}",
                                                             color = Color.Black,
                                                             fontSize = 16.sp
                                                         )
@@ -816,27 +814,27 @@ fun RecolectarScreen(
                                                     IconButton(
                                                         onClick = {
                                                             articuloActualEscaneando = codArticulo
-                                                            tipoEscaneoActual = "producto"
-                                                            onStockearClick("producto")
+                                                            tipoEscaneoActual = "partida"
+                                                            onStockearClick("partida")
                                                         }
                                                     ) {
                                                         Icon(
                                                             Icons.Filled.CameraAlt,
-                                                            contentDescription = "Escanear producto",
-                                                            tint = Color.White,
+                                                            contentDescription = "Escanear Partida",
+                                                            tint = Color.Black,
                                                             modifier = Modifier.size(20.dp)
                                                         )
                                                     }
                                                     IconButton(
                                                         onClick = {
                                                             val articuloId = codArticulo
-                                                            val camposActuales = camposEditables[articuloId] ?: mapOf("producto" to false, "ubicacion" to false)
-                                                            camposEditables = camposEditables + (articuloId to (camposActuales + ("producto" to true)))
+                                                            val camposActuales = camposEditables[articuloId] ?: mapOf("partida" to false, "ubicacion" to false)
+                                                            camposEditables = camposEditables + (articuloId to (camposActuales + ("partida" to true)))
                                                         }
                                                     ) {
                                                         Icon(
                                                             Icons.Filled.Edit,
-                                                            contentDescription = "Editar producto",
+                                                            contentDescription = "Editar partida",
                                                             tint = Color.Black,
                                                             modifier = Modifier.size(20.dp)
                                                         )
@@ -849,13 +847,13 @@ fun RecolectarScreen(
                                                     modifier = Modifier.fillMaxWidth()
                                                 ) {
                                                     OutlinedTextField(
-                                                        value = productoEscaneado ?: "",
+                                                        value = partidaEscaneado ?: "",
                                                         onValueChange = { newValue ->
                                                             val articuloId = codArticulo
                                                             val datosActuales = scaneoIndividual[articuloId] ?: mapOf()
-                                                            scaneoIndividual = scaneoIndividual + (articuloId to (datosActuales + ("producto" to newValue)))
+                                                            scaneoIndividual = scaneoIndividual + (articuloId to (datosActuales + ("partida" to newValue)))
                                                         },
-                                                        label = { Text("Producto", color = Color.Black) },
+                                                        label = { Text("partida", color = Color.Black) },
                                                         singleLine = true,
                                                         modifier = Modifier.weight(1f),
                                                         textStyle = LocalTextStyle.current.copy(color = Color.Black),
@@ -866,20 +864,20 @@ fun RecolectarScreen(
                                                             focusedLabelColor = Color.Black,
                                                             unfocusedLabelColor = Color.Black
                                                         ),
-                                                        placeholder = { Text("Código del producto", color = Color.Gray) }
+                                                        placeholder = { Text("Numero del partida", color = Color.Gray) }
                                                     )
                                                     Spacer(modifier = Modifier.width(8.dp))
                                                     IconButton(
                                                         onClick = {
                                                             val articuloId = codArticulo
-                                                            val camposActuales = camposEditables[articuloId] ?: mapOf("producto" to false, "ubicacion" to false)
-                                                            camposEditables = camposEditables + (articuloId to (camposActuales + ("producto" to false)))
+                                                            val camposActuales = camposEditables[articuloId] ?: mapOf("partida" to false, "ubicacion" to false)
+                                                            camposEditables = camposEditables + (articuloId to (camposActuales + ("partida" to false)))
                                                         }
                                                     ) {
                                                         Icon(
                                                             Icons.Filled.Save,
-                                                            contentDescription = "Guardar producto",
-                                                            tint = Color.Black,
+                                                            contentDescription = "Guardar partida",
+                                                            tint = if (partidaEscaneado.isNotEmpty()) Color(0xFF4CAF50) else Color.Gray,
                                                             modifier = Modifier.size(20.dp)
                                                         )
                                                     }
@@ -901,7 +899,7 @@ fun RecolectarScreen(
                                                             .padding(16.dp)
                                                     ) {
                                                         Text(
-                                                            text = "Ubicación: ${ubicacionEscaneada ?: ""}",
+                                                            text = "Ubicación:\n ${ubicacionEscaneada ?: ""}",
                                                             color = Color.Black,
                                                             fontSize = 16.sp
                                                         )
@@ -916,14 +914,14 @@ fun RecolectarScreen(
                                                         Icon(
                                                             Icons.Filled.CameraAlt,
                                                             contentDescription = "Escanear ubicación",
-                                                            tint = Color.White,
+                                                            tint = Color.Black,
                                                             modifier = Modifier.size(20.dp)
                                                         )
                                                     }
                                                     IconButton(
                                                         onClick = {
                                                             val articuloId = codArticulo
-                                                            val camposActuales = camposEditables[articuloId] ?: mapOf("producto" to false, "ubicacion" to false)
+                                                            val camposActuales = camposEditables[articuloId] ?: mapOf("partida" to false, "ubicacion" to false)
                                                             camposEditables = camposEditables + (articuloId to (camposActuales + ("ubicacion" to true)))
                                                         }
                                                     ) {
@@ -965,14 +963,14 @@ fun RecolectarScreen(
                                                     IconButton(
                                                         onClick = {
                                                             val articuloId = codArticulo
-                                                            val camposActuales = camposEditables[articuloId] ?: mapOf("producto" to false, "ubicacion" to false)
+                                                            val camposActuales = camposEditables[articuloId] ?: mapOf("partida" to false, "ubicacion" to false)
                                                             camposEditables = camposEditables + (articuloId to (camposActuales + ("ubicacion" to false)))
                                                         }
                                                     ) {
                                                         Icon(
                                                             Icons.Filled.Save,
                                                             contentDescription = "Guardar ubicación",
-                                                            tint = Color.Black,
+                                                            tint = if (ubicacionEscaneada.isNotEmpty()) Color(0xFF4CAF50) else Color.Gray,
                                                             modifier = Modifier.size(20.dp)
                                                         )
                                                     }
@@ -982,8 +980,8 @@ fun RecolectarScreen(
                                         
                                         Spacer(modifier = Modifier.height(8.dp))
                                         
-                                        // Campo cantidad (visible cuando producto y ubicación están completos)
-                                        if ((productoEscaneado?.isNotEmpty() == true) && (ubicacionEscaneada?.isNotEmpty() == true)) {
+                                        // Campo cantidad (visible cuando partida y ubicación están completos)
+                                        if ((partidaEscaneado?.isNotEmpty() == true) && (ubicacionEscaneada?.isNotEmpty() == true)) {
                                             Spacer(modifier = Modifier.height(8.dp))
                                             
                                             if (!cantidadGuardada) {
@@ -1022,7 +1020,7 @@ fun RecolectarScreen(
                                                         enabled = cantidadArticulo.isNotEmpty()
                                                     ) {
                                                         Icon(
-                                                            Icons.Filled.Check,
+                                                            Icons.Filled.Save,
                                                             contentDescription = "Guardar cantidad",
                                                             tint = if (cantidadArticulo.isNotEmpty()) Color(0xFF4CAF50) else Color.Gray,
                                                             modifier = Modifier.size(24.dp)
@@ -1038,7 +1036,7 @@ fun RecolectarScreen(
                                                     OutlinedTextField(
                                                         value = cantidadArticulo,
                                                         onValueChange = { },
-                                                        label = { Text("Cantidad", color = Color.Black) },
+                                                        label = { Text("Cantidad:", color = Color.Black) },
                                                         singleLine = true,
                                                         modifier = Modifier.weight(1f),
                                                         textStyle = LocalTextStyle.current.copy(color = Color.Black),
@@ -1069,8 +1067,9 @@ fun RecolectarScreen(
                                             }
                                         }
                                         
+                                        //if (ubicacionesDelArticulo.size == 1) {
                                         
-                                        if (ubicacionesDelArticulo.size == 1) {
+                                        if (true) {
                                             // Solo una ubicación - mostrar directamente
                                             val ubicacion = ubicacionesDelArticulo[0]
                                             Column {
@@ -1225,12 +1224,12 @@ fun RecolectarScreen(
             // Verificar si todos los items escaneados están completos y hay número de pedido
             val todasCompletas = ubicacionesParsed.all { (codArticulo, _) ->
                 val datosEscaneo = scaneoIndividual[codArticulo]
-                val producto = datosEscaneo?.get("producto")
+                val partida = datosEscaneo?.get("partida")
                 val ubicacion = datosEscaneo?.get("ubicacion")
                 val cantidad = cantidadesPorArticulo[codArticulo]
                 val cantidadGuardada = cantidadesGuardadas[codArticulo] == true
                 
-                !producto.isNullOrEmpty() && !ubicacion.isNullOrEmpty() && 
+                !partida.isNullOrEmpty() && !ubicacion.isNullOrEmpty() && 
                 !cantidad.isNullOrEmpty() && cantidadGuardada
             }
 
@@ -1277,12 +1276,12 @@ fun RecolectarScreen(
                             
                             Log.d("RecolectarScreen", "=== DATOS DE RECOLECCIONES ===")
                             scaneoIndividual.forEach { (codArticulo, datosEscaneo) ->
-                                val producto = datosEscaneo["producto"] ?: ""
+                                val partida = datosEscaneo["partida"] ?: ""
                                 val ubicacion = datosEscaneo["ubicacion"] ?: ""
                                 val cantidad = cantidadesPorArticulo[codArticulo]?.toIntOrNull() ?: 0
                                 
                                 Log.d("RecolectarScreen", "Artículo: $codArticulo")
-                                Log.d("RecolectarScreen", "  - Producto: $producto")
+                                Log.d("RecolectarScreen", "  - Partida: $partida")
                                 Log.d("RecolectarScreen", "  - Ubicación: $ubicacion")
                                 Log.d("RecolectarScreen", "  - Cantidad: $cantidad")
                                 Log.d("RecolectarScreen", "  - CodDeposito: $efectivoCodDeposito")
@@ -1293,7 +1292,7 @@ fun RecolectarScreen(
                                 recoleccionObj.put("codArticulo", codArticulo)
                                 recoleccionObj.put("codDeposito", efectivoCodDeposito)
                                 recoleccionObj.put("idEtiqueta", codArticulo)
-                                recoleccionObj.put("numPartida", producto)
+                                recoleccionObj.put("numPartida", partida)
                                 //recoleccionObj.put("numSerie", ubicacion)
                                 recoleccionObj.put("userData", usuario)
                                 
@@ -1417,13 +1416,13 @@ fun RecolectarScreen(
                 // Debug individual de cada artículo
                 ubicacionesParsed.forEach { (codArticulo, _) ->
                     val datosEscaneo = scaneoIndividual[codArticulo]
-                    val producto = datosEscaneo?.get("producto")
+                    val partida = datosEscaneo?.get("partida")
                     val ubicacion = datosEscaneo?.get("ubicacion")
                     val cantidad = cantidadesPorArticulo[codArticulo]
                     val cantidadGuardada = cantidadesGuardadas[codArticulo] == true
                     
                     Log.d("RecolectarScreen", "Debug artículo $codArticulo:")
-                    Log.d("RecolectarScreen", "  - Producto: ${producto?.isNotEmpty()}")
+                    Log.d("RecolectarScreen", "  - Partida: ${partida?.isNotEmpty()}")
                     Log.d("RecolectarScreen", "  - Ubicación: ${ubicacion?.isNotEmpty()}")
                     Log.d("RecolectarScreen", "  - Cantidad: ${cantidad?.isNotEmpty()}")
                     Log.d("RecolectarScreen", "  - Cantidad guardada: $cantidadGuardada")
@@ -1535,7 +1534,7 @@ fun RecolectarScreenPreview() {
             onBack = {},
             onClose = {},
             onStockearClick = {},
-            producto = "123456789",
+            partida = "123456789",
             ubicacion = "A-01"
         )
     }

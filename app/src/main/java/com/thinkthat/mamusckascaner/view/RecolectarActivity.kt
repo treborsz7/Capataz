@@ -49,7 +49,7 @@ class RecolectarActivity : ComponentActivity() {
                     }
                     
                     // Only track variables needed for ubicaciones
-                    var producto by rememberSaveable { mutableStateOf<String?>(null) }
+                    var partida by rememberSaveable { mutableStateOf<String?>(null) }
                     var ubicacion by rememberSaveable { mutableStateOf<String?>(null) }
                     var tipoScan by rememberSaveable { mutableStateOf<String?>(null) }
                     var isLoadingUbicaciones by remember { mutableStateOf(false) }
@@ -125,7 +125,7 @@ class RecolectarActivity : ComponentActivity() {
                         if (result.resultCode == RESULT_OK) {
                             val value = result.data?.getStringExtra("scanResult")
                             when (tipoScan) {
-                                "producto" -> producto = value
+                                "partida" -> partida = value
                                 "ubicacion" -> ubicacion = value
                             }
                         }
@@ -147,7 +147,7 @@ class RecolectarActivity : ComponentActivity() {
                             intent.putExtra("modo", tipo)
                             scannerLauncher.launch(intent)
                         },
-                        producto = producto,
+                        partida = partida,
                         ubicacion = ubicacion,
                         ordenCompleta = null, // No longer loading complete order
                         isLoadingOrden = false, // No longer loading order
@@ -167,8 +167,8 @@ class RecolectarActivity : ComponentActivity() {
                         },
                         onClearScanValues = {
                             // Limpiar valores escaneados después de ser asignados
-                            Log.d("RecolectarActivity", "Limpiando valores escaneados: producto=$producto, ubicacion=$ubicacion")
-                            producto = null
+                            Log.d("RecolectarActivity", "Limpiando valores escaneados: partida=$partida, ubicacion=$ubicacion")
+                            partida = null
                             ubicacion = null
                         }
                     )

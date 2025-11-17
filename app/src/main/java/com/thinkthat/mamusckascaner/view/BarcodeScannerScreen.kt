@@ -282,7 +282,7 @@ fun CameraPreview(
                 val raw = barScanState.rawValue ?: "Sin valor"
                 val cleaned = raw
                     .replace(Regex("\\s+"), " ")
-                    .replace(Regex("\\]?C1", RegexOption.IGNORE_CASE), "")
+                    //.replace(Regex("\\]?C1", RegexOption.IGNORE_CASE), "")
                 Column(
                     modifier = Modifier.fillMaxSize(),
                     horizontalAlignment = Alignment.CenterHorizontally,

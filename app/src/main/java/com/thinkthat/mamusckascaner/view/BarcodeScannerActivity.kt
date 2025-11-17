@@ -35,7 +35,7 @@ class BarcodeScannerActivity : ComponentActivity() {
                             // Eliminar todos los espacios y cualquier aparición de [C1 (con o sin corchetes, mayúsculas/minúsculas)
                             val cleaned = result
                                 ?.replace(Regex("\\s+"), " ")
-                                ?.replace(Regex("\\]?C1", RegexOption.IGNORE_CASE), "")
+                                //?.replace(Regex("\\]?C1", RegexOption.IGNORE_CASE), "")
 
                             // No eliminar el último dígito para ningún modo
                             val processed = cleaned

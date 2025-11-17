@@ -98,24 +98,22 @@ class MainActivity : ComponentActivity() {
                                 onLogout = {
                                     try {
                                         android.util.Log.d("MainActivity", "Logout button pressed")
-                                        // Limpiar credenciales guardadas
+                                        // Limpiar solo credenciales (usuario, contraseña, token y recordar)
+                                        // Mantener empresa y depósito ya que son fijos
                                         val prefs = getSharedPreferences("QRCodeScannerPrefs", MODE_PRIVATE)
                                         prefs.edit()
                                             .remove("savedUser")
                                             .remove("savedPass")
                                             .remove("token")
-                                            .remove("savedEmpresa")
-                                            .remove("savedDeposito")
                                             .putBoolean("savedRemember", false)
                                             .apply()
                                         
-                                        android.util.Log.d("MainActivity", "Credentials and deposito cleared, navigating to LoginActivity")
+                                        android.util.Log.d("MainActivity", "Credentials cleared (empresa y depósito se mantienen), navigating to LoginActivity")
                                         // Navegar al LoginActivity
                                         val intent = Intent(this@MainActivity,LoginActivity::class.java)
                                         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                                         startActivity(intent)
                                         android.util.Log.d("MainActivity", "LoginActivity started")
-                                        // No llamar finish() para ver si eso es el problema
                                     } catch (e: Exception) {
                                         AppLogger.logError(
                                             tag = "MainActivity",
