@@ -1078,9 +1078,6 @@ fun RecolectarScreen(
                                                     color = Color.Black,
                                                     fontSize = 14.sp
                                                 )
-                                               
-                                               
-                                               
                                             }
                                         } else {
                                             // Múltiples ubicaciones - mostrar dropdown

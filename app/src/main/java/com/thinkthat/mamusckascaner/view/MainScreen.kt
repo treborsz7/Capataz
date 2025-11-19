@@ -71,12 +71,20 @@ fun MainScreen(
     var showLogButton by remember { mutableStateOf(false) }
     var showSendLogDialog by remember { mutableStateOf(false) }
     
-    // Verificar si existen archivos de log de ERROR o EXCEPTION
-    LaunchedEffect(Unit) {
+    // Función para verificar si existen archivos de log
+    fun checkLogFiles(): Boolean {
         val errorLogFile = File(context.getExternalFilesDir(null), "logs/${AppLogger.LOG_FILE_ERROR}")
         val exceptionLogFile = File(context.getExternalFilesDir(null), "logs/${AppLogger.LOG_FILE_EXCEPTION}")
-        showLogButton = (errorLogFile.exists() && errorLogFile.length() > 0) || 
-                        (exceptionLogFile.exists() && exceptionLogFile.length() > 0)
+        return (errorLogFile.exists() && errorLogFile.length() > 0) || 
+               (exceptionLogFile.exists() && exceptionLogFile.length() > 0)
+    }
+    
+    // Verificar si existen archivos de log de ERROR o EXCEPTION periódicamente
+    LaunchedEffect(Unit) {
+        while (true) {
+            showLogButton = checkLogFiles()
+            kotlinx.coroutines.delay(60000) // Verificar cada 5 segundos
+        }
     }
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -362,9 +370,22 @@ private fun sendLogEmail(context: android.content.Context) {
             // Abrir el selector de aplicaciones de email con los archivos ya adjuntos
             context.startActivity(Intent.createChooser(emailIntent, "Enviar logs por email"))
             
-            // Nota: Los archivos NO se eliminan automáticamente para asegurar que el cliente de email
-            // pueda leer los adjuntos correctamente. El usuario puede eliminarlos manualmente si lo desea,
-            // o se sobrescribirán en la próxima sesión de la aplicación.
+            // Programar la eliminación de archivos después de 1 minuto
+            // Esto da tiempo suficiente para que la app de email adjunte los archivos
+            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                try {
+                    var deletedCount = 0
+                    logFiles.forEach { file ->
+                        if (file.exists() && file.delete()) {
+                            deletedCount++
+                            android.util.Log.d("MainScreen", "Archivo eliminado: ${file.name}")
+                        }
+                    }
+                    android.util.Log.d("MainScreen", "Se eliminaron $deletedCount archivo(s) de log después de enviar el email")
+                } catch (e: Exception) {
+                    android.util.Log.e("MainScreen", "Error al eliminar archivos de log: ${e.message}", e)
+                }
+            }, 256000) // 256000 ms = 4 minutos
             
         } catch (e: Exception) {
             Toast.makeText(context, "No hay aplicaciones de email disponibles", Toast.LENGTH_LONG).show()

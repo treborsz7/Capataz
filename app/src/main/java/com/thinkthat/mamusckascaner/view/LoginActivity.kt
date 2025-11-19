@@ -18,7 +18,7 @@ import com.thinkthat.mamusckascaner.utils.AppLogger
 class LoginActivity : ComponentActivity() {
     // Valores fijos para empresa y depósito
     private val EMPRESA_FIJA = "3"
-    private val DEPOSITO_FIJO = "2B"
+    private val DEPOSITO_FIJO = "3B"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
