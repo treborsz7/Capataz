@@ -87,24 +87,26 @@ fun RecolectarScreen(
     var showBackDialog by remember { mutableStateOf(false) }
     var showCloseDialog by remember { mutableStateOf(false) }
     
-    // Estado para escaneo individual por codArticulo
-    var scaneoIndividual by remember { mutableStateOf(mapOf<String, Map<String, String>>()) }
+    // Estado para escaneo individual por codArticulo - AHORA soporta múltiples escaneos por artículo
+    // Estructura: Map<codArticulo, List<Map<String, String>>>
+    // Cada elemento de la lista representa un escaneo (partida, ubicacion, cantidad)
+    var scaneoIndividual by remember { mutableStateOf(mapOf<String, List<Map<String, String>>>()) }
     var articuloActualEscaneando by remember { mutableStateOf<String?>(null) }
     var tipoEscaneoActual by remember { mutableStateOf<String?>(null) }
+    var indiceEscaneoActual by remember { mutableStateOf<Int?>(null) } // Para saber qué escaneo estamos editando
     
-    // Estado para cantidades por artículo
-    var cantidadesPorArticulo by remember { mutableStateOf(mapOf<String, String>()) }
+    // Estado para cantidades por artículo - AHORA por índice de escaneo
+    var cantidadesPorArticulo by remember { mutableStateOf(mapOf<String, Map<Int, String>>()) }
     
-    // Estado para campos editables por artículo
-    var camposEditables by remember { mutableStateOf(mapOf<String, Map<String, Boolean>>()) }
+    // Estado para campos editables por artículo - AHORA por índice de escaneo
+    var camposEditables by remember { mutableStateOf(mapOf<String, Map<Int, Map<String, Boolean>>>()) }
     
-    // Estado para cantidades guardadas por artículo
-    var cantidadesGuardadas by remember { mutableStateOf(mapOf<String, Boolean>()) }
+    // Estado para cantidades guardadas por artículo - AHORA por índice de escaneo
+    var cantidadesGuardadas by remember { mutableStateOf(mapOf<String, Map<Int, Boolean>>()) }
 
-    // Manejo de escaneo (individual por ítem). Cada botón establece articuloActualEscaneando y tipoEscaneoActual
-    // El valor escaneado SIEMPRE debe sobrescribir (override) el existente del mismo ítem y solo de ese ítem.
-    // Incluimos las banderas en la key para permitir re-escaneo con el mismo valor (p.ej. escanear de nuevo tras editar manualmente)
-    LaunchedEffect(partida, articuloActualEscaneando, tipoEscaneoActual) {
+    // Manejo de escaneo (individual por ítem con soporte múltiple). 
+    // Cada botón establece articuloActualEscaneando, tipoEscaneoActual e indiceEscaneoActual
+    LaunchedEffect(partida, articuloActualEscaneando, tipoEscaneoActual, indiceEscaneoActual) {
         if (partida.isNullOrBlank()) return@LaunchedEffect
 
         // Flujo legacy secuencial (solo si se usa aún scanStep global). No afecta la lógica individual.
@@ -113,28 +115,41 @@ fun RecolectarScreen(
             scanStep = "ubicacion"
         }
 
-        if (articuloActualEscaneando != null && tipoEscaneoActual == "partida") {
+        if (articuloActualEscaneando != null && tipoEscaneoActual == "partida" && indiceEscaneoActual != null) {
             val articuloId = articuloActualEscaneando!!
-            val datosPrevios = scaneoIndividual[articuloId] ?: emptyMap()
-            val nuevoMapa = datosPrevios + ("partida" to partida)
-            scaneoIndividual = scaneoIndividual + (articuloId to nuevoMapa)
+            val indice = indiceEscaneoActual!!
+            
+            val listaEscaneos = scaneoIndividual[articuloId] ?: emptyList()
+            val escaneoActual = listaEscaneos.getOrNull(indice) ?: emptyMap()
+            val nuevoEscaneo = escaneoActual + ("partida" to partida)
+            
+            val nuevaLista = listaEscaneos.toMutableList()
+            if (indice < nuevaLista.size) {
+                nuevaLista[indice] = nuevoEscaneo
+            } else {
+                nuevaLista.add(nuevoEscaneo)
+            }
+            
+            scaneoIndividual = scaneoIndividual + (articuloId to nuevaLista)
 
             // Forzamos el campo a editable para visualizar inmediato el valor escaneado
-            val camposPrevios = camposEditables[articuloId] ?: mapOf("partida" to false, "ubicacion" to false)
-            camposEditables = camposEditables + (articuloId to (camposPrevios + ("partida" to true)))
-
+            val camposArticulo = camposEditables[articuloId] ?: emptyMap()
+            val camposIndice = camposArticulo[indice] ?: mapOf("partida" to false, "ubicacion" to false)
+            val nuevosCamposIndice = camposIndice + ("partida" to true)
+            camposEditables = camposEditables + (articuloId to (camposArticulo + (indice to nuevosCamposIndice)))
 
             // Limpiar banderas de escaneo para permitir próximos escaneos
             tipoEscaneoActual = null
             articuloActualEscaneando = null
+            indiceEscaneoActual = null
             // Limpiar valor escaneado de la memoria
             onClearScanValues()
         } else {
-            Log.d("RecolectarScreen", "[SCAN-IGNORED] Partida recibido pero sin target válido (articuloActualEscaneando=$articuloActualEscaneando tipoEscaneoActual=$tipoEscaneoActual)")
+            Log.d("RecolectarScreen", "[SCAN-IGNORED] Partida recibido pero sin target válido (articuloActualEscaneando=$articuloActualEscaneando tipoEscaneoActual=$tipoEscaneoActual indice=$indiceEscaneoActual)")
         }
     }
 
-    LaunchedEffect(ubicacion, articuloActualEscaneando, tipoEscaneoActual) {
+    LaunchedEffect(ubicacion, articuloActualEscaneando, tipoEscaneoActual, indiceEscaneoActual) {
         if (ubicacion.isNullOrBlank()) return@LaunchedEffect
 
         // Flujo legacy secuencial global
@@ -143,22 +158,36 @@ fun RecolectarScreen(
             scanStep = "cantidad"
         }
 
-        if (articuloActualEscaneando != null && tipoEscaneoActual == "ubicacion") {
+        if (articuloActualEscaneando != null && tipoEscaneoActual == "ubicacion" && indiceEscaneoActual != null) {
             val articuloId = articuloActualEscaneando!!
-            val datosPrevios = scaneoIndividual[articuloId] ?: emptyMap()
-            val nuevoMapa = datosPrevios + ("ubicacion" to ubicacion)
-            scaneoIndividual = scaneoIndividual + (articuloId to nuevoMapa)
+            val indice = indiceEscaneoActual!!
+            
+            val listaEscaneos = scaneoIndividual[articuloId] ?: emptyList()
+            val escaneoActual = listaEscaneos.getOrNull(indice) ?: emptyMap()
+            val nuevoEscaneo = escaneoActual + ("ubicacion" to ubicacion)
+            
+            val nuevaLista = listaEscaneos.toMutableList()
+            if (indice < nuevaLista.size) {
+                nuevaLista[indice] = nuevoEscaneo
+            } else {
+                nuevaLista.add(nuevoEscaneo)
+            }
+            
+            scaneoIndividual = scaneoIndividual + (articuloId to nuevaLista)
 
-            val camposPrevios = camposEditables[articuloId] ?: mapOf("partida" to false, "ubicacion" to false)
-            camposEditables = camposEditables + (articuloId to (camposPrevios + ("ubicacion" to true)))
+            val camposArticulo = camposEditables[articuloId] ?: emptyMap()
+            val camposIndice = camposArticulo[indice] ?: mapOf("partida" to false, "ubicacion" to false)
+            val nuevosCamposIndice = camposIndice + ("ubicacion" to true)
+            camposEditables = camposEditables + (articuloId to (camposArticulo + (indice to nuevosCamposIndice)))
 
-            Log.d("RecolectarScreen", "[SCAN] Ubicacion asignada -> articulo=$articuloId valor=$ubicacion")
+            Log.d("RecolectarScreen", "[SCAN] Ubicacion asignada -> articulo=$articuloId indice=$indice valor=$ubicacion")
             tipoEscaneoActual = null
             articuloActualEscaneando = null
+            indiceEscaneoActual = null
             // Limpiar valor escaneado de la memoria
             onClearScanValues()
         } else {
-            Log.d("RecolectarScreen", "[SCAN-IGNORED] Ubicación recibida pero sin target válido (articuloActualEscaneando=$articuloActualEscaneando tipoEscaneoActual=$tipoEscaneoActual)")
+            Log.d("RecolectarScreen", "[SCAN-IGNORED] Ubicación recibida pero sin target válido (articuloActualEscaneando=$articuloActualEscaneando tipoEscaneoActual=$tipoEscaneoActual indice=$indiceEscaneoActual)")
         }
     }
 
@@ -410,6 +439,14 @@ fun RecolectarScreen(
                             var expandedItems by remember { mutableStateOf(setOf<String>()) }
                             
                             ubicacionesGrouped.forEach { (codArticulo, ubicacionesDelArticulo) ->
+                                // Inicializar el primer escaneo si no existe
+                                LaunchedEffect(codArticulo) {
+                                    val listaActual = scaneoIndividual[codArticulo]
+                                    if (listaActual == null || listaActual.isEmpty()) {
+                                        scaneoIndividual = scaneoIndividual + (codArticulo to listOf(emptyMap()))
+                                    }
+                                }
+                                
                                 Card(
                                     modifier = Modifier
                                         .fillMaxWidth(0.8f)
@@ -440,710 +477,739 @@ fun RecolectarScreen(
                                         )
                                         Spacer(modifier = Modifier.height(4.dp))
                                         
-                                        // Mostrar cantidad solicitada
+                                        // Mostrar cantidad solicitada y recolectada
                                         val cantidadSolicitada = ubicacionesDelArticulo.firstOrNull()?.get("requerido") as? Int ?: 0
-                                        Text(
-                                            text = "Solicitado: $cantidadSolicitada",
-                                            color = Color.Black,
-                                            fontSize = 14.sp,
-                                            fontWeight = androidx.compose.ui.text.font.FontWeight.Normal
-                                        )
+                                        
+                                        // Calcular total recolectado de todos los escaneos
+                                        val listaEscaneos = scaneoIndividual[codArticulo] ?: emptyList()
+                                        val cantidadesArticulo = cantidadesPorArticulo[codArticulo] ?: emptyMap()
+                                        val cantidadesGuardadasArticulo = cantidadesGuardadas[codArticulo] ?: emptyMap()
+                                        
+                                        val totalRecolectado = listaEscaneos.indices.sumOf { indice ->
+                                            val guardado = cantidadesGuardadasArticulo[indice] ?: false
+                                            if (guardado) {
+                                                cantidadesArticulo[indice]?.toIntOrNull() ?: 0
+                                            } else {
+                                                0
+                                            }
+                                        }
+                                        
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Text(
+                                                text = "Solicitado: $cantidadSolicitada",
+                                                color = Color.Black,
+                                                fontSize = 14.sp,
+                                                fontWeight = androidx.compose.ui.text.font.FontWeight.Normal
+                                            )
+                                            Text(
+                                                text = "Recolectado: $totalRecolectado",
+                                                color = if (totalRecolectado >= cantidadSolicitada) Color(0xFF4CAF50) else Color(0xFFFF9800),
+                                                fontSize = 14.sp,
+                                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.height(8.dp))
                                         Spacer(modifier = Modifier.height(8.dp))
                                         
-                                        // Estado del escaneo para este artículo
-                                        val datosEscaneo = scaneoIndividual[codArticulo] ?: mapOf()
-                                        val partidaEscaneado = datosEscaneo["partida"]
-                                        val ubicacionEscaneada = datosEscaneo["ubicacion"]
-                                        val cantidadArticulo = cantidadesPorArticulo[codArticulo] ?: ""
-                                        
-                                        // Estado de campos editables para este artículo
-                                        val camposArticulo = camposEditables[codArticulo] ?: mapOf("partida" to false, "ubicacion" to false)
-                                        val partidaEditable = camposArticulo["partida"] ?: false
-                                        val ubicacionEditable = camposArticulo["ubicacion"] ?: false
-                                        
-                                        // Estado de cantidad guardada para este artículo
-                                        val cantidadGuardada = cantidadesGuardadas[codArticulo] ?: false
-                                        
-                                        // Auto-llenar cantidad con requerido cuando partida y ubicación estén completos
-                                        LaunchedEffect(partidaEscaneado, ubicacionEscaneada, cantidadSolicitada) {
-                                            if (partidaEscaneado?.isNotEmpty() == true && 
-                                                ubicacionEscaneada?.isNotEmpty() == true &&
-                                                cantidadArticulo.isEmpty() &&
-                                                cantidadSolicitada > 0) {
-                                                cantidadesPorArticulo = cantidadesPorArticulo + (codArticulo to cantidadSolicitada.toString())
-                                            }
-                                        }
-                                        
-                                        // Campos y botones secuenciales
-                                        // Lógica secuencial: mostrar campos y botones según el estado
-                                        if (partidaEscaneado?.isEmpty() != false) {
-                                            // 1. Mostrar campo partida + botón escanear partida
-                                            if (!partidaEditable) {
-                                                // Modo solo lectura - sin bordes, texto negro
-                                                Row(
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    modifier = Modifier.fillMaxWidth()
-                                                ) {
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .weight(1f)
-                                                            .background(Color.Transparent)
-                                                            .padding(16.dp)
-                                                    ) {
-                                                        Text(
-                                                            text = "Partida: \n ",
-                                                            color = Color.Black,
-                                                            fontSize = 16.sp
-                                                        )
-                                                    }
-                                                    IconButton(
-                                                        onClick = {
-                                                            val articuloId = codArticulo
-                                                            val camposActuales = camposEditables[articuloId] ?: mapOf("partida" to false, "ubicacion" to false)
-                                                            camposEditables = camposEditables + (articuloId to (camposActuales + ("partida" to true)))
-                                                        }
-                                                    ) {
-                                                        Icon(
-                                                            Icons.Filled.Edit,
-                                                            contentDescription = "Editar partida",
-                                                            tint = Color.Black,
-                                                            modifier = Modifier.size(20.dp)
-                                                        )
-                                                    }
-                                                }
-                                            } else {
-                                                // Modo edición - campo normal con ícono de guardar
-                                                Row(
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    modifier = Modifier.fillMaxWidth()
-                                                ) {
-                                                    OutlinedTextField(
-                                                        value = partidaEscaneado ?: "",
-                                                        onValueChange = { newValue ->
-                                                            val articuloId = codArticulo
-                                                            val datosActuales = scaneoIndividual[articuloId] ?: mapOf()
-                                                            scaneoIndividual = scaneoIndividual + (articuloId to (datosActuales + ("partida" to newValue)))
-                                                        },
-                                                        label = { Text("Partida", color = Color.Black) },
-                                                        singleLine = true,
-                                                        modifier = Modifier.weight(1f),
-                                                        textStyle = LocalTextStyle.current.copy(color = Color.Black),
-                                                        colors = TextFieldDefaults.outlinedTextFieldColors(
-                                                            cursorColor = Color.Black,
-                                                            focusedBorderColor = Color.Black,
-                                                            unfocusedBorderColor = Color.Black,
-                                                            focusedLabelColor = Color.Black,
-                                                            unfocusedLabelColor = Color.Black
-                                                        ),
-                                                        placeholder = { Text("Código del partida", color = Color.Gray) }
-                                                    )
-                                                    Spacer(modifier = Modifier.width(8.dp))
-                                                    IconButton(
-                                                        onClick = {
-                                                            val articuloId = codArticulo
-                                                            val camposActuales = camposEditables[articuloId] ?: mapOf("partida" to false, "ubicacion" to false)
-                                                            camposEditables = camposEditables + (articuloId to (camposActuales + ("partida" to false)))
-                                                        }
-                                                    ) {
-                                                        Icon(
-                                                            Icons.Filled.Save,
-                                                            contentDescription = "Guardar partida",
-                                                            tint = if (partidaEscaneado != "" ) Color(0xFF4CAF50) else Color.Gray,
-                                                            modifier = Modifier.size(20.dp)
-                                                        )
-                                                    }
+                                        // Renderizar cada escaneo guardado (con cantidad confirmada)
+                                        listaEscaneos.forEachIndexed { indice, escaneo ->
+                                            val partidaEscaneado = escaneo["partida"]
+                                            val ubicacionEscaneada = escaneo["ubicacion"]
+                                            val cantidadEscaneo = cantidadesArticulo[indice] ?: ""
+                                            val cantidadGuardada = cantidadesGuardadasArticulo[indice] ?: false
+                                            
+                                            val camposArticulo = camposEditables[codArticulo] ?: emptyMap()
+                                            val camposIndice = camposArticulo[indice] ?: mapOf("partida" to false, "ubicacion" to false)
+                                            val partidaEditable = camposIndice["partida"] ?: false
+                                            val ubicacionEditable = camposIndice["ubicacion"] ?: false
+                                            
+                                            // Auto-llenar cantidad cuando se completen partida y ubicación
+                                            LaunchedEffect(partidaEscaneado, ubicacionEscaneada, cantidadSolicitada, totalRecolectado) {
+                                                if (partidaEscaneado?.isNotEmpty() == true && 
+                                                    ubicacionEscaneada?.isNotEmpty() == true &&
+                                                    cantidadEscaneo.isEmpty() &&
+                                                    cantidadSolicitada > 0) {
+                                                    val restante = cantidadSolicitada - totalRecolectado
+                                                    val cantidadAutoLlenar = if (restante > 0) restante else cantidadSolicitada
+                                                    val cantidadesMap = cantidadesArticulo + (indice to cantidadAutoLlenar.toString())
+                                                    cantidadesPorArticulo = cantidadesPorArticulo + (codArticulo to cantidadesMap)
                                                 }
                                             }
                                             
-                                            Spacer(modifier = Modifier.height(8.dp))
-                                            
-                                            Button(
-                                                onClick = {
-                                                    articuloActualEscaneando = codArticulo
-                                                    tipoEscaneoActual = "partida"
-                                                    onStockearClick("partida")
-                                                },
-                                                modifier = Modifier.fillMaxWidth(),
-                                                colors = ButtonDefaults.buttonColors(
-                                                    containerColor = Color.Red
-                                                ),
-                                                shape = RoundedCornerShape(8.dp)
-                                            ) {
-                                                Row(
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    horizontalArrangement = Arrangement.Center
-                                                ) {
-                                                    Icon(
-                                                        imageVector = Icons.Filled.QrCodeScanner,
-                                                        contentDescription = "Escanear partida",
-                                                        tint = Color.White,
-                                                        modifier = Modifier.size(24.dp)
-                                                    )
-                                                    Spacer(modifier = Modifier.width(4.dp))
-                                                    Text(
-                                                        text = "Escanear Partida",
-                                                        color = Color.White,
-                                                        fontSize = 12.sp
-                                                    )
-                                                }
-                                            }
-                                        } else if (ubicacionEscaneada?.isEmpty() != false) {
-                                            // 2. Mostrar campo partida (ya escaneado) + campo ubicación + botón escanear ubicación
-                                            if (!partidaEditable) {
-                                                // Modo solo lectura - sin bordes
-                                                Row(
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    modifier = Modifier.fillMaxWidth()
-                                                ) {
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .weight(1f)
-                                                            .background(Color.Transparent)
-                                                            .padding(16.dp)
-                                                    ) {
-                                                        Text(
-                                                            text = "Partida:\n${partidaEscaneado ?: ""}",
-                                                            color = Color.Black,
-                                                            fontSize = 16.sp
-                                                        )
-                                                    }
-                                                    IconButton(
-                                                        onClick = {
-                                                            articuloActualEscaneando = codArticulo
-                                                            tipoEscaneoActual = "partida"
-                                                            onStockearClick("partida")
-                                                        }
-                                                    ) {
-                                                        Icon(
-                                                            Icons.Filled.CameraAlt,
-                                                            contentDescription = "Escanear partida",
-                                                            tint = Color.Black,
-                                                            modifier = Modifier.size(20.dp)
-                                                        )
-                                                    }
-                                                    IconButton(
-                                                        onClick = {
-                                                            val articuloId = codArticulo
-                                                            val camposActuales = camposEditables[articuloId] ?: mapOf("partida" to false, "ubicacion" to false)
-                                                            camposEditables = camposEditables + (articuloId to (camposActuales + ("partida" to true)))
-                                                        }
-                                                    ) {
-                                                        Icon(
-                                                            Icons.Filled.Edit,
-                                                            contentDescription = "Editar partida",
-                                                            tint = Color.Black,
-                                                            modifier = Modifier.size(20.dp)
-                                                        )
-                                                    }
-                                                }
-                                            } else {
-                                                // Modo edición
-                                                Row(
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    modifier = Modifier.fillMaxWidth()
-                                                ) {
-                                                    OutlinedTextField(
-                                                        value = partidaEscaneado ?: "",
-                                                        onValueChange = { newValue ->
-                                                            val articuloId = codArticulo
-                                                            val datosActuales = scaneoIndividual[articuloId] ?: mapOf()
-                                                            scaneoIndividual = scaneoIndividual + (articuloId to (datosActuales + ("partida" to newValue)))
-                                                        },
-                                                        label = { Text("Partida", color = Color.Black) },
-                                                        singleLine = true,
-                                                        modifier = Modifier.weight(1f),
-                                                        textStyle = LocalTextStyle.current.copy(color = Color.Black),
-                                                        colors = TextFieldDefaults.outlinedTextFieldColors(
-                                                            cursorColor = Color.Black,
-                                                            focusedBorderColor = Color.Black,
-                                                            unfocusedBorderColor = Color.Black,
-                                                            focusedLabelColor = Color.Black,
-                                                            unfocusedLabelColor = Color.Black
-                                                        ),
-                                                        placeholder = { Text("Numero del Partida", color = Color.Gray) }
-                                                    )
-                                                    Spacer(modifier = Modifier.width(8.dp))
-                                                    IconButton(
-                                                        onClick = {
-                                                            val articuloId = codArticulo
-                                                            val camposActuales = camposEditables[articuloId] ?: mapOf("partida" to false, "ubicacion" to false)
-                                                            camposEditables = camposEditables + (articuloId to (camposActuales + ("partida" to false)))
-                                                        }
-                                                    ) {
-                                                        Icon(
-                                                            Icons.Filled.Save,
-                                                            contentDescription = "Guardar Partida",
-                                                            tint = if (partidaEscaneado.isNotEmpty()) Color(0xFF4CAF50) else Color.Gray,
-                                                            modifier = Modifier.size(20.dp)
-                                                        )
-                                                    }
-                                                }
-                                            }
-                                            
-                                            Spacer(modifier = Modifier.height(8.dp))
-                                            
-                                            if (!ubicacionEditable) {
-                                                // Modo solo lectura - sin bordes
-                                                Row(
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    modifier = Modifier.fillMaxWidth()
-                                                ) {
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .weight(1f)
-                                                            .background(Color.Transparent)
-                                                            .padding(16.dp)
-                                                    ) {
-                                                        Text(
-                                                            text = "Ubicación: \n",
-                                                            color = Color.Black,
-                                                            fontSize = 16.sp
-                                                        )
-                                                    }
-                                                    IconButton(
-                                                        onClick = {
-                                                            val articuloId = codArticulo
-                                                            val camposActuales = camposEditables[articuloId] ?: mapOf("partida" to false, "ubicacion" to false)
-                                                            camposEditables = camposEditables + (articuloId to (camposActuales + ("ubicacion" to true)))
-                                                        }
-                                                    ) {
-                                                        Icon(
-                                                            Icons.Filled.Edit,
-                                                            contentDescription = "Editar ubicación",
-                                                            tint = Color.Black,
-                                                            modifier = Modifier.size(20.dp)
-                                                        )
-                                                    }
-                                                }
-                                            } else {
-                                                // Modo edición
-                                                Row(
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    modifier = Modifier.fillMaxWidth()
-                                                ) {
-                                                    OutlinedTextField(
-                                                        value = ubicacionEscaneada ?: "",
-                                                        onValueChange = { newValue ->
-                                                            val articuloId = codArticulo
-                                                            val datosActuales = scaneoIndividual[articuloId] ?: mapOf()
-                                                            scaneoIndividual = scaneoIndividual + (articuloId to (datosActuales + ("ubicacion" to newValue)))
-                                                        },
-                                                        label = { Text("Ubicación", color = Color.Black) },
-                                                        singleLine = true,
-                                                        modifier = Modifier.weight(1f),
-                                                        textStyle = LocalTextStyle.current.copy(color = Color.Black),
-                                                        colors = TextFieldDefaults.outlinedTextFieldColors(
-                                                            cursorColor = Color.Black,
-                                                            focusedBorderColor = Color.Black,
-                                                            unfocusedBorderColor = Color.Black,
-                                                            focusedLabelColor = Color.Black,
-                                                            unfocusedLabelColor = Color.Black
-                                                        ),
-                                                        placeholder = { Text("Código de ubicación", color = Color.Gray) }
-                                                    )
-                                                    Spacer(modifier = Modifier.width(8.dp))
-                                                    IconButton(
-                                                        onClick = {
-                                                            val articuloId = codArticulo
-                                                            val camposActuales = camposEditables[articuloId] ?: mapOf("partida" to false, "ubicacion" to false)
-                                                            camposEditables = camposEditables + (articuloId to (camposActuales + ("ubicacion" to false)))
-                                                        }
-                                                    ) {
-                                                        Icon(
-                                                            Icons.Filled.Save,
-                                                            contentDescription = "Guardar ubicación",
-                                                            tint = if (ubicacionEscaneada != "") Color(0xFF4CAF50) else Color.Gray,
-                                                            modifier = Modifier.size(20.dp)
-                                                        )
-                                                    }
-                                                }
-                                            }
-                                            
-                                            Spacer(modifier = Modifier.height(8.dp))
-                                            
-                                            Button(
-                                                onClick = {
-                                                    articuloActualEscaneando = codArticulo
-                                                    tipoEscaneoActual = "ubicacion"
-                                                    onStockearClick("ubicacion")
-                                                },
-                                                modifier = Modifier.fillMaxWidth(),
-                                                colors = ButtonDefaults.buttonColors(
-                                                    containerColor = Color.Red
-                                                ),
-                                                shape = RoundedCornerShape(8.dp)
-                                            ) {
-                                                Row(
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    horizontalArrangement = Arrangement.Center
-                                                ) {
-                                                    Icon(
-                                                        imageVector = Icons.Filled.LocationOn,
-                                                        contentDescription = "Escanear ubicación",
-                                                        tint = Color.White,
-                                                        modifier = Modifier.size(24.dp)
-                                                    )
-                                                    Spacer(modifier = Modifier.width(4.dp))
-                                                    Text(
-                                                        text = "Escanear Ubicación",
-                                                        color = Color.White,
-                                                        fontSize = 12.sp
-                                                    )
-                                                }
-                                            }
-                                        } else {
-                                            // 3. Mostrar ambos campos (ya escaneados) + botones de reescaneo
-                                            if (!partidaEditable) {
-                                                // Modo solo lectura - sin bordes
-                                                Row(
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    modifier = Modifier.fillMaxWidth()
-                                                ) {
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .weight(1f)
-                                                            .background(Color.Transparent)
-                                                            .padding(16.dp)
-                                                    ) {
-                                                        Text(
-                                                            text = "Partida:\n ${partidaEscaneado ?: ""}",
-                                                            color = Color.Black,
-                                                            fontSize = 16.sp
-                                                        )
-                                                    }
-                                                    IconButton(
-                                                        onClick = {
-                                                            articuloActualEscaneando = codArticulo
-                                                            tipoEscaneoActual = "partida"
-                                                            onStockearClick("partida")
-                                                        }
-                                                    ) {
-                                                        Icon(
-                                                            Icons.Filled.CameraAlt,
-                                                            contentDescription = "Escanear Partida",
-                                                            tint = Color.Black,
-                                                            modifier = Modifier.size(20.dp)
-                                                        )
-                                                    }
-                                                    IconButton(
-                                                        onClick = {
-                                                            val articuloId = codArticulo
-                                                            val camposActuales = camposEditables[articuloId] ?: mapOf("partida" to false, "ubicacion" to false)
-                                                            camposEditables = camposEditables + (articuloId to (camposActuales + ("partida" to true)))
-                                                        }
-                                                    ) {
-                                                        Icon(
-                                                            Icons.Filled.Edit,
-                                                            contentDescription = "Editar partida",
-                                                            tint = Color.Black,
-                                                            modifier = Modifier.size(20.dp)
-                                                        )
-                                                    }
-                                                }
-                                            } else {
-                                                // Modo edición
-                                                Row(
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    modifier = Modifier.fillMaxWidth()
-                                                ) {
-                                                    OutlinedTextField(
-                                                        value = partidaEscaneado ?: "",
-                                                        onValueChange = { newValue ->
-                                                            val articuloId = codArticulo
-                                                            val datosActuales = scaneoIndividual[articuloId] ?: mapOf()
-                                                            scaneoIndividual = scaneoIndividual + (articuloId to (datosActuales + ("partida" to newValue)))
-                                                        },
-                                                        label = { Text("partida", color = Color.Black) },
-                                                        singleLine = true,
-                                                        modifier = Modifier.weight(1f),
-                                                        textStyle = LocalTextStyle.current.copy(color = Color.Black),
-                                                        colors = TextFieldDefaults.outlinedTextFieldColors(
-                                                            cursorColor = Color.Black,
-                                                            focusedBorderColor = Color.Black,
-                                                            unfocusedBorderColor = Color.Black,
-                                                            focusedLabelColor = Color.Black,
-                                                            unfocusedLabelColor = Color.Black
-                                                        ),
-                                                        placeholder = { Text("Numero del partida", color = Color.Gray) }
-                                                    )
-                                                    Spacer(modifier = Modifier.width(8.dp))
-                                                    IconButton(
-                                                        onClick = {
-                                                            val articuloId = codArticulo
-                                                            val camposActuales = camposEditables[articuloId] ?: mapOf("partida" to false, "ubicacion" to false)
-                                                            camposEditables = camposEditables + (articuloId to (camposActuales + ("partida" to false)))
-                                                        }
-                                                    ) {
-                                                        Icon(
-                                                            Icons.Filled.Save,
-                                                            contentDescription = "Guardar partida",
-                                                            tint = if (partidaEscaneado.isNotEmpty()) Color(0xFF4CAF50) else Color.Gray,
-                                                            modifier = Modifier.size(20.dp)
-                                                        )
-                                                    }
-                                                }
-                                            }
-                                            
-                                            Spacer(modifier = Modifier.height(8.dp))
-                                            
-                                            if (!ubicacionEditable) {
-                                                // Modo solo lectura - sin bordes
-                                                Row(
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    modifier = Modifier.fillMaxWidth()
-                                                ) {
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .weight(1f)
-                                                            .background(Color.Transparent)
-                                                            .padding(16.dp)
-                                                    ) {
-                                                        Text(
-                                                            text = "Ubicación:\n ${ubicacionEscaneada ?: ""}",
-                                                            color = Color.Black,
-                                                            fontSize = 16.sp
-                                                        )
-                                                    }
-                                                    IconButton(
-                                                        onClick = {
-                                                            articuloActualEscaneando = codArticulo
-                                                            tipoEscaneoActual = "ubicacion"
-                                                            onStockearClick("ubicacion")
-                                                        }
-                                                    ) {
-                                                        Icon(
-                                                            Icons.Filled.CameraAlt,
-                                                            contentDescription = "Escanear ubicación",
-                                                            tint = Color.Black,
-                                                            modifier = Modifier.size(20.dp)
-                                                        )
-                                                    }
-                                                    IconButton(
-                                                        onClick = {
-                                                            val articuloId = codArticulo
-                                                            val camposActuales = camposEditables[articuloId] ?: mapOf("partida" to false, "ubicacion" to false)
-                                                            camposEditables = camposEditables + (articuloId to (camposActuales + ("ubicacion" to true)))
-                                                        }
-                                                    ) {
-                                                        Icon(
-                                                            Icons.Filled.Edit,
-                                                            contentDescription = "Editar ubicación",
-                                                            tint = Color.Black,
-                                                            modifier = Modifier.size(20.dp)
-                                                        )
-                                                    }
-                                                }
-                                            } else {
-                                                // Modo edición
-                                                Row(
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    modifier = Modifier.fillMaxWidth()
-                                                ) {
-                                                    OutlinedTextField(
-                                                        value = ubicacionEscaneada ?: "",
-                                                        onValueChange = { newValue ->
-                                                            val articuloId = codArticulo
-                                                            val datosActuales = scaneoIndividual[articuloId] ?: mapOf()
-                                                            scaneoIndividual = scaneoIndividual + (articuloId to (datosActuales + ("ubicacion" to newValue)))
-                                                        },
-                                                        label = { Text("Ubicación", color = Color.Black) },
-                                                        singleLine = true,
-                                                        modifier = Modifier.weight(1f),
-                                                        textStyle = LocalTextStyle.current.copy(color = Color.Black),
-                                                        colors = TextFieldDefaults.outlinedTextFieldColors(
-                                                            cursorColor = Color.Black,
-                                                            focusedBorderColor = Color.Black,
-                                                            unfocusedBorderColor = Color.Black,
-                                                            focusedLabelColor = Color.Black,
-                                                            unfocusedLabelColor = Color.Black
-                                                        ),
-                                                        placeholder = { Text("Código de ubicación", color = Color.Gray) }
-                                                    )
-                                                    Spacer(modifier = Modifier.width(8.dp))
-                                                    IconButton(
-                                                        onClick = {
-                                                            val articuloId = codArticulo
-                                                            val camposActuales = camposEditables[articuloId] ?: mapOf("partida" to false, "ubicacion" to false)
-                                                            camposEditables = camposEditables + (articuloId to (camposActuales + ("ubicacion" to false)))
-                                                        }
-                                                    ) {
-                                                        Icon(
-                                                            Icons.Filled.Save,
-                                                            contentDescription = "Guardar ubicación",
-                                                            tint = if (ubicacionEscaneada.isNotEmpty()) Color(0xFF4CAF50) else Color.Gray,
-                                                            modifier = Modifier.size(20.dp)
-                                                        )
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                        
-                                        // Campo cantidad (visible cuando partida y ubicación están completos)
-                                        if ((partidaEscaneado?.isNotEmpty() == true) && (ubicacionEscaneada?.isNotEmpty() == true)) {
-                                            Spacer(modifier = Modifier.height(8.dp))
-                                            
-                                            if (!cantidadGuardada) {
-                                                // Mostrar campo de entrada con botón guardar
-                                                Row(
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    modifier = Modifier.fillMaxWidth()
-                                                ) {
-                                                    OutlinedTextField(
-                                                        value = cantidadArticulo,
-                                                        onValueChange = { newValue ->
-                                                            // Solo permitir números
-                                                            val filteredValue = newValue.filter { it.isDigit() }
-                                                            cantidadesPorArticulo = cantidadesPorArticulo + (codArticulo to filteredValue)
-                                                        },
-                                                        label = { Text("Cantidad", color = Color.Black) },
-                                                        singleLine = true,
-                                                        modifier = Modifier.weight(1f),
-                                                        textStyle = LocalTextStyle.current.copy(color = Color.Black),
-                                                        colors = TextFieldDefaults.outlinedTextFieldColors(
-                                                            cursorColor = Color.Black,
-                                                            focusedBorderColor = Color.Black,
-                                                            unfocusedBorderColor = Color.Black,
-                                                            focusedLabelColor = Color.Black,
-                                                            unfocusedLabelColor = Color.Black
-                                                        ),
-                                                        placeholder = { Text("Ingrese la cantidad", color = Color.Gray) }
-                                                    )
-                                                    Spacer(modifier = Modifier.width(8.dp))
-                                                    IconButton(
-                                                        onClick = {
-                                                            if (cantidadArticulo.isNotEmpty()) {
-                                                                cantidadesGuardadas = cantidadesGuardadas + (codArticulo to true)
-                                                            }
-                                                        },
-                                                        enabled = cantidadArticulo.isNotEmpty()
-                                                    ) {
-                                                        Icon(
-                                                            Icons.Filled.Save,
-                                                            contentDescription = "Guardar cantidad",
-                                                            tint = if (cantidadArticulo.isNotEmpty()) Color(0xFF4CAF50) else Color.Gray,
-                                                            modifier = Modifier.size(24.dp)
-                                                        )
-                                                    }
-                                                }
-                                            } else {
-                                                // Mostrar cantidad guardada con botón editar
-                                                Row(
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    modifier = Modifier.fillMaxWidth()
-                                                ) {
-                                                    OutlinedTextField(
-                                                        value = cantidadArticulo,
-                                                        onValueChange = { },
-                                                        label = { Text("Cantidad:", color = Color.Black) },
-                                                        singleLine = true,
-                                                        modifier = Modifier.weight(1f),
-                                                        textStyle = LocalTextStyle.current.copy(color = Color.Black),
-                                                        colors = TextFieldDefaults.outlinedTextFieldColors(
-                                                            cursorColor = Color.Black,
-                                                            focusedBorderColor = Color.Black,
-                                                            unfocusedBorderColor = Color.Black,
-                                                            focusedLabelColor = Color.Black,
-                                                            unfocusedLabelColor = Color.Black
-                                                        ),
-                                                        enabled = false,
-                                                        readOnly = true
-                                                    )
-                                                    Spacer(modifier = Modifier.width(8.dp))
-                                                    IconButton(
-                                                        onClick = {
-                                                            cantidadesGuardadas = cantidadesGuardadas + (codArticulo to false)
-                                                        }
-                                                    ) {
-                                                        Icon(
-                                                            Icons.Filled.Edit,
-                                                            contentDescription = "Editar cantidad",
-                                                            tint = Color.Black,
-                                                            modifier = Modifier.size(20.dp)
-                                                        )
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        
-                                        //if (ubicacionesDelArticulo.size == 1) {
-                                        
-                                        if (true) {
-                                            // Solo una ubicación - mostrar directamente
-                                            val ubicacion = ubicacionesDelArticulo[0]
-                                            Column {
-                                                Text(
-                                                    text = "Ubicación: ${ubicacion["nombreUbicacion"]}",
-                                                    color = Color.Black,
-                                                    fontSize = 14.sp
-                                                )
-                                            }
-                                        } else {
-                                            // Múltiples ubicaciones - mostrar dropdown
-                                            val isExpanded = expandedItems.contains(codArticulo)
-                                            
-                                            Row(
+                                            Card(
                                                 modifier = Modifier
                                                     .fillMaxWidth()
-                                                    .clickable {
-                                                        expandedItems = if (isExpanded) {
-                                                            expandedItems - codArticulo
-                                                        } else {
-                                                            expandedItems + codArticulo
-                                                        }
-                                                    }
-                                                    .background(
-                                                        Color(0xFFE3F2FD),
-                                                        RoundedCornerShape(8.dp)
-                                                    )
-                                                    .padding(12.dp),
-                                                horizontalArrangement = Arrangement.SpaceBetween,
-                                                verticalAlignment = Alignment.CenterVertically
+                                                    .padding(vertical = 4.dp),
+                                                colors = CardDefaults.cardColors(
+                                                    containerColor = if (cantidadGuardada) Color(0xFFE8F5E9) else Color(0xFFFFF3E0)
+                                                ),
+                                                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                                             ) {
-                                                Text(
-                                                    text = "Ubicaciones (${ubicacionesDelArticulo.size})",
-                                                    color = Color.Black,
-                                                    fontSize = 14.sp,
-                                                    fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
-                                                )
-                                                Text(
-                                                    text = if (isExpanded) "▼" else "▶",
-                                                    color = Color.Black,
-                                                    fontSize = 16.sp
-                                                )
-                                            }
-                                            
-                                            if (isExpanded) {
-                                                Spacer(modifier = Modifier.height(8.dp))
-                                                ubicacionesDelArticulo.forEach { ubicacion ->
-                                                    Card(
-                                                        modifier = Modifier
-                                                            .fillMaxWidth()
-                                                            .padding(vertical = 2.dp),
-                                                        colors = CardDefaults.cardColors(
-                                                            containerColor = Color(0xFFE8F5E8)
-                                                        ),
-                                                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                                                Column(
+                                                    modifier = Modifier.padding(12.dp)
+                                                ) {
+                                                    // Mostrar número de escaneo y ubicación asignada
+                                                    Row(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                                        verticalAlignment = Alignment.CenterVertically
                                                     ) {
-                                                        Column(
-                                                            modifier = Modifier.padding(8.dp)
-                                                        ) {
-                                                            Row(
-                                                                modifier = Modifier.fillMaxWidth(),
-                                                                horizontalArrangement = Arrangement.SpaceBetween,
-                                                                verticalAlignment = Alignment.CenterVertically
+                                                        // Mostrar ubicación asignada en lugar de "Escaneo #X"
+                                                        if (indice < ubicacionesDelArticulo.size) {
+                                                            val ubicacionAsignada = ubicacionesDelArticulo[indice]
+                                                            Text(
+                                                                text = (ubicacionAsignada["nombreUbicacion"] as? String) ?: "N/A",
+                                                                fontSize = 14.sp,
+                                                                color = Color(0xFF4CAF50),
+                                                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                                                            )
+                                                        } else {
+                                                            Text(
+                                                                text = "Ubicación ${indice + 1}",
+                                                                fontSize = 14.sp,
+                                                                color = Color.Gray,
+                                                                fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
+                                                            )
+                                                        }
+                                                        
+                                                        // Botón X para eliminar el renglón (solo si hay más de un renglón)
+                                                        if (listaEscaneos.size > 1) {
+                                                            IconButton(
+                                                                onClick = {
+                                                                    // Eliminar este escaneo de la lista
+                                                                    val listaActual = scaneoIndividual[codArticulo] ?: emptyList()
+                                                                    val nuevaLista = listaActual.toMutableList()
+                                                                    if (indice < nuevaLista.size) {
+                                                                        nuevaLista.removeAt(indice)
+                                                                    }
+                                                                    scaneoIndividual = scaneoIndividual + (codArticulo to nuevaLista)
+                                                                    
+                                                                    // También eliminar la cantidad guardada
+                                                                    val cantidadesArt = cantidadesPorArticulo[codArticulo]?.toMutableMap() ?: mutableMapOf()
+                                                                    cantidadesArt.remove(indice)
+                                                                    // Reindexar las cantidades restantes
+                                                                    val nuevasCantidades = mutableMapOf<Int, String>()
+                                                                    cantidadesArt.entries.sortedBy { it.key }.forEachIndexed { newIndex, entry ->
+                                                                        if (entry.key > indice) {
+                                                                            nuevasCantidades[newIndex] = entry.value
+                                                                        } else if (entry.key < indice) {
+                                                                            nuevasCantidades[entry.key] = entry.value
+                                                                        }
+                                                                    }
+                                                                    cantidadesPorArticulo = cantidadesPorArticulo + (codArticulo to nuevasCantidades)
+                                                                    
+                                                                    // Eliminar estado de guardado
+                                                                    val guardadasArt = cantidadesGuardadas[codArticulo]?.toMutableMap() ?: mutableMapOf()
+                                                                    guardadasArt.remove(indice)
+                                                                    // Reindexar estados guardados
+                                                                    val nuevasGuardadas = mutableMapOf<Int, Boolean>()
+                                                                    guardadasArt.entries.sortedBy { it.key }.forEachIndexed { newIndex, entry ->
+                                                                        if (entry.key > indice) {
+                                                                            nuevasGuardadas[newIndex] = entry.value
+                                                                        } else if (entry.key < indice) {
+                                                                            nuevasGuardadas[entry.key] = entry.value
+                                                                        }
+                                                                    }
+                                                                    cantidadesGuardadas = cantidadesGuardadas + (codArticulo to nuevasGuardadas)
+                                                                    
+                                                                    // Eliminar campos editables
+                                                                    val editablesArt = camposEditables[codArticulo]?.toMutableMap() ?: mutableMapOf()
+                                                                    editablesArt.remove(indice)
+                                                                    // Reindexar campos editables
+                                                                    val nuevosEditables = mutableMapOf<Int, Map<String, Boolean>>()
+                                                                    editablesArt.entries.sortedBy { it.key }.forEachIndexed { newIndex, entry ->
+                                                                        if (entry.key > indice) {
+                                                                            nuevosEditables[newIndex] = entry.value
+                                                                        } else if (entry.key < indice) {
+                                                                            nuevosEditables[entry.key] = entry.value
+                                                                        }
+                                                                    }
+                                                                    camposEditables = camposEditables + (codArticulo to nuevosEditables)
+                                                                },
+                                                                modifier = Modifier.size(32.dp)
                                                             ) {
-                                                                Text(
-                                                                    text = "Ubicación: ${ubicacion["nombreUbicacion"]}",
-                                                                    color = Color.Black,
-                                                                    fontSize = 13.sp,
-                                                                    fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
+                                                                Icon(
+                                                                    Icons.Filled.Close,
+                                                                    contentDescription = "Eliminar renglón",
+                                                                    tint = Color.Red,
+                                                                    modifier = Modifier.size(20.dp)
                                                                 )
                                                             }
-                                                           
                                                         }
                                                     }
+                                                    Spacer(modifier = Modifier.height(8.dp))
+                                                    
+                                                    // Campo Partida
+                                                    if (partidaEscaneado?.isEmpty() != false) {
+                                                        // Partida vacía - mostrar campo y botón escanear
+                                                        if (!partidaEditable) {
+                                                            Row(
+                                                                verticalAlignment = Alignment.CenterVertically,
+                                                                modifier = Modifier.fillMaxWidth()
+                                                            ) {
+                                                                Box(
+                                                                    modifier = Modifier
+                                                                        .weight(1f)
+                                                                        .background(Color.Transparent)
+                                                                        .padding(16.dp)
+                                                                ) {
+                                                                    Text(
+                                                                        text = "Partida: \n ",
+                                                                        color = Color.Black,
+                                                                        fontSize = 16.sp
+                                                                    )
+                                                                }
+                                                                IconButton(
+                                                                    onClick = {
+                                                                        val camposArt = camposEditables[codArticulo] ?: emptyMap()
+                                                                        val camposInd = camposArt[indice] ?: mapOf("partida" to false, "ubicacion" to false)
+                                                                        camposEditables = camposEditables + (codArticulo to (camposArt + (indice to (camposInd + ("partida" to true)))))
+                                                                    }
+                                                                ) {
+                                                                    Icon(
+                                                                        Icons.Filled.Edit,
+                                                                        contentDescription = "Editar partida",
+                                                                        tint = Color.Black,
+                                                                        modifier = Modifier.size(20.dp)
+                                                                    )
+                                                                }
+                                                            }
+                                                        } else {
+                                                            Row(
+                                                                verticalAlignment = Alignment.CenterVertically,
+                                                                modifier = Modifier.fillMaxWidth()
+                                                            ) {
+                                                                OutlinedTextField(
+                                                                    value = partidaEscaneado ?: "",
+                                                                    onValueChange = { newValue ->
+                                                                        val listaActual = scaneoIndividual[codArticulo] ?: emptyList()
+                                                                        val escaneoActual = listaActual.getOrNull(indice) ?: emptyMap()
+                                                                        val nuevoEscaneo = escaneoActual + ("partida" to newValue)
+                                                                        val nuevaLista = listaActual.toMutableList()
+                                                                        if (indice < nuevaLista.size) {
+                                                                            nuevaLista[indice] = nuevoEscaneo
+                                                                        }
+                                                                        scaneoIndividual = scaneoIndividual + (codArticulo to nuevaLista)
+                                                                    },
+                                                                    label = { Text("Partida", color = Color.Black) },
+                                                                    singleLine = true,
+                                                                    modifier = Modifier.weight(1f),
+                                                                    textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                                                                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                                                                        cursorColor = Color.Black,
+                                                                        focusedBorderColor = Color.Black,
+                                                                        unfocusedBorderColor = Color.Black,
+                                                                        focusedLabelColor = Color.Black,
+                                                                        unfocusedLabelColor = Color.Black
+                                                                    ),
+                                                                    placeholder = { Text("Código del partida", color = Color.Gray) }
+                                                                )
+                                                                Spacer(modifier = Modifier.width(8.dp))
+                                                                IconButton(
+                                                                    onClick = {
+                                                                        val camposArt = camposEditables[codArticulo] ?: emptyMap()
+                                                                        val camposInd = camposArt[indice] ?: mapOf("partida" to false, "ubicacion" to false)
+                                                                        camposEditables = camposEditables + (codArticulo to (camposArt + (indice to (camposInd + ("partida" to false)))))
+                                                                    }
+                                                                ) {
+                                                                    Icon(
+                                                                        Icons.Filled.Save,
+                                                                        contentDescription = "Guardar partida",
+                                                                        tint = if (partidaEscaneado != "") Color(0xFF4CAF50) else Color.Gray,
+                                                                        modifier = Modifier.size(20.dp)
+                                                                    )
+                                                                }
+                                                            }
+                                                        }
+                                                        
+                                                        Spacer(modifier = Modifier.height(8.dp))
+                                                        
+                                                        Button(
+                                                            onClick = {
+                                                                articuloActualEscaneando = codArticulo
+                                                                tipoEscaneoActual = "partida"
+                                                                indiceEscaneoActual = indice
+                                                                onStockearClick("partida")
+                                                            },
+                                                            modifier = Modifier.fillMaxWidth(),
+                                                            colors = ButtonDefaults.buttonColors(
+                                                                containerColor = Color.Red
+                                                            ),
+                                                            shape = RoundedCornerShape(8.dp)
+                                                        ) {
+                                                            Row(
+                                                                verticalAlignment = Alignment.CenterVertically,
+                                                                horizontalArrangement = Arrangement.Center
+                                                            ) {
+                                                                Icon(
+                                                                    imageVector = Icons.Filled.QrCodeScanner,
+                                                                    contentDescription = "Escanear partida",
+                                                                    tint = Color.White,
+                                                                    modifier = Modifier.size(24.dp)
+                                                                )
+                                                                Spacer(modifier = Modifier.width(4.dp))
+                                                                Text(
+                                                                    text = "Escanear Partida",
+                                                                    color = Color.White,
+                                                                    fontSize = 12.sp
+                                                                )
+                                                            }
+                                                        }
+                                                    } else {
+                                                        // Partida ya escaneada
+                                                        if (!partidaEditable) {
+                                                            Row(
+                                                                verticalAlignment = Alignment.CenterVertically,
+                                                                modifier = Modifier.fillMaxWidth()
+                                                            ) {
+                                                                Box(
+                                                                    modifier = Modifier
+                                                                        .weight(1f)
+                                                                        .background(Color.Transparent)
+                                                                        .padding(16.dp)
+                                                                ) {
+                                                                    Text(
+                                                                        text = "Partida:\n$partidaEscaneado",
+                                                                        color = Color.Black,
+                                                                        fontSize = 16.sp
+                                                                    )
+                                                                }
+                                                                IconButton(
+                                                                    onClick = {
+                                                                        articuloActualEscaneando = codArticulo
+                                                                        tipoEscaneoActual = "partida"
+                                                                        indiceEscaneoActual = indice
+                                                                        onStockearClick("partida")
+                                                                    }
+                                                                ) {
+                                                                    Icon(
+                                                                        Icons.Filled.CameraAlt,
+                                                                        contentDescription = "Escanear partida",
+                                                                        tint = Color.Black,
+                                                                        modifier = Modifier.size(20.dp)
+                                                                    )
+                                                                }
+                                                                IconButton(
+                                                                    onClick = {
+                                                                        val camposArt = camposEditables[codArticulo] ?: emptyMap()
+                                                                        val camposInd = camposArt[indice] ?: mapOf("partida" to false, "ubicacion" to false)
+                                                                        camposEditables = camposEditables + (codArticulo to (camposArt + (indice to (camposInd + ("partida" to true)))))
+                                                                    }
+                                                                ) {
+                                                                    Icon(
+                                                                        Icons.Filled.Edit,
+                                                                        contentDescription = "Editar partida",
+                                                                        tint = Color.Black,
+                                                                        modifier = Modifier.size(20.dp)
+                                                                    )
+                                                                }
+                                                            }
+                                                        } else {
+                                                            Row(
+                                                                verticalAlignment = Alignment.CenterVertically,
+                                                                modifier = Modifier.fillMaxWidth()
+                                                            ) {
+                                                                OutlinedTextField(
+                                                                    value = partidaEscaneado,
+                                                                    onValueChange = { newValue ->
+                                                                        val listaActual = scaneoIndividual[codArticulo] ?: emptyList()
+                                                                        val escaneoActual = listaActual.getOrNull(indice) ?: emptyMap()
+                                                                        val nuevoEscaneo = escaneoActual + ("partida" to newValue)
+                                                                        val nuevaLista = listaActual.toMutableList()
+                                                                        if (indice < nuevaLista.size) {
+                                                                            nuevaLista[indice] = nuevoEscaneo
+                                                                        }
+                                                                        scaneoIndividual = scaneoIndividual + (codArticulo to nuevaLista)
+                                                                    },
+                                                                    label = { Text("Partida", color = Color.Black) },
+                                                                    singleLine = true,
+                                                                    modifier = Modifier.weight(1f),
+                                                                    textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                                                                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                                                                        cursorColor = Color.Black,
+                                                                        focusedBorderColor = Color.Black,
+                                                                        unfocusedBorderColor = Color.Black,
+                                                                        focusedLabelColor = Color.Black,
+                                                                        unfocusedLabelColor = Color.Black
+                                                                    ),
+                                                                    placeholder = { Text("Numero del Partida", color = Color.Gray) }
+                                                                )
+                                                                Spacer(modifier = Modifier.width(8.dp))
+                                                                IconButton(
+                                                                    onClick = {
+                                                                        val camposArt = camposEditables[codArticulo] ?: emptyMap()
+                                                                        val camposInd = camposArt[indice] ?: mapOf("partida" to false, "ubicacion" to false)
+                                                                        camposEditables = camposEditables + (codArticulo to (camposArt + (indice to (camposInd + ("partida" to false)))))
+                                                                    }
+                                                                ) {
+                                                                    Icon(
+                                                                        Icons.Filled.Save,
+                                                                        contentDescription = "Guardar Partida",
+                                                                        tint = if (partidaEscaneado.isNotEmpty()) Color(0xFF4CAF50) else Color.Gray,
+                                                                        modifier = Modifier.size(20.dp)
+                                                                    )
+                                                                }
+                                                            }
+                                                        }
+                                                        
+                                                        Spacer(modifier = Modifier.height(8.dp))
+                                                        
+                                                        // Campo Ubicación (solo si partida está completa)
+                                                        if (ubicacionEscaneada?.isEmpty() != false) {
+                                                            if (!ubicacionEditable) {
+                                                                Row(
+                                                                    verticalAlignment = Alignment.CenterVertically,
+                                                                    modifier = Modifier.fillMaxWidth()
+                                                                ) {
+                                                                    Box(
+                                                                        modifier = Modifier
+                                                                            .weight(1f)
+                                                                            .background(Color.Transparent)
+                                                                            .padding(16.dp)
+                                                                    ) {
+                                                                        Text(
+                                                                            text = "Ubicación: \n",
+                                                                            color = Color.Black,
+                                                                            fontSize = 16.sp
+                                                                        )
+                                                                    }
+                                                                    IconButton(
+                                                                        onClick = {
+                                                                            val camposArt = camposEditables[codArticulo] ?: emptyMap()
+                                                                            val camposInd = camposArt[indice] ?: mapOf("partida" to false, "ubicacion" to false)
+                                                                            camposEditables = camposEditables + (codArticulo to (camposArt + (indice to (camposInd + ("ubicacion" to true)))))
+                                                                        }
+                                                                    ) {
+                                                                        Icon(
+                                                                            Icons.Filled.Edit,
+                                                                            contentDescription = "Editar ubicación",
+                                                                            tint = Color.Black,
+                                                                            modifier = Modifier.size(20.dp)
+                                                                        )
+                                                                    }
+                                                                }
+                                                            } else {
+                                                                Row(
+                                                                    verticalAlignment = Alignment.CenterVertically,
+                                                                    modifier = Modifier.fillMaxWidth()
+                                                                ) {
+                                                                    OutlinedTextField(
+                                                                        value = ubicacionEscaneada ?: "",
+                                                                        onValueChange = { newValue ->
+                                                                            val listaActual = scaneoIndividual[codArticulo] ?: emptyList()
+                                                                            val escaneoActual = listaActual.getOrNull(indice) ?: emptyMap()
+                                                                            val nuevoEscaneo = escaneoActual + ("ubicacion" to newValue)
+                                                                            val nuevaLista = listaActual.toMutableList()
+                                                                            if (indice < nuevaLista.size) {
+                                                                                nuevaLista[indice] = nuevoEscaneo
+                                                                            }
+                                                                            scaneoIndividual = scaneoIndividual + (codArticulo to nuevaLista)
+                                                                        },
+                                                                        label = { Text("Ubicación", color = Color.Black) },
+                                                                        singleLine = true,
+                                                                        modifier = Modifier.weight(1f),
+                                                                        textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                                                                        colors = TextFieldDefaults.outlinedTextFieldColors(
+                                                                            cursorColor = Color.Black,
+                                                                            focusedBorderColor = Color.Black,
+                                                                            unfocusedBorderColor = Color.Black,
+                                                                            focusedLabelColor = Color.Black,
+                                                                            unfocusedLabelColor = Color.Black
+                                                                        ),
+                                                                        placeholder = { Text("Código de ubicación", color = Color.Gray) }
+                                                                    )
+                                                                    Spacer(modifier = Modifier.width(8.dp))
+                                                                    IconButton(
+                                                                        onClick = {
+                                                                            val camposArt = camposEditables[codArticulo] ?: emptyMap()
+                                                                            val camposInd = camposArt[indice] ?: mapOf("partida" to false, "ubicacion" to false)
+                                                                            camposEditables = camposEditables + (codArticulo to (camposArt + (indice to (camposInd + ("ubicacion" to false)))))
+                                                                        }
+                                                                    ) {
+                                                                        Icon(
+                                                                            Icons.Filled.Save,
+                                                                            contentDescription = "Guardar ubicación",
+                                                                            tint = if (ubicacionEscaneada != "") Color(0xFF4CAF50) else Color.Gray,
+                                                                            modifier = Modifier.size(20.dp)
+                                                                        )
+                                                                    }
+                                                                }
+                                                            }
+                                                            
+                                                            Spacer(modifier = Modifier.height(8.dp))
+                                                            
+                                                            Button(
+                                                                onClick = {
+                                                                    articuloActualEscaneando = codArticulo
+                                                                    tipoEscaneoActual = "ubicacion"
+                                                                    indiceEscaneoActual = indice
+                                                                    onStockearClick("ubicacion")
+                                                                },
+                                                                modifier = Modifier.fillMaxWidth(),
+                                                                colors = ButtonDefaults.buttonColors(
+                                                                    containerColor = Color.Red
+                                                                ),
+                                                                shape = RoundedCornerShape(8.dp)
+                                                            ) {
+                                                                Row(
+                                                                    verticalAlignment = Alignment.CenterVertically,
+                                                                    horizontalArrangement = Arrangement.Center
+                                                                ) {
+                                                                    Icon(
+                                                                        imageVector = Icons.Filled.LocationOn,
+                                                                        contentDescription = "Escanear ubicación",
+                                                                        tint = Color.White,
+                                                                        modifier = Modifier.size(24.dp)
+                                                                    )
+                                                                    Spacer(modifier = Modifier.width(4.dp))
+                                                                    Text(
+                                                                        text = "Escanear Ubicación",
+                                                                        color = Color.White,
+                                                                        fontSize = 12.sp
+                                                                    )
+                                                                }
+                                                            }
+                                                        } else {
+                                                            // Ubicación ya escaneada
+                                                            if (!ubicacionEditable) {
+                                                                Row(
+                                                                    verticalAlignment = Alignment.CenterVertically,
+                                                                    modifier = Modifier.fillMaxWidth()
+                                                                ) {
+                                                                    Box(
+                                                                        modifier = Modifier
+                                                                            .weight(1f)
+                                                                            .background(Color.Transparent)
+                                                                            .padding(16.dp)
+                                                                    ) {
+                                                                        Text(
+                                                                            text = "Ubicación:\n$ubicacionEscaneada",
+                                                                            color = Color.Black,
+                                                                            fontSize = 16.sp
+                                                                        )
+                                                                    }
+                                                                    IconButton(
+                                                                        onClick = {
+                                                                            articuloActualEscaneando = codArticulo
+                                                                            tipoEscaneoActual = "ubicacion"
+                                                                            indiceEscaneoActual = indice
+                                                                            onStockearClick("ubicacion")
+                                                                        }
+                                                                    ) {
+                                                                        Icon(
+                                                                            Icons.Filled.CameraAlt,
+                                                                            contentDescription = "Escanear ubicación",
+                                                                            tint = Color.Black,
+                                                                            modifier = Modifier.size(20.dp)
+                                                                        )
+                                                                    }
+                                                                    IconButton(
+                                                                        onClick = {
+                                                                            val camposArt = camposEditables[codArticulo] ?: emptyMap()
+                                                                            val camposInd = camposArt[indice] ?: mapOf("partida" to false, "ubicacion" to false)
+                                                                            camposEditables = camposEditables + (codArticulo to (camposArt + (indice to (camposInd + ("ubicacion" to true)))))
+                                                                        }
+                                                                    ) {
+                                                                        Icon(
+                                                                            Icons.Filled.Edit,
+                                                                            contentDescription = "Editar ubicación",
+                                                                            tint = Color.Black,
+                                                                            modifier = Modifier.size(20.dp)
+                                                                        )
+                                                                    }
+                                                                }
+                                                            } else {
+                                                                Row(
+                                                                    verticalAlignment = Alignment.CenterVertically,
+                                                                    modifier = Modifier.fillMaxWidth()
+                                                                ) {
+                                                                    OutlinedTextField(
+                                                                        value = ubicacionEscaneada,
+                                                                        onValueChange = { newValue ->
+                                                                            val listaActual = scaneoIndividual[codArticulo] ?: emptyList()
+                                                                            val escaneoActual = listaActual.getOrNull(indice) ?: emptyMap()
+                                                                            val nuevoEscaneo = escaneoActual + ("ubicacion" to newValue)
+                                                                            val nuevaLista = listaActual.toMutableList()
+                                                                            if (indice < nuevaLista.size) {
+                                                                                nuevaLista[indice] = nuevoEscaneo
+                                                                            }
+                                                                            scaneoIndividual = scaneoIndividual + (codArticulo to nuevaLista)
+                                                                        },
+                                                                        label = { Text("Ubicación", color = Color.Black) },
+                                                                        singleLine = true,
+                                                                        modifier = Modifier.weight(1f),
+                                                                        textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                                                                        colors = TextFieldDefaults.outlinedTextFieldColors(
+                                                                            cursorColor = Color.Black,
+                                                                            focusedBorderColor = Color.Black,
+                                                                            unfocusedBorderColor = Color.Black,
+                                                                            focusedLabelColor = Color.Black,
+                                                                            unfocusedLabelColor = Color.Black
+                                                                        ),
+                                                                        placeholder = { Text("Código de ubicación", color = Color.Gray) }
+                                                                    )
+                                                                    Spacer(modifier = Modifier.width(8.dp))
+                                                                    IconButton(
+                                                                        onClick = {
+                                                                            val camposArt = camposEditables[codArticulo] ?: emptyMap()
+                                                                            val camposInd = camposArt[indice] ?: mapOf("partida" to false, "ubicacion" to false)
+                                                                            camposEditables = camposEditables + (codArticulo to (camposArt + (indice to (camposInd + ("ubicacion" to false)))))
+                                                                        }
+                                                                    ) {
+                                                                        Icon(
+                                                                            Icons.Filled.Save,
+                                                                            contentDescription = "Guardar ubicación",
+                                                                            tint = if (ubicacionEscaneada.isNotEmpty()) Color(0xFF4CAF50) else Color.Gray,
+                                                                            modifier = Modifier.size(20.dp)
+                                                                        )
+                                                                    }
+                                                                }
+                                                            }
+                                                            
+                                                            Spacer(modifier = Modifier.height(8.dp))
+                                                            
+                                                            // Campo cantidad (solo si partida y ubicación están completos)
+                                                            if (!cantidadGuardada) {
+                                                                Row(
+                                                                    verticalAlignment = Alignment.CenterVertically,
+                                                                    modifier = Modifier.fillMaxWidth()
+                                                                ) {
+                                                                    OutlinedTextField(
+                                                                        value = cantidadEscaneo,
+                                                                        onValueChange = { newValue ->
+                                                                            val filteredValue = newValue.filter { it.isDigit() }
+                                                                            val cantidadesMap = cantidadesArticulo + (indice to filteredValue)
+                                                                            cantidadesPorArticulo = cantidadesPorArticulo + (codArticulo to cantidadesMap)
+                                                                        },
+                                                                        label = { Text("Cantidad", color = Color.Black) },
+                                                                        singleLine = true,
+                                                                        modifier = Modifier.weight(1f),
+                                                                        textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                                                                        colors = TextFieldDefaults.outlinedTextFieldColors(
+                                                                            cursorColor = Color.Black,
+                                                                            focusedBorderColor = Color.Black,
+                                                                            unfocusedBorderColor = Color.Black,
+                                                                            focusedLabelColor = Color.Black,
+                                                                            unfocusedLabelColor = Color.Black
+                                                                        ),
+                                                                        placeholder = { Text("Ingrese la cantidad", color = Color.Gray) }
+                                                                    )
+                                                                    Spacer(modifier = Modifier.width(8.dp))
+                                                                    IconButton(
+                                                                        onClick = {
+                                                                            if (cantidadEscaneo.isNotEmpty()) {
+                                                                                val cantidadesGuardMap = cantidadesGuardadasArticulo + (indice to true)
+                                                                                cantidadesGuardadas = cantidadesGuardadas + (codArticulo to cantidadesGuardMap)
+                                                                            }
+                                                                        },
+                                                                        enabled = cantidadEscaneo.isNotEmpty()
+                                                                    ) {
+                                                                        Icon(
+                                                                            Icons.Filled.Save,
+                                                                            contentDescription = "Guardar cantidad",
+                                                                            tint = if (cantidadEscaneo.isNotEmpty()) Color(0xFF4CAF50) else Color.Gray,
+                                                                            modifier = Modifier.size(24.dp)
+                                                                        )
+                                                                    }
+                                                                }
+                                                            } else {
+                                                                Row(
+                                                                    verticalAlignment = Alignment.CenterVertically,
+                                                                    modifier = Modifier.fillMaxWidth()
+                                                                ) {
+                                                                    OutlinedTextField(
+                                                                        value = cantidadEscaneo,
+                                                                        onValueChange = { },
+                                                                        label = { Text("Cantidad:", color = Color.Black) },
+                                                                        singleLine = true,
+                                                                        modifier = Modifier.weight(1f),
+                                                                        textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                                                                        colors = TextFieldDefaults.outlinedTextFieldColors(
+                                                                            cursorColor = Color.Black,
+                                                                            focusedBorderColor = Color.Black,
+                                                                            unfocusedBorderColor = Color.Black,
+                                                                            focusedLabelColor = Color.Black,
+                                                                            unfocusedLabelColor = Color.Black
+                                                                        ),
+                                                                        enabled = false,
+                                                                        readOnly = true
+                                                                    )
+                                                                    Spacer(modifier = Modifier.width(8.dp))
+                                                                    IconButton(
+                                                                        onClick = {
+                                                                            val cantidadesGuardMap = cantidadesGuardadasArticulo + (indice to false)
+                                                                            cantidadesGuardadas = cantidadesGuardadas + (codArticulo to cantidadesGuardMap)
+                                                                        }
+                                                                    ) {
+                                                                        Icon(
+                                                                            Icons.Filled.Edit,
+                                                                            contentDescription = "Editar cantidad",
+                                                                            tint = Color.Black,
+                                                                            modifier = Modifier.size(20.dp)
+                                                                        )
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        
+                                        // Botón "+" para agregar nuevo escaneo
+                                        // Condiciones:
+                                        // 1. Hay múltiples ubicaciones disponibles
+                                        // 2. La cantidad total recolectada es menor a la solicitada
+                                        // 3. Aún hay ubicaciones sin asignar
+                                        // 4. El último escaneo tiene partida, ubicación y cantidad guardada
+                                        val ultimoIndice = listaEscaneos.lastIndex
+                                        val ultimoEscaneo = if (ultimoIndice >= 0) listaEscaneos[ultimoIndice] else null
+                                        val ultimoEscaneoCompleto = if (ultimoEscaneo != null) {
+                                            val partidaLlena = !ultimoEscaneo["partida"].isNullOrEmpty()
+                                            val ubicacionLlena = !ultimoEscaneo["ubicacion"].isNullOrEmpty()
+                                            val cantidadGuardadaUltimo = cantidadesGuardadasArticulo[ultimoIndice] ?: false
+                                            partidaLlena && ubicacionLlena && cantidadGuardadaUltimo
+                                        } else {
+                                            false
+                                        }
+                                        
+                                        if (ubicacionesDelArticulo.size > 1 && 
+                                            totalRecolectado < cantidadSolicitada && 
+                                            listaEscaneos.size < ubicacionesDelArticulo.size &&
+                                            ultimoEscaneoCompleto) {
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            Button(
+                                                onClick = {
+                                                    // Agregar nuevo escaneo vacío a la lista
+                                                    val listaActual = scaneoIndividual[codArticulo] ?: emptyList()
+                                                    val nuevaLista = listaActual + mapOf<String, String>()
+                                                    scaneoIndividual = scaneoIndividual + (codArticulo to nuevaLista)
+                                                },
+                                                modifier = Modifier.fillMaxWidth(),
+                                                colors = ButtonDefaults.buttonColors(
+                                                    containerColor = Color(0xFF4CAF50)
+                                                ),
+                                                shape = RoundedCornerShape(8.dp)
+                                            ) {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.Center
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Filled.Add,
+                                                        contentDescription = "Agregar escaneo",
+                                                        tint = Color.White,
+                                                        modifier = Modifier.size(24.dp)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(4.dp))
+                                                    Text(
+                                                        text = "Agregar Partida/Ubicación",
+                                                        color = Color.White,
+                                                        fontSize = 14.sp
+                                                    )
                                                 }
                                             }
                                         }
@@ -1219,15 +1285,26 @@ fun RecolectarScreen(
             }
 
             // Verificar si todos los items escaneados están completos y hay número de pedido
+            // Se permite envío con cargas parciales, solo se valida que los renglones existentes estén completos
             val todasCompletas = ubicacionesParsed.all { (codArticulo, _) ->
-                val datosEscaneo = scaneoIndividual[codArticulo]
-                val partida = datosEscaneo?.get("partida")
-                val ubicacion = datosEscaneo?.get("ubicacion")
-                val cantidad = cantidadesPorArticulo[codArticulo]
-                val cantidadGuardada = cantidadesGuardadas[codArticulo] == true
+                val listaEscaneos = scaneoIndividual[codArticulo] ?: emptyList()
+                val cantidadesArticulo = cantidadesPorArticulo[codArticulo] ?: emptyMap()
+                val cantidadesGuardadasArticulo = cantidadesGuardadas[codArticulo] ?: emptyMap()
                 
-                !partida.isNullOrEmpty() && !ubicacion.isNullOrEmpty() && 
-                !cantidad.isNullOrEmpty() && cantidadGuardada
+                // Verificar que haya al menos un escaneo y que TODOS los escaneos de este artículo estén completos
+                // (con partida, ubicación y cantidad guardada)
+                val hayEscaneos = listaEscaneos.isNotEmpty()
+                val todosLosEscaneosCompletos = listaEscaneos.all { escaneo ->
+                    val indice = listaEscaneos.indexOf(escaneo)
+                    val guardado = cantidadesGuardadasArticulo[indice] ?: false
+                    val partida = escaneo["partida"]
+                    val ubicacion = escaneo["ubicacion"]
+                    val tieneCantidad = cantidadesArticulo[indice]?.isNotEmpty() == true
+                    
+                    !partida.isNullOrEmpty() && !ubicacion.isNullOrEmpty() && tieneCantidad && guardado
+                }
+                
+                hayEscaneos && todosLosEscaneosCompletos
             }
 
             val tienePedido = qrData?.pedido?.isNotEmpty() == true
@@ -1272,28 +1349,37 @@ fun RecolectarScreen(
                             val recoleccionesArray = JSONArray()
                             
                             Log.d("RecolectarScreen", "=== DATOS DE RECOLECCIONES ===")
-                            scaneoIndividual.forEach { (codArticulo, datosEscaneo) ->
-                                val partida = datosEscaneo["partida"] ?: ""
-                                val ubicacion = datosEscaneo["ubicacion"] ?: ""
-                                val cantidad = cantidadesPorArticulo[codArticulo]?.toIntOrNull() ?: 0
-                                
-                                Log.d("RecolectarScreen", "Artículo: $codArticulo")
-                                Log.d("RecolectarScreen", "  - Partida: $partida")
-                                Log.d("RecolectarScreen", "  - Ubicación: $ubicacion")
-                                Log.d("RecolectarScreen", "  - Cantidad: $cantidad")
-                                Log.d("RecolectarScreen", "  - CodDeposito: $efectivoCodDeposito")
-                                
-                                val recoleccionObj = JSONObject()
-                                recoleccionObj.put("nombreUbi", ubicacion)
-                                recoleccionObj.put("cantidad", cantidad)
-                                recoleccionObj.put("codArticulo", codArticulo)
-                                recoleccionObj.put("codDeposito", efectivoCodDeposito)
-                                recoleccionObj.put("idEtiqueta", codArticulo)
-                                recoleccionObj.put("numPartida", partida)
-                                //recoleccionObj.put("numSerie", ubicacion)
-                                recoleccionObj.put("userData", usuario)
-                                
-                                recoleccionesArray.put(recoleccionObj)
+                            scaneoIndividual.forEach { (codArticulo, listaEscaneos) ->
+                                // Iterar sobre cada escaneo del artículo
+                                listaEscaneos.forEachIndexed { indice, escaneo ->
+                                    val partida = escaneo["partida"] ?: ""
+                                    val ubicacion = escaneo["ubicacion"] ?: ""
+                                    val cantidadesArticulo = cantidadesPorArticulo[codArticulo] ?: emptyMap()
+                                    val cantidadesGuardadasArticulo = cantidadesGuardadas[codArticulo] ?: emptyMap()
+                                    val cantidad = cantidadesArticulo[indice]?.toIntOrNull() ?: 0
+                                    val cantidadGuardada = cantidadesGuardadasArticulo[indice] ?: false
+                                    
+                                    // Solo incluir escaneos que tengan cantidad guardada
+                                    if (cantidadGuardada && partida.isNotEmpty() && ubicacion.isNotEmpty() && cantidad > 0) {
+                                        Log.d("RecolectarScreen", "Artículo: $codArticulo - Escaneo #${indice + 1}")
+                                        Log.d("RecolectarScreen", "  - Partida: $partida")
+                                        Log.d("RecolectarScreen", "  - Ubicación: $ubicacion")
+                                        Log.d("RecolectarScreen", "  - Cantidad: $cantidad")
+                                        Log.d("RecolectarScreen", "  - CodDeposito: $efectivoCodDeposito")
+                                        
+                                        val recoleccionObj = JSONObject()
+                                        recoleccionObj.put("nombreUbi", ubicacion)
+                                        recoleccionObj.put("cantidad", cantidad)
+                                        recoleccionObj.put("codArticulo", codArticulo)
+                                        recoleccionObj.put("codDeposito", efectivoCodDeposito)
+                                        recoleccionObj.put("idEtiqueta", codArticulo)
+                                        recoleccionObj.put("numPartida", partida)
+                                        //recoleccionObj.put("numSerie", ubicacion)
+                                        recoleccionObj.put("userData", usuario)
+                                        
+                                        recoleccionesArray.put(recoleccionObj)
+                                    }
+                                }
                             }
                             
                             json.put("recolecciones", recoleccionesArray)
@@ -1412,17 +1498,22 @@ fun RecolectarScreen(
                 
                 // Debug individual de cada artículo
                 ubicacionesParsed.forEach { (codArticulo, _) ->
-                    val datosEscaneo = scaneoIndividual[codArticulo]
-                    val partida = datosEscaneo?.get("partida")
-                    val ubicacion = datosEscaneo?.get("ubicacion")
-                    val cantidad = cantidadesPorArticulo[codArticulo]
-                    val cantidadGuardada = cantidadesGuardadas[codArticulo] == true
+                    val listaEscaneos = scaneoIndividual[codArticulo] ?: emptyList()
+                    val cantidadesArticulo = cantidadesPorArticulo[codArticulo] ?: emptyMap()
+                    val cantidadesGuardadasArticulo = cantidadesGuardadas[codArticulo] ?: emptyMap()
+                    
+                    val totalRecolectado = listaEscaneos.indices.sumOf { indice ->
+                        val guardado = cantidadesGuardadasArticulo[indice] ?: false
+                        if (guardado) {
+                            cantidadesArticulo[indice]?.toIntOrNull() ?: 0
+                        } else {
+                            0
+                        }
+                    }
                     
                     Log.d("RecolectarScreen", "Debug artículo $codArticulo:")
-                    Log.d("RecolectarScreen", "  - Partida: ${partida?.isNotEmpty()}")
-                    Log.d("RecolectarScreen", "  - Ubicación: ${ubicacion?.isNotEmpty()}")
-                    Log.d("RecolectarScreen", "  - Cantidad: ${cantidad?.isNotEmpty()}")
-                    Log.d("RecolectarScreen", "  - Cantidad guardada: $cantidadGuardada")
+                    Log.d("RecolectarScreen", "  - Escaneos: ${listaEscaneos.size}")
+                    Log.d("RecolectarScreen", "  - Total recolectado: $totalRecolectado")
                 }
             }
 
