@@ -48,6 +48,9 @@ import org.json.JSONObject
 import com.thinkthat.mamusckascaner.ui.theme.BarCodeScannerTheme
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import com.thinkthat.mamusckascaner.utils.QRData
+import com.thinkthat.mamusckascaner.database.RecoleccionRepository
+import com.thinkthat.mamusckascaner.database.RecoleccionEntity
+import com.thinkthat.mamusckascaner.database.PedidoEntity
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,6 +74,10 @@ fun RecolectarScreen(
     onClearScanValues: () -> Unit = {}
 ) {
     val context = LocalContext.current
+    
+    // Inicializar repository de SQLite
+    val repository = remember { RecoleccionRepository(context) }
+    
     var scanStep by remember { mutableStateOf("partida") }
     var partidaActual by remember { mutableStateOf<String?>(null) }
     var ubicacionActual by remember { mutableStateOf<String?>(null) }
@@ -196,6 +203,98 @@ fun RecolectarScreen(
         if (mensajeExito != null) {
             kotlinx.coroutines.delay(3000)
             mensajeExito = null
+        }
+    }
+    
+    // Cargar datos guardados de SQLite al iniciar (si hay un pedido)
+    LaunchedEffect(qrData?.pedido) {
+        if (qrData?.pedido != null) {
+            val idPedido = qrData.pedido.toIntOrNull()
+            if (idPedido != null && idPedido > 0) {
+                try {
+                    Log.d("RecolectarScreen", "Cargando datos guardados para pedido $idPedido...")
+                    
+                    // Recuperar recolecciones guardadas
+                    val recoleccionesGuardadas = repository.getRecoleccionesByPedido(idPedido)
+                    
+                    if (recoleccionesGuardadas.isNotEmpty()) {
+                        Log.d("RecolectarScreen", "Se encontraron ${recoleccionesGuardadas.size} recolecciones guardadas")
+                        
+                        // Reconstruir el estado desde la base de datos
+                        val nuevoScaneoIndividual = mutableMapOf<String, List<Map<String, String>>>()
+                        val nuevasCantidades = mutableMapOf<String, MutableMap<Int, String>>()
+                        val nuevasGuardadas = mutableMapOf<String, MutableMap<Int, Boolean>>()
+                        
+                        recoleccionesGuardadas.groupBy { it.codArticulo }.forEach { (codArticulo, recolecciones) ->
+                            val listaEscaneos = recolecciones.sortedBy { it.indiceScaneo }.map { rec ->
+                                mapOf(
+                                    "partida" to rec.partida,
+                                    "ubicacion" to rec.ubicacion
+                                )
+                            }
+                            nuevoScaneoIndividual[codArticulo] = listaEscaneos
+                            
+                            val cantidadesMap = mutableMapOf<Int, String>()
+                            val guardadasMap = mutableMapOf<Int, Boolean>()
+                            
+                            recolecciones.sortedBy { it.indiceScaneo }.forEachIndexed { index, rec ->
+                                cantidadesMap[index] = rec.cantidad.toString()
+                                guardadasMap[index] = true
+                            }
+                            
+                            nuevasCantidades[codArticulo] = cantidadesMap
+                            nuevasGuardadas[codArticulo] = guardadasMap
+                        }
+                        
+                        scaneoIndividual = nuevoScaneoIndividual
+                        cantidadesPorArticulo = nuevasCantidades
+                        cantidadesGuardadas = nuevasGuardadas
+                        
+                        Log.d("RecolectarScreen", "Datos cargados exitosamente desde SQLite")
+                    } else {
+                        Log.d("RecolectarScreen", "No se encontraron recolecciones guardadas para el pedido $idPedido")
+                    }
+                } catch (e: Exception) {
+                    Log.e("RecolectarScreen", "Error al cargar datos desde SQLite", e)
+                }
+            }
+        }
+    }
+    
+    // Guardar automáticamente cuando se guarda una cantidad
+    LaunchedEffect(cantidadesGuardadas) {
+        if (qrData?.pedido != null && cantidadesGuardadas.isNotEmpty()) {
+            val idPedido = qrData.pedido.toIntOrNull()
+            if (idPedido != null && idPedido > 0) {
+                try {
+                    val prefs = context.getSharedPreferences("QRCodeScannerPrefs", Context.MODE_PRIVATE)
+                    val usuario = prefs.getString("savedUser", "") ?: ""
+                    
+                    // Guardar pedido si no existe
+                    val pedidoExistente = repository.getPedidoByIdPedido(idPedido)
+                    if (pedidoExistente == null) {
+                        val efectivoCodDeposito = when {
+                            qrData.deposito.isNotEmpty() -> qrData.deposito
+                            deposito.isNotEmpty() -> deposito
+                            else -> "DEFAULT"
+                        }
+                        
+                        val fechaActual = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
+                        
+                        val nuevoPedido = PedidoEntity(
+                            idPedido = idPedido,
+                            codDeposito = efectivoCodDeposito,
+                            fechaCreacion = fechaActual,
+                            estado = "pendiente",
+                            ubicacionesJson = ubicacionesRecolectar ?: ""
+                        )
+                        repository.savePedido(nuevoPedido)
+                        Log.d("RecolectarScreen", "Pedido $idPedido guardado en SQLite")
+                    }
+                } catch (e: Exception) {
+                    Log.e("RecolectarScreen", "Error al guardar pedido en SQLite", e)
+                }
+            }
         }
     }
 
@@ -1103,6 +1202,54 @@ fun RecolectarScreen(
                                                                             if (cantidadEscaneo.isNotEmpty()) {
                                                                                 val cantidadesGuardMap = cantidadesGuardadasArticulo + (indice to true)
                                                                                 cantidadesGuardadas = cantidadesGuardadas + (codArticulo to cantidadesGuardMap)
+                                                                                
+                                                                                // Guardar en SQLite
+                                                                                CoroutineScope(Dispatchers.IO).launch {
+                                                                                    try {
+                                                                                        val idPedido = qrData?.pedido?.toIntOrNull() ?: 0
+                                                                                        if (idPedido > 0) {
+                                                                                            val prefs = context.getSharedPreferences("QRCodeScannerPrefs", Context.MODE_PRIVATE)
+                                                                                            val usuario = prefs.getString("savedUser", "") ?: ""
+                                                                                            
+                                                                                            val efectivoCodDeposito = when {
+                                                                                                qrData.deposito.isNotEmpty() -> qrData.deposito
+                                                                                                deposito.isNotEmpty() -> deposito
+                                                                                                else -> "DEFAULT"
+                                                                                            }
+                                                                                            
+                                                                                            val fechaActual = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
+                                                                                            
+                                                                                            val listaEscaneos = scaneoIndividual[codArticulo] ?: emptyList()
+                                                                                            val escaneoActual = listaEscaneos.getOrNull(indice)
+                                                                                            
+                                                                                            // Obtener nombre del artículo y cantidad solicitada
+                                                                                            val descripcionArticulo = ubicacionesDelArticulo.firstOrNull()?.get("descripcionPartida") as? String ?: "N/A"
+                                                                                            val cantidadSolicitada = ubicacionesDelArticulo.firstOrNull()?.get("requerido") as? Int ?: 0
+                                                                                            
+                                                                                            if (escaneoActual != null) {
+                                                                                                val recoleccion = RecoleccionEntity(
+                                                                                                    idPedido = idPedido,
+                                                                                                    codArticulo = codArticulo,
+                                                                                                    nombreArticulo = descripcionArticulo,
+                                                                                                    cantidadSolicitada = cantidadSolicitada,
+                                                                                                    ubicacion = escaneoActual["ubicacion"] ?: "",
+                                                                                                    partida = escaneoActual["partida"] ?: "",
+                                                                                                    cantidad = cantidadEscaneo.toIntOrNull() ?: 0,
+                                                                                                    codDeposito = efectivoCodDeposito,
+                                                                                                    usuario = usuario,
+                                                                                                    fechaHora = fechaActual,
+                                                                                                    sincronizado = false,
+                                                                                                    indiceScaneo = indice
+                                                                                                )
+                                                                                                
+                                                                                                val id = repository.saveRecoleccion(recoleccion)
+                                                                                                Log.d("RecolectarScreen", "Recolección guardada en SQLite con ID: $id")
+                                                                                            }
+                                                                                        }
+                                                                                    } catch (e: Exception) {
+                                                                                        Log.e("RecolectarScreen", "Error al guardar en SQLite", e)
+                                                                                    }
+                                                                                }
                                                                             }
                                                                         },
                                                                         enabled = cantidadEscaneo.isNotEmpty()
@@ -1410,6 +1557,21 @@ fun RecolectarScreen(
                                     if (response.isSuccessful) {
                                         val responseBody = response.body()?.string() ?: "Sin contenido"
                                         Log.d("RecolectarScreen", "  - Respuesta exitosa: $responseBody")
+                                        
+                                        // Marcar recolecciones como sincronizadas en SQLite
+                                        try {
+                                            val idPedido = qrData?.pedido?.toIntOrNull()
+                                            if (idPedido != null && idPedido > 0) {
+                                                val recoleccionesGuardadas = repository.getRecoleccionesByPedido(idPedido)
+                                                recoleccionesGuardadas.forEach { recoleccion ->
+                                                    repository.marcarComoSincronizado(recoleccion.id)
+                                                }
+                                                repository.updatePedidoEstado(idPedido, "sincronizado")
+                                                Log.d("RecolectarScreen", "Recolecciones marcadas como sincronizadas en SQLite")
+                                            }
+                                        } catch (e: Exception) {
+                                            Log.e("RecolectarScreen", "Error al actualizar estado en SQLite", e)
+                                        }
                                         
                                         withContext(Dispatchers.Main) {
                                             isLoadingEnvio = false
