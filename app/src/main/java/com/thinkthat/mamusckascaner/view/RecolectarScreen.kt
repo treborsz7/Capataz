@@ -333,10 +333,9 @@ fun RecolectarScreen(
                     // Guardar pedido si no existe
                     val pedidoExistente = repository.getPedidoByIdPedido(idPedido)
                     if (pedidoExistente == null) {
-                        val efectivoCodDeposito = when {
-                            qrData.deposito.isNotEmpty() -> qrData.deposito
-                            deposito.isNotEmpty() -> deposito
-                            else -> "DEFAULT"
+                        // Obtener codDeposito desde QR o SharedPreferences
+                        val efectivoCodDeposito = qrData.deposito.ifEmpty { 
+                            prefs.getString("ultimoDeposito", "") ?: ""
                         }
                         
                         val fechaActual = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
@@ -466,7 +465,7 @@ fun RecolectarScreen(
                 )
             }
 
-            // Información del QR o campo depósito
+            // Información del QR (sin mostrar depósito)
             if (fromQR && qrData != null) {
                 // Mostrar información del QR
                 Card(
@@ -487,14 +486,6 @@ fun RecolectarScreen(
                             color = Color.Gray,
                             modifier = Modifier.padding(bottom = 8.dp)
                         )
-                        if (qrData.deposito.isNotEmpty()) {
-                            Text(
-                                text = "Depósito: ${qrData.deposito}",
-                                fontSize = 16.sp,
-                                color = Color.Black,
-                                modifier = Modifier.padding(bottom = 4.dp)
-                            )
-                        }
                         if (qrData.pedido.isNotEmpty()) {
                             Text(
                                 text = "Pedido: ${qrData.pedido}",
@@ -504,25 +495,8 @@ fun RecolectarScreen(
                         }
                     }
                 }
-            } else {
-                // Campo depósito tradicional
-                OutlinedTextField(
-                    value = deposito,
-                    onValueChange = { deposito = it },
-                    label = { Text("Depósito", color = Color.Black) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(0.8f),
-                    textStyle = LocalTextStyle.current.copy(color = Color.Black),
-                    colors = TextFieldDefaults.outlinedTextFieldColors(
-                        //textColor = Color.Black,
-                        cursorColor = Color.Black,
-                        focusedBorderColor = Color(0xFF1976D2),
-                        unfocusedBorderColor = Color(0xFF1976D2),
-                        focusedLabelColor = Color.Black,
-                        unfocusedLabelColor = Color.Black
-                    )
-                )
             }
+            // Campo depósito oculto en todas las pantallas
 
             // Mostrar estado de carga de ubicaciones
             if (isLoadingUbicaciones) {
@@ -1054,11 +1028,8 @@ fun RecolectarScreen(
                                                                                         val prefs = context.getSharedPreferences("QRCodeScannerPrefs", Context.MODE_PRIVATE)
                                                                                         val usuario = prefs.getString("savedUser", "") ?: ""
                                                                                         
-                                                                                        val efectivoCodDeposito = when {
-                                                                                            qrData?.deposito?.isNotEmpty() == true -> qrData.deposito
-                                                                                            deposito.isNotEmpty() -> deposito
-                                                                                            else -> "DEFAULT"
-                                                                                        }
+                                                                                        // Obtener codDeposito desde QR o SharedPreferences
+                                                                                        val efectivoCodDeposito = qrData?.deposito ?: prefs.getString("ultimoDeposito", "") ?: ""
                                                                                         
                                                                                         val fechaActual = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
                                                                                         val descripcionArticulo = ubicacionesDelArticulo.firstOrNull()?.get("descripcionPartida") as? String ?: "N/A"
@@ -1335,11 +1306,8 @@ fun RecolectarScreen(
                                                                                             val prefs = context.getSharedPreferences("QRCodeScannerPrefs", Context.MODE_PRIVATE)
                                                                                             val usuario = prefs.getString("savedUser", "") ?: ""
                                                                                             
-                                                                                            val efectivoCodDeposito = when {
-                                                                                                qrData?.deposito?.isNotEmpty() == true -> qrData.deposito
-                                                                                                deposito.isNotEmpty() -> deposito
-                                                                                                else -> "DEFAULT"
-                                                                                            }
+                                                                                            // Obtener codDeposito desde QR o SharedPreferences
+                                                                                            val efectivoCodDeposito = qrData?.deposito ?: prefs.getString("ultimoDeposito", "") ?: ""
                                                                                             
                                                                                             val fechaActual = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
                                                                                             val descripcionArticulo = ubicacionesDelArticulo.firstOrNull()?.get("descripcionPartida") as? String ?: "N/A"
@@ -1423,11 +1391,8 @@ fun RecolectarScreen(
                                                                                             val prefs = context.getSharedPreferences("QRCodeScannerPrefs", Context.MODE_PRIVATE)
                                                                                             val usuario = prefs.getString("savedUser", "") ?: ""
                                                                                             
-                                                                                            val efectivoCodDeposito = when {
-                                                                                                qrData?.deposito?.isNotEmpty() == true -> qrData.deposito
-                                                                                                deposito.isNotEmpty() -> deposito
-                                                                                                else -> "DEFAULT"
-                                                                                            }
+                                                                                            // Obtener codDeposito desde QR o SharedPreferences
+                                                                                            val efectivoCodDeposito = qrData?.deposito ?: prefs.getString("ultimoDeposito", "") ?: ""
                                                                                             
                                                                                             val fechaActual = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
                                                                                             
@@ -1708,7 +1673,7 @@ fun RecolectarScreen(
             }
 
             val tienePedido = qrData?.pedido?.isNotEmpty() == true
-            val tieneDeposito = (qrData?.deposito?.isNotEmpty() == true) || deposito.isNotBlank()
+            val tieneDeposito = true // Siempre true, se obtiene desde SharedPreferences
             val datosListos = !isLoadingUbicaciones && errorUbicaciones == null && ubicacionesRecolectar != null
             
             Log.d("RecolectarScreen", "=== VALIDACIÓN FINAL ===")
@@ -1730,17 +1695,12 @@ fun RecolectarScreen(
                             
                             Log.d("RecolectarScreen", "=== INICIANDO ENVÍO DE RECOLECCIÓN ===")
                             
-                            // Obtener el codDeposito efectivo
-                            val efectivoCodDeposito = when {
-                                qrData?.deposito?.isNotEmpty() == true -> qrData.deposito
-                                deposito.isNotEmpty() -> deposito
-                                else -> "DEFAULT_DEPOSITO"
-                            }
+                            // Obtener el codDeposito desde SharedPreferences (guardado desde QR)
+                            val efectivoCodDeposito = qrData?.deposito ?: prefs.getString("ultimoDeposito", "") ?: ""
                             
                             Log.d("RecolectarScreen", "Usuario: $usuario")
                             Log.d("RecolectarScreen", "CodDeposito efectivo: $efectivoCodDeposito")
                             Log.d("RecolectarScreen", "QR Data: $qrData")
-                            Log.d("RecolectarScreen", "Deposito manual: $deposito")
                             
                             // Build JSON body con el nuevo formato
                             val json = JSONObject()

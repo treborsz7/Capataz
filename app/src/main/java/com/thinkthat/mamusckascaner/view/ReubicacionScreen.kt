@@ -90,16 +90,9 @@ fun ReubicacionScreen(
     ) { isGranted: Boolean ->
         hasCameraPermission = isGranted
     }
-    // Persistencia de depósito
+    // Leer depósito desde SharedPreferences (guardado en login) - solo para uso en API
     val prefs = context.getSharedPreferences("QRCodeScannerPrefs", android.content.Context.MODE_PRIVATE)
-    var deposito by remember { mutableStateOf(prefs.getString("savedDeposito", "") ?: "") }
-    var depositoFieldValue by remember { mutableStateOf(TextFieldValue(deposito)) }
-    var depositoEditable by remember { mutableStateOf(false) }
-    val depositoFocusRequester = remember { FocusRequester() }
-    
-    LaunchedEffect(deposito) {
-        prefs.edit().putString("savedDeposito", deposito).apply()
-    }
+    val deposito = prefs.getString("savedDeposito", "") ?: ""
     
     // Estados para campos editables
     var productoLocal by remember { mutableStateOf(producto ?: "") }
@@ -192,86 +185,6 @@ fun ReubicacionScreen(
                 tint = Color.White,
                 modifier = Modifier.size(logoSize)
             )
-            // Campo depósito con ícono de edición o guardado
-            if (!depositoEditable) {
-                // Modo solo lectura - sin bordes, texto gris
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth(formWidth)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .background(Color.Transparent)
-                            .padding(horizontalPadding / 2)
-                    ) {
-                        Text(
-                            text = if (deposito.isBlank()) "Depósito:" else "Depósito: $deposito",
-                            color = Color.White,
-                            fontSize = bodyFontSize
-                        )
-                    }
-                    IconButton(
-                        onClick = { 
-                            depositoEditable = true
-                            depositoFieldValue = TextFieldValue(
-                                text = deposito,
-                                selection = TextRange(0, deposito.length)
-                            )
-                        }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Edit,
-                            contentDescription = "Editar depósito",
-                            tint = Color.White
-                        )
-                    }
-                }
-            } else {
-                // Modo edición - campo normal con ícono de guardar
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth(formWidth)
-                ) {
-                    OutlinedTextField(
-                        value = depositoFieldValue,
-                        onValueChange = { depositoFieldValue = it },
-                        label = { Text("Depósito", color = Color.White) },
-                        singleLine = true,
-                        modifier = Modifier
-                            .weight(1f)
-                            .focusRequester(depositoFocusRequester),
-                        textStyle = LocalTextStyle.current.copy(color = Color.White),
-                        colors = TextFieldDefaults.outlinedTextFieldColors(
-                            cursorColor = Color.White,
-                            focusedBorderColor = Color(0xFF1976D2),
-                            unfocusedBorderColor = Color(0xFF1976D2),
-                            focusedLabelColor = Color.White,
-                            unfocusedLabelColor = Color.White
-                        )
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    IconButton(
-                        onClick = { 
-                            deposito = depositoFieldValue.text
-                            depositoEditable = false
-                        }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Save,
-                            contentDescription = "Guardar depósito",
-                            tint = Color.White
-                        )
-                    }
-                }
-                
-                // Auto-focus y selección cuando se habilita la edición
-                LaunchedEffect(depositoEditable) {
-                    if (depositoEditable) {
-                        depositoFocusRequester.requestFocus()
-                    }
-                }
-            }
 
             // Lógica secuencial: mostrar campos y botones según el estado
             if (productoLocal.isBlank()) {
