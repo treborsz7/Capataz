@@ -93,6 +93,8 @@ fun RecolectarScreen(
     // Estado para diálogos de confirmación
     var showBackDialog by remember { mutableStateOf(false) }
     var showCloseDialog by remember { mutableStateOf(false) }
+    var showDeleteRenglonDialog by remember { mutableStateOf(false) }
+    var renglonAEliminar by remember { mutableStateOf<Pair<String, Int>?>(null) } // codArticulo, indice
     
     // Estado para escaneo individual por codArticulo - AHORA soporta múltiples escaneos por artículo
     // Estructura: Map<codArticulo, List<Map<String, String>>>
@@ -220,12 +222,70 @@ fun RecolectarScreen(
                     if (recoleccionesGuardadas.isNotEmpty()) {
                         Log.d("RecolectarScreen", "Se encontraron ${recoleccionesGuardadas.size} recolecciones guardadas")
                         
+                        // Obtener ubicaciones actuales de la API para reconciliación
+                        var ubicacionesActualesMap: Map<String, Map<String, Any>>? = null
+                        if (!ubicacionesRecolectar.isNullOrEmpty()) {
+                            try {
+                                val jsonArray = JSONArray(ubicacionesRecolectar)
+                                val ubicMap = mutableMapOf<String, MutableMap<String, Any>>()
+                                for (i in 0 until jsonArray.length()) {
+                                    val obj = jsonArray.getJSONObject(i)
+                                    val codArticulo = obj.optString("codArticulo", "")
+                                    val ubicacion = obj.optString("nombre", "")
+                                    val key = "$codArticulo-$ubicacion"
+                                    
+                                    if (!ubicMap.containsKey(key)) {
+                                        ubicMap[key] = mutableMapOf(
+                                            "codArticulo" to codArticulo,
+                                            "ubicacion" to ubicacion,
+                                            "requerido" to (obj.optInt("requerido", 0))
+                                        )
+                                    }
+                                }
+                                ubicacionesActualesMap = ubicMap
+                            } catch (e: Exception) {
+                                Log.e("RecolectarScreen", "Error al parsear ubicaciones para reconciliación", e)
+                            }
+                        }
+                        
                         // Reconstruir el estado desde la base de datos
                         val nuevoScaneoIndividual = mutableMapOf<String, List<Map<String, String>>>()
                         val nuevasCantidades = mutableMapOf<String, MutableMap<Int, String>>()
                         val nuevasGuardadas = mutableMapOf<String, MutableMap<Int, Boolean>>()
                         
-                        recoleccionesGuardadas.groupBy { it.codArticulo }.forEach { (codArticulo, recolecciones) ->
+                        // Agrupar recolecciones y aplicar reconciliación
+                        val recoleccionesReconciliadas = recoleccionesGuardadas.toMutableList()
+                        
+                        if (ubicacionesActualesMap != null) {
+                            // Verificar cada recolección guardada
+                            recoleccionesGuardadas.forEach { rec ->
+                                val key = "${rec.codArticulo}-${rec.ubicacion}"
+                                val ubicacionActual = ubicacionesActualesMap[key]
+                                
+                                if (ubicacionActual == null) {
+                                    // La ubicación ya no existe en la API - eliminar recolección
+                                    Log.w("RecolectarScreen", "Reconciliación: Eliminando recolección de ${rec.codArticulo} en ${rec.ubicacion} (ubicación eliminada en API)")
+                                    recoleccionesReconciliadas.remove(rec)
+                                    repository.deleteRecoleccion(rec.id)
+                                } else {
+                                    // Verificar si la cantidad requerida cambió
+                                    val cantidadActual = ubicacionActual["requerido"] as? Int ?: 0
+                                    if (cantidadActual != rec.cantidad && cantidadActual > 0) {
+                                        Log.i("RecolectarScreen", "Reconciliación: Cantidad de ${rec.codArticulo} cambió de ${rec.cantidad} a $cantidadActual")
+                                        // Actualizar la cantidad en SQLite
+                                        val recActualizado = rec.copy(cantidad = cantidadActual)
+                                        repository.updateRecoleccion(recActualizado)
+                                        val index = recoleccionesReconciliadas.indexOf(rec)
+                                        if (index >= 0) {
+                                            recoleccionesReconciliadas[index] = recActualizado
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Reconstruir estado con datos reconciliados
+                        recoleccionesReconciliadas.groupBy { it.codArticulo }.forEach { (codArticulo, recolecciones) ->
                             val listaEscaneos = recolecciones.sortedBy { it.indiceScaneo }.map { rec ->
                                 mapOf(
                                     "partida" to rec.partida,
@@ -250,7 +310,7 @@ fun RecolectarScreen(
                         cantidadesPorArticulo = nuevasCantidades
                         cantidadesGuardadas = nuevasGuardadas
                         
-                        Log.d("RecolectarScreen", "Datos cargados exitosamente desde SQLite")
+                        Log.d("RecolectarScreen", "Datos cargados y reconciliados exitosamente desde SQLite")
                     } else {
                         Log.d("RecolectarScreen", "No se encontraron recolecciones guardadas para el pedido $idPedido")
                     }
@@ -492,13 +552,26 @@ fun RecolectarScreen(
                                 for (j in 0 until articulosArray.length()) {
                                     val articulo = articulosArray.getJSONObject(j)
                                     val nombreUbicacion = ubicacion.optString("nombre", "N/A")
+                                    val nroPartida = articulo.optString("nroPartida", "N/A")
+                                    
+                                    Log.d("RecolectarScreen", "=== PARSEANDO ARTICULO ===")
+                                    Log.d("RecolectarScreen", "Artículo completo: $articulo")
+                                    Log.d("RecolectarScreen", "Descripción: ${articulo.optString("descripcion", "N/A")}")
+                                    Log.d("RecolectarScreen", "Código: ${articulo.optString("codigo", "N/A")}")
+                                    Log.d("RecolectarScreen", "nroPartida leído: '$nroPartida'")
+                                    Log.d("RecolectarScreen", "¿Tiene campo nroPartida?: ${articulo.has("nroPartida")}")
+                                    Log.d("RecolectarScreen", "=========================")
+                                    
                                     ubicaciones.add(mapOf(
                                         "numeroUbicacion" to numeroUbicacion,
                                         "nombreUbicacion" to nombreUbicacion,
                                         "descripcionPartida" to articulo.optString("descripcion", "N/A"),
                                         "codArticulo" to articulo.optString("codigo", "N/A"),
-                                        "requerido" to articulo.optInt("requerido", 0)
+                                        "requerido" to articulo.optInt("requerido", 0),
+                                        "nroPartida" to nroPartida
                                     ))
+                                    
+                                    Log.d("RecolectarScreen", "Map agregado con nroPartida: ${ubicaciones.last()["nroPartida"]}")
                                 }
                             } 
                             // else {
@@ -638,12 +711,36 @@ fun RecolectarScreen(
                                                 }
                                             }
                                             
+                                            // Validar datos del escaneo actual
+                                            val ubicacionAsignada = ubicacionesDelArticulo.getOrNull(indice)
+                                            val nombreUbicacionEsperado = (ubicacionAsignada?.get("nombreUbicacion") as? String)
+                                            val nroPartidaEsperado = (ubicacionAsignada?.get("nroPartida") as? String)
+                                            
+                                            // Validación de ubicación
+                                            val ubicacionValida = ubicacionEscaneada == nombreUbicacionEsperado
+                                            
+                                            // Validación de partida (solo si existe un nroPartida esperado válido)
+                                            val partidaValida = if (nroPartidaEsperado != null && nroPartidaEsperado != "N/A") {
+                                                partidaEscaneado == nroPartidaEsperado
+                                            } else {
+                                                true // Si no hay partida esperada, es válido
+                                            }
+                                            
+                                            // Determinar si el escaneo completo es válido
+                                            val escaneoValido = ubicacionValida && partidaValida
+                                            
                                             Card(
                                                 modifier = Modifier
                                                     .fillMaxWidth()
                                                     .padding(vertical = 4.dp),
                                                 colors = CardDefaults.cardColors(
-                                                    containerColor = if (cantidadGuardada) Color(0xFFE8F5E9) else Color(0xFFFFF3E0)
+                                                    containerColor = if (!escaneoValido && !ubicacionEscaneada.isNullOrEmpty()) {
+                                                        Color(0xFFFFEBEE) // Rojo claro si hay datos incorrectos
+                                                    } else if (cantidadGuardada) {
+                                                        Color(0xFFE8F5E9) // Verde claro si está guardado
+                                                    } else {
+                                                        Color(0xFFFFF3E0) // Naranja claro por defecto
+                                                    }
                                                 ),
                                                 elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                                             ) {
@@ -656,15 +753,30 @@ fun RecolectarScreen(
                                                         horizontalArrangement = Arrangement.SpaceBetween,
                                                         verticalAlignment = Alignment.CenterVertically
                                                     ) {
-                                                        // Mostrar ubicación asignada en lugar de "Escaneo #X"
+                                                                        // Mostrar ubicación asignada y nroPartida
                                                         if (indice < ubicacionesDelArticulo.size) {
                                                             val ubicacionAsignada = ubicacionesDelArticulo[indice]
-                                                            Text(
-                                                                text = (ubicacionAsignada["nombreUbicacion"] as? String) ?: "N/A",
-                                                                fontSize = 14.sp,
-                                                                color = Color(0xFF4CAF50),
-                                                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
-                                                            )
+                                                            
+                                                            // Log para debuggear
+                                                            Log.d("RecolectarScreen", "Ubicación asignada: $ubicacionAsignada")
+                                                            Log.d("RecolectarScreen", "nroPartida: ${ubicacionAsignada["nroPartida"]}")
+                                                            
+                                                            val nroPartida = (ubicacionAsignada["nroPartida"] as? String) ?: "N/A"
+                                                            
+                                                            Column {
+                                                                Text(
+                                                                    text = (ubicacionAsignada["nombreUbicacion"] as? String) ?: "N/A",
+                                                                    fontSize = 14.sp,
+                                                                    color = Color(0xFF4CAF50),
+                                                                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                                                                )
+                                                                Text(
+                                                                    text = "Partida: $nroPartida",
+                                                                    fontSize = 12.sp,
+                                                                    color = Color(0xFF757575),
+                                                                    fontWeight = androidx.compose.ui.text.font.FontWeight.Normal
+                                                                )
+                                                            }
                                                         } else {
                                                             Text(
                                                                 text = "Ubicación ${indice + 1}",
@@ -678,55 +790,9 @@ fun RecolectarScreen(
                                                         if (listaEscaneos.size > 1) {
                                                             IconButton(
                                                                 onClick = {
-                                                                    // Eliminar este escaneo de la lista
-                                                                    val listaActual = scaneoIndividual[codArticulo] ?: emptyList()
-                                                                    val nuevaLista = listaActual.toMutableList()
-                                                                    if (indice < nuevaLista.size) {
-                                                                        nuevaLista.removeAt(indice)
-                                                                    }
-                                                                    scaneoIndividual = scaneoIndividual + (codArticulo to nuevaLista)
-                                                                    
-                                                                    // También eliminar la cantidad guardada
-                                                                    val cantidadesArt = cantidadesPorArticulo[codArticulo]?.toMutableMap() ?: mutableMapOf()
-                                                                    cantidadesArt.remove(indice)
-                                                                    // Reindexar las cantidades restantes
-                                                                    val nuevasCantidades = mutableMapOf<Int, String>()
-                                                                    cantidadesArt.entries.sortedBy { it.key }.forEachIndexed { newIndex, entry ->
-                                                                        if (entry.key > indice) {
-                                                                            nuevasCantidades[newIndex] = entry.value
-                                                                        } else if (entry.key < indice) {
-                                                                            nuevasCantidades[entry.key] = entry.value
-                                                                        }
-                                                                    }
-                                                                    cantidadesPorArticulo = cantidadesPorArticulo + (codArticulo to nuevasCantidades)
-                                                                    
-                                                                    // Eliminar estado de guardado
-                                                                    val guardadasArt = cantidadesGuardadas[codArticulo]?.toMutableMap() ?: mutableMapOf()
-                                                                    guardadasArt.remove(indice)
-                                                                    // Reindexar estados guardados
-                                                                    val nuevasGuardadas = mutableMapOf<Int, Boolean>()
-                                                                    guardadasArt.entries.sortedBy { it.key }.forEachIndexed { newIndex, entry ->
-                                                                        if (entry.key > indice) {
-                                                                            nuevasGuardadas[newIndex] = entry.value
-                                                                        } else if (entry.key < indice) {
-                                                                            nuevasGuardadas[entry.key] = entry.value
-                                                                        }
-                                                                    }
-                                                                    cantidadesGuardadas = cantidadesGuardadas + (codArticulo to nuevasGuardadas)
-                                                                    
-                                                                    // Eliminar campos editables
-                                                                    val editablesArt = camposEditables[codArticulo]?.toMutableMap() ?: mutableMapOf()
-                                                                    editablesArt.remove(indice)
-                                                                    // Reindexar campos editables
-                                                                    val nuevosEditables = mutableMapOf<Int, Map<String, Boolean>>()
-                                                                    editablesArt.entries.sortedBy { it.key }.forEachIndexed { newIndex, entry ->
-                                                                        if (entry.key > indice) {
-                                                                            nuevosEditables[newIndex] = entry.value
-                                                                        } else if (entry.key < indice) {
-                                                                            nuevosEditables[entry.key] = entry.value
-                                                                        }
-                                                                    }
-                                                                    camposEditables = camposEditables + (codArticulo to nuevosEditables)
+                                                                    // Mostrar diálogo de confirmación
+                                                                    renglonAEliminar = Pair(codArticulo, indice)
+                                                                    showDeleteRenglonDialog = true
                                                                 },
                                                                 modifier = Modifier.size(32.dp)
                                                             ) {
@@ -777,6 +843,17 @@ fun RecolectarScreen(
                                                                 }
                                                             }
                                                         } else {
+                                                            // Obtener nroPartida esperado de esta ubicación
+                                                            val ubicacionAsignada = ubicacionesDelArticulo.getOrNull(indice)
+                                                            val nroPartidaEsperado = (ubicacionAsignada?.get("nroPartida") as? String)
+                                                            
+                                                            // Validar partida: solo si nroPartidaEsperado no es null ni "N/A"
+                                                            val partidaValida = if (nroPartidaEsperado != null && nroPartidaEsperado != "N/A") {
+                                                                partidaEscaneado == nroPartidaEsperado
+                                                            } else {
+                                                                true // Si no hay partida esperada, siempre es válido
+                                                            }
+                                                            
                                                             Row(
                                                                 verticalAlignment = Alignment.CenterVertically,
                                                                 modifier = Modifier.fillMaxWidth()
@@ -799,8 +876,12 @@ fun RecolectarScreen(
                                                                     textStyle = LocalTextStyle.current.copy(color = Color.Black),
                                                                     colors = TextFieldDefaults.outlinedTextFieldColors(
                                                                         cursorColor = Color.Black,
-                                                                        focusedBorderColor = Color.Black,
-                                                                        unfocusedBorderColor = Color.Black,
+                                                                        focusedBorderColor = if (partidaEscaneado.isNullOrEmpty()) Color.Black 
+                                                                                             else if (partidaValida) Color(0xFF4CAF50) 
+                                                                                             else Color(0xFFFF5252),
+                                                                        unfocusedBorderColor = if (partidaEscaneado.isNullOrEmpty()) Color.Black 
+                                                                                               else if (partidaValida) Color(0xFF4CAF50) 
+                                                                                               else Color(0xFFFF5252),
                                                                         focusedLabelColor = Color.Black,
                                                                         unfocusedLabelColor = Color.Black
                                                                     ),
@@ -859,6 +940,15 @@ fun RecolectarScreen(
                                                         }
                                                     } else {
                                                         // Partida ya escaneada
+                                                        // Validar partida
+                                                        val ubicacionAsignadaValidacion = ubicacionesDelArticulo.getOrNull(indice)
+                                                        val nroPartidaEsperado = (ubicacionAsignadaValidacion?.get("nroPartida") as? String)
+                                                        val partidaEsCorrecta = if (nroPartidaEsperado != null && nroPartidaEsperado != "N/A") {
+                                                            partidaEscaneado == nroPartidaEsperado
+                                                        } else {
+                                                            true // Si no hay partida esperada, siempre es correcta
+                                                        }
+                                                        
                                                         if (!partidaEditable) {
                                                             Row(
                                                                 verticalAlignment = Alignment.CenterVertically,
@@ -872,8 +962,9 @@ fun RecolectarScreen(
                                                                 ) {
                                                                     Text(
                                                                         text = "Partida:\n$partidaEscaneado",
-                                                                        color = Color.Black,
-                                                                        fontSize = 16.sp
+                                                                        color = if (partidaEsCorrecta) Color.Black else Color(0xFFFF5252),
+                                                                        fontSize = 16.sp,
+                                                                        fontWeight = if (!partidaEsCorrecta) androidx.compose.ui.text.font.FontWeight.Bold else androidx.compose.ui.text.font.FontWeight.Normal
                                                                     )
                                                                 }
                                                                 IconButton(
@@ -907,6 +998,17 @@ fun RecolectarScreen(
                                                                 }
                                                             }
                                                         } else {
+                                                            // Obtener nroPartida esperado de esta ubicación
+                                                            val ubicacionAsignada = ubicacionesDelArticulo.getOrNull(indice)
+                                                            val nroPartidaEsperado = (ubicacionAsignada?.get("nroPartida") as? String)
+                                                            
+                                                            // Validar partida: solo si nroPartidaEsperado no es null ni "N/A"
+                                                            val partidaValida = if (nroPartidaEsperado != null && nroPartidaEsperado != "N/A") {
+                                                                partidaEscaneado == nroPartidaEsperado
+                                                            } else {
+                                                                true // Si no hay partida esperada, siempre es válido
+                                                            }
+                                                            
                                                             Row(
                                                                 verticalAlignment = Alignment.CenterVertically,
                                                                 modifier = Modifier.fillMaxWidth()
@@ -929,8 +1031,8 @@ fun RecolectarScreen(
                                                                     textStyle = LocalTextStyle.current.copy(color = Color.Black),
                                                                     colors = TextFieldDefaults.outlinedTextFieldColors(
                                                                         cursorColor = Color.Black,
-                                                                        focusedBorderColor = Color.Black,
-                                                                        unfocusedBorderColor = Color.Black,
+                                                                        focusedBorderColor = if (partidaValida) Color(0xFF4CAF50) else Color(0xFFFF5252),
+                                                                        unfocusedBorderColor = if (partidaValida) Color(0xFF4CAF50) else Color(0xFFFF5252),
                                                                         focusedLabelColor = Color.Black,
                                                                         unfocusedLabelColor = Color.Black
                                                                     ),
@@ -942,6 +1044,49 @@ fun RecolectarScreen(
                                                                         val camposArt = camposEditables[codArticulo] ?: emptyMap()
                                                                         val camposInd = camposArt[indice] ?: mapOf("partida" to false, "ubicacion" to false)
                                                                         camposEditables = camposEditables + (codArticulo to (camposArt + (indice to (camposInd + ("partida" to false)))))
+                                                                        
+                                                                        // Guardar en SQLite cuando tenga al menos partida
+                                                                        if (partidaEscaneado.isNotEmpty()) {
+                                                                            CoroutineScope(Dispatchers.IO).launch {
+                                                                                try {
+                                                                                    val idPedido = qrData?.pedido?.toIntOrNull() ?: 0
+                                                                                    if (idPedido > 0) {
+                                                                                        val prefs = context.getSharedPreferences("QRCodeScannerPrefs", Context.MODE_PRIVATE)
+                                                                                        val usuario = prefs.getString("savedUser", "") ?: ""
+                                                                                        
+                                                                                        val efectivoCodDeposito = when {
+                                                                                            qrData?.deposito?.isNotEmpty() == true -> qrData.deposito
+                                                                                            deposito.isNotEmpty() -> deposito
+                                                                                            else -> "DEFAULT"
+                                                                                        }
+                                                                                        
+                                                                                        val fechaActual = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
+                                                                                        val descripcionArticulo = ubicacionesDelArticulo.firstOrNull()?.get("descripcionPartida") as? String ?: "N/A"
+                                                                                        val cantidadSolicitada = ubicacionesDelArticulo.firstOrNull()?.get("requerido") as? Int ?: 0
+                                                                                        
+                                                                                        val recoleccion = RecoleccionEntity(
+                                                                                            idPedido = idPedido,
+                                                                                            codArticulo = codArticulo,
+                                                                                            nombreArticulo = descripcionArticulo,
+                                                                                            cantidadSolicitada = cantidadSolicitada,
+                                                                                            ubicacion = ubicacionEscaneada ?: "",
+                                                                                            partida = partidaEscaneado,
+                                                                                            cantidad = cantidadEscaneo.toIntOrNull() ?: 0,
+                                                                                            codDeposito = efectivoCodDeposito,
+                                                                                            usuario = usuario,
+                                                                                            fechaHora = fechaActual,
+                                                                                            sincronizado = false,
+                                                                                            indiceScaneo = indice
+                                                                                        )
+                                                                                        
+                                                                                        repository.saveOrUpdateRecoleccion(recoleccion)
+                                                                                        Log.d("RecolectarScreen", "Partida guardada en SQLite (puede tener cantidad 0)")
+                                                                                    }
+                                                                                } catch (e: Exception) {
+                                                                                    Log.e("RecolectarScreen", "Error al guardar partida en SQLite", e)
+                                                                                }
+                                                                            }
+                                                                        }
                                                                     }
                                                                 ) {
                                                                     Icon(
@@ -991,6 +1136,13 @@ fun RecolectarScreen(
                                                                     }
                                                                 }
                                                             } else {
+                                                                // Obtener ubicación esperada
+                                                                val ubicacionAsignada = ubicacionesDelArticulo.getOrNull(indice)
+                                                                val nombreUbicacionEsperado = (ubicacionAsignada?.get("nombreUbicacion") as? String)
+                                                                
+                                                                // Validar ubicación
+                                                                val ubicacionValida = ubicacionEscaneada == nombreUbicacionEsperado
+                                                                
                                                                 Row(
                                                                     verticalAlignment = Alignment.CenterVertically,
                                                                     modifier = Modifier.fillMaxWidth()
@@ -1013,8 +1165,12 @@ fun RecolectarScreen(
                                                                         textStyle = LocalTextStyle.current.copy(color = Color.Black),
                                                                         colors = TextFieldDefaults.outlinedTextFieldColors(
                                                                             cursorColor = Color.Black,
-                                                                            focusedBorderColor = Color.Black,
-                                                                            unfocusedBorderColor = Color.Black,
+                                                                            focusedBorderColor = if (ubicacionEscaneada.isNullOrEmpty()) Color.Black 
+                                                                                                 else if (ubicacionValida) Color(0xFF4CAF50) 
+                                                                                                 else Color(0xFFFF5252),
+                                                                            unfocusedBorderColor = if (ubicacionEscaneada.isNullOrEmpty()) Color.Black 
+                                                                                                   else if (ubicacionValida) Color(0xFF4CAF50) 
+                                                                                                   else Color(0xFFFF5252),
                                                                             focusedLabelColor = Color.Black,
                                                                             unfocusedLabelColor = Color.Black
                                                                         ),
@@ -1073,6 +1229,11 @@ fun RecolectarScreen(
                                                             }
                                                         } else {
                                                             // Ubicación ya escaneada
+                                                            // Validar ubicación
+                                                            val ubicacionAsignadaValidacion = ubicacionesDelArticulo.getOrNull(indice)
+                                                            val nombreUbicacionEsperado = (ubicacionAsignadaValidacion?.get("nombreUbicacion") as? String)
+                                                            val ubicacionEsCorrecta = ubicacionEscaneada == nombreUbicacionEsperado
+                                                            
                                                             if (!ubicacionEditable) {
                                                                 Row(
                                                                     verticalAlignment = Alignment.CenterVertically,
@@ -1086,8 +1247,9 @@ fun RecolectarScreen(
                                                                     ) {
                                                                         Text(
                                                                             text = "Ubicación:\n$ubicacionEscaneada",
-                                                                            color = Color.Black,
-                                                                            fontSize = 16.sp
+                                                                            color = if (ubicacionEsCorrecta) Color.Black else Color(0xFFFF5252),
+                                                                            fontSize = 16.sp,
+                                                                            fontWeight = if (!ubicacionEsCorrecta) androidx.compose.ui.text.font.FontWeight.Bold else androidx.compose.ui.text.font.FontWeight.Normal
                                                                         )
                                                                     }
                                                                     IconButton(
@@ -1121,6 +1283,13 @@ fun RecolectarScreen(
                                                                     }
                                                                 }
                                                             } else {
+                                                                // Obtener ubicación esperada
+                                                                val ubicacionAsignada = ubicacionesDelArticulo.getOrNull(indice)
+                                                                val nombreUbicacionEsperado = (ubicacionAsignada?.get("nombreUbicacion") as? String)
+                                                                
+                                                                // Validar ubicación
+                                                                val ubicacionValida = ubicacionEscaneada == nombreUbicacionEsperado
+                                                                
                                                                 Row(
                                                                     verticalAlignment = Alignment.CenterVertically,
                                                                     modifier = Modifier.fillMaxWidth()
@@ -1143,8 +1312,8 @@ fun RecolectarScreen(
                                                                         textStyle = LocalTextStyle.current.copy(color = Color.Black),
                                                                         colors = TextFieldDefaults.outlinedTextFieldColors(
                                                                             cursorColor = Color.Black,
-                                                                            focusedBorderColor = Color.Black,
-                                                                            unfocusedBorderColor = Color.Black,
+                                                                            focusedBorderColor = if (ubicacionValida) Color(0xFF4CAF50) else Color(0xFFFF5252),
+                                                                            unfocusedBorderColor = if (ubicacionValida) Color(0xFF4CAF50) else Color(0xFFFF5252),
                                                                             focusedLabelColor = Color.Black,
                                                                             unfocusedLabelColor = Color.Black
                                                                         ),
@@ -1156,6 +1325,49 @@ fun RecolectarScreen(
                                                                             val camposArt = camposEditables[codArticulo] ?: emptyMap()
                                                                             val camposInd = camposArt[indice] ?: mapOf("partida" to false, "ubicacion" to false)
                                                                             camposEditables = camposEditables + (codArticulo to (camposArt + (indice to (camposInd + ("ubicacion" to false)))))
+                                                                            
+                                                                            // Guardar cambio de ubicación en SQLite si tiene partida
+                                                                            if (ubicacionEscaneada.isNotEmpty() && partidaEscaneado?.isNotEmpty() == true) {
+                                                                                CoroutineScope(Dispatchers.IO).launch {
+                                                                                    try {
+                                                                                        val idPedido = qrData?.pedido?.toIntOrNull() ?: 0
+                                                                                        if (idPedido > 0) {
+                                                                                            val prefs = context.getSharedPreferences("QRCodeScannerPrefs", Context.MODE_PRIVATE)
+                                                                                            val usuario = prefs.getString("savedUser", "") ?: ""
+                                                                                            
+                                                                                            val efectivoCodDeposito = when {
+                                                                                                qrData?.deposito?.isNotEmpty() == true -> qrData.deposito
+                                                                                                deposito.isNotEmpty() -> deposito
+                                                                                                else -> "DEFAULT"
+                                                                                            }
+                                                                                            
+                                                                                            val fechaActual = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
+                                                                                            val descripcionArticulo = ubicacionesDelArticulo.firstOrNull()?.get("descripcionPartida") as? String ?: "N/A"
+                                                                                            val cantidadSolicitada = ubicacionesDelArticulo.firstOrNull()?.get("requerido") as? Int ?: 0
+                                                                                            
+                                                                                            val recoleccion = RecoleccionEntity(
+                                                                                                idPedido = idPedido,
+                                                                                                codArticulo = codArticulo,
+                                                                                                nombreArticulo = descripcionArticulo,
+                                                                                                cantidadSolicitada = cantidadSolicitada,
+                                                                                                ubicacion = ubicacionEscaneada,
+                                                                                                partida = partidaEscaneado,
+                                                                                                cantidad = cantidadEscaneo.toIntOrNull() ?: 0,
+                                                                                                codDeposito = efectivoCodDeposito,
+                                                                                                usuario = usuario,
+                                                                                                fechaHora = fechaActual,
+                                                                                                sincronizado = false,
+                                                                                                indiceScaneo = indice
+                                                                                            )
+                                                                                            
+                                                                                            repository.saveOrUpdateRecoleccion(recoleccion)
+                                                                                            Log.d("RecolectarScreen", "Ubicación guardada en SQLite (puede tener cantidad 0)")
+                                                                                        }
+                                                                                    } catch (e: Exception) {
+                                                                                        Log.e("RecolectarScreen", "Error al guardar ubicación en SQLite", e)
+                                                                                    }
+                                                                                }
+                                                                            }
                                                                         }
                                                                     ) {
                                                                         Icon(
@@ -1212,7 +1424,7 @@ fun RecolectarScreen(
                                                                                             val usuario = prefs.getString("savedUser", "") ?: ""
                                                                                             
                                                                                             val efectivoCodDeposito = when {
-                                                                                                qrData.deposito.isNotEmpty() -> qrData.deposito
+                                                                                                qrData?.deposito?.isNotEmpty() == true -> qrData.deposito
                                                                                                 deposito.isNotEmpty() -> deposito
                                                                                                 else -> "DEFAULT"
                                                                                             }
@@ -1242,8 +1454,9 @@ fun RecolectarScreen(
                                                                                                     indiceScaneo = indice
                                                                                                 )
                                                                                                 
-                                                                                                val id = repository.saveRecoleccion(recoleccion)
-                                                                                                Log.d("RecolectarScreen", "Recolección guardada en SQLite con ID: $id")
+                                                                                                // Usar saveOrUpdateRecoleccion para evitar duplicados
+                                                                                                val id = repository.saveOrUpdateRecoleccion(recoleccion)
+                                                                                                Log.d("RecolectarScreen", "Recolección guardada/actualizada en SQLite con ID: $id")
                                                                                             }
                                                                                         }
                                                                                     } catch (e: Exception) {
@@ -1411,7 +1624,8 @@ fun RecolectarScreen(
                                     "requerido" to articulo.optInt("requerido", 0),
                                     "saldoDisponible" to articulo.optInt("saldoDisponible", 0),
                                     "usaPartidas" to articulo.optBoolean("usaPartidas", false),
-                                    "usaSeries" to articulo.optBoolean("usaSeries", false)
+                                    "usaSeries" to articulo.optBoolean("usaSeries", false),
+                                    "nroPartida" to articulo.optString("nroPartida", "N/A")
                                 ))
                             }
                         } else {
@@ -1433,13 +1647,16 @@ fun RecolectarScreen(
 
             // Verificar si todos los items escaneados están completos y hay número de pedido
             // Se permite envío con cargas parciales, solo se valida que los renglones existentes estén completos
-            val todasCompletas = ubicacionesParsed.all { (codArticulo, _) ->
+            val todasCompletas = ubicacionesParsed.all { (codArticulo, ubicacionesDelArticulo) ->
                 val listaEscaneos = scaneoIndividual[codArticulo] ?: emptyList()
                 val cantidadesArticulo = cantidadesPorArticulo[codArticulo] ?: emptyMap()
                 val cantidadesGuardadasArticulo = cantidadesGuardadas[codArticulo] ?: emptyMap()
                 
+                Log.d("RecolectarScreen", "=== Validando artículo: $codArticulo ===")
+                Log.d("RecolectarScreen", "Lista escaneos: ${listaEscaneos.size}")
+                
                 // Verificar que haya al menos un escaneo y que TODOS los escaneos de este artículo estén completos
-                // (con partida, ubicación y cantidad guardada)
+                // (con partida, ubicación, cantidad guardada Y DATOS CORRECTOS)
                 val hayEscaneos = listaEscaneos.isNotEmpty()
                 val todosLosEscaneosCompletos = listaEscaneos.all { escaneo ->
                     val indice = listaEscaneos.indexOf(escaneo)
@@ -1448,15 +1665,57 @@ fun RecolectarScreen(
                     val ubicacion = escaneo["ubicacion"]
                     val tieneCantidad = cantidadesArticulo[indice]?.isNotEmpty() == true
                     
-                    !partida.isNullOrEmpty() && !ubicacion.isNullOrEmpty() && tieneCantidad && guardado
+                    // Validar que los datos sean correctos
+                    val ubicacionAsignada = ubicacionesDelArticulo.getOrNull(indice)
+                    
+                    // Log para debug
+                    Log.d("RecolectarScreen", "ubicacionAsignada para validación: $ubicacionAsignada")
+                    Log.d("RecolectarScreen", "Valor de 'nombre': ${ubicacionAsignada?.get("nombre")}")
+                    Log.d("RecolectarScreen", "Tipo de 'nombre': ${ubicacionAsignada?.get("nombre")?.javaClass?.simpleName}")
+                    
+                    val nombreUbicacionEsperado = ubicacionAsignada?.get("nombre")?.toString()
+                    val nroPartidaEsperado = ubicacionAsignada?.get("nroPartida")?.toString()
+                    
+                    Log.d("RecolectarScreen", "nombreUbicacionEsperado final: '$nombreUbicacionEsperado'")
+                    Log.d("RecolectarScreen", "ubicacion escaneada: '$ubicacion'")
+                    
+                    val ubicacionValida = ubicacion == nombreUbicacionEsperado
+                    
+                    // Validar partida: si no hay partida esperada (null o "N/A"), se acepta cualquier valor o vacío
+                    val partidaRequerida = nroPartidaEsperado != null && nroPartidaEsperado != "N/A"
+                    val partidaValida = if (partidaRequerida) {
+                        // Si hay partida esperada, debe coincidir exactamente
+                        !partida.isNullOrEmpty() && partida == nroPartidaEsperado
+                    } else {
+                        // Si no hay partida esperada, siempre es válido (puede estar vacía o con cualquier valor)
+                        true
+                    }
+                    
+                    val resultado = !ubicacion.isNullOrEmpty() && tieneCantidad && guardado && ubicacionValida && partidaValida
+                    
+                    Log.d("RecolectarScreen", "Escaneo[$indice]:")
+                    Log.d("RecolectarScreen", "  partida=$partida, esperado=$nroPartidaEsperado, requerida=$partidaRequerida, válida=$partidaValida")
+                    Log.d("RecolectarScreen", "  ubicacion=$ubicacion, esperado=$nombreUbicacionEsperado, válida=$ubicacionValida")
+                    Log.d("RecolectarScreen", "  tieneCantidad=$tieneCantidad, guardado=$guardado")
+                    Log.d("RecolectarScreen", "  RESULTADO=$resultado")
+                    
+                    resultado
                 }
                 
-                hayEscaneos && todosLosEscaneosCompletos
+                val resultadoArticulo = hayEscaneos && todosLosEscaneosCompletos
+                Log.d("RecolectarScreen", "Artículo $codArticulo: hayEscaneos=$hayEscaneos, completos=$todosLosEscaneosCompletos, resultado=$resultadoArticulo")
+                resultadoArticulo
             }
 
             val tienePedido = qrData?.pedido?.isNotEmpty() == true
             val tieneDeposito = (qrData?.deposito?.isNotEmpty() == true) || deposito.isNotBlank()
             val datosListos = !isLoadingUbicaciones && errorUbicaciones == null && ubicacionesRecolectar != null
+            
+            Log.d("RecolectarScreen", "=== VALIDACIÓN FINAL ===")
+            Log.d("RecolectarScreen", "todasCompletas=$todasCompletas")
+            Log.d("RecolectarScreen", "tienePedido=$tienePedido (${qrData?.pedido})")
+            Log.d("RecolectarScreen", "tieneDeposito=$tieneDeposito (qr=${qrData?.deposito}, manual=$deposito)")
+            Log.d("RecolectarScreen", "datosListos=$datosListos (loading=$isLoadingUbicaciones, error=$errorUbicaciones, ubicaciones=${ubicacionesRecolectar != null})")
 
             if (todasCompletas && tienePedido && tieneDeposito && datosListos) {
                 Button(
@@ -1760,6 +2019,134 @@ fun RecolectarScreen(
                 dismissButton = {
                     TextButton(
                         onClick = { showCloseDialog = false }
+                    ) {
+                        Text("Cancelar", color = Color.Gray)
+                    }
+                }
+            )
+        }
+        
+        // Diálogo de confirmación para eliminar renglón
+        if (showDeleteRenglonDialog && renglonAEliminar != null) {
+            AlertDialog(
+                containerColor = Color.White,
+                onDismissRequest = { 
+                    showDeleteRenglonDialog = false
+                    renglonAEliminar = null
+                },
+                title = {
+                    Text(
+                        text = "Confirmar eliminación",
+                        color = Color.Black,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                    )
+                },
+                text = {
+                    Text(
+                        text = "¿Está seguro que desea eliminar este renglón? Esta acción no se podrá recuperar.",
+                        color = Color.Black
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            val (codArticulo, indice) = renglonAEliminar!!
+                            
+                            // Obtener datos del escaneo antes de eliminarlo
+                            val listaActual = scaneoIndividual[codArticulo] ?: emptyList()
+                            val escaneoAEliminar = listaActual.getOrNull(indice)
+                            
+                            // Eliminar de SQLite si existe
+                            if (escaneoAEliminar != null) {
+                                CoroutineScope(Dispatchers.IO).launch {
+                                    try {
+                                        val idPedido = qrData?.pedido?.toIntOrNull() ?: 0
+                                        if (idPedido > 0) {
+                                            // Buscar y eliminar la recolección por índice
+                                            val recolecciones = repository.getRecoleccionesByPedido(idPedido)
+                                            val recoleccionAEliminar = recolecciones.find { 
+                                                it.codArticulo == codArticulo && 
+                                                it.indiceScaneo == indice 
+                                            }
+                                            
+                                            if (recoleccionAEliminar != null) {
+                                                repository.deleteRecoleccion(recoleccionAEliminar.id)
+                                                Log.d("RecolectarScreen", "Renglón eliminado de SQLite: ID ${recoleccionAEliminar.id}, índice $indice")
+                                            } else {
+                                                Log.d("RecolectarScreen", "Renglón no encontrado en SQLite (posiblemente no guardado aún)")
+                                            }
+                                        }
+                                    } catch (e: Exception) {
+                                        Log.e("RecolectarScreen", "Error al eliminar renglón de SQLite", e)
+                                    }
+                                }
+                            }
+                            
+                            // Eliminar este escaneo de la lista
+                            val nuevaLista = listaActual.toMutableList()
+                            if (indice < nuevaLista.size) {
+                                nuevaLista.removeAt(indice)
+                            }
+                            scaneoIndividual = scaneoIndividual + (codArticulo to nuevaLista)
+                            
+                            // También eliminar la cantidad guardada
+                            val cantidadesArt = cantidadesPorArticulo[codArticulo]?.toMutableMap() ?: mutableMapOf()
+                            cantidadesArt.remove(indice)
+                            // Reindexar las cantidades restantes
+                            val nuevasCantidades = mutableMapOf<Int, String>()
+                            cantidadesArt.entries.sortedBy { it.key }.forEachIndexed { newIndex, entry ->
+                                if (entry.key > indice) {
+                                    nuevasCantidades[newIndex] = entry.value
+                                } else if (entry.key < indice) {
+                                    nuevasCantidades[entry.key] = entry.value
+                                }
+                            }
+                            cantidadesPorArticulo = cantidadesPorArticulo + (codArticulo to nuevasCantidades)
+                            
+                            // Eliminar estado de guardado
+                            val guardadasArt = cantidadesGuardadas[codArticulo]?.toMutableMap() ?: mutableMapOf()
+                            guardadasArt.remove(indice)
+                            // Reindexar estados guardados
+                            val nuevasGuardadas = mutableMapOf<Int, Boolean>()
+                            guardadasArt.entries.sortedBy { it.key }.forEachIndexed { newIndex, entry ->
+                                if (entry.key > indice) {
+                                    nuevasGuardadas[newIndex] = entry.value
+                                } else if (entry.key < indice) {
+                                    nuevasGuardadas[entry.key] = entry.value
+                                }
+                            }
+                            cantidadesGuardadas = cantidadesGuardadas + (codArticulo to nuevasGuardadas)
+                            
+                            // Eliminar campos editables
+                            val editablesArt = camposEditables[codArticulo]?.toMutableMap() ?: mutableMapOf()
+                            editablesArt.remove(indice)
+                            // Reindexar campos editables
+                            val nuevosEditables = mutableMapOf<Int, Map<String, Boolean>>()
+                            editablesArt.entries.sortedBy { it.key }.forEachIndexed { newIndex, entry ->
+                                if (entry.key > indice) {
+                                    nuevosEditables[newIndex] = entry.value
+                                } else if (entry.key < indice) {
+                                    nuevosEditables[entry.key] = entry.value
+                                }
+                            }
+                            camposEditables = camposEditables + (codArticulo to nuevosEditables)
+                            
+                            showDeleteRenglonDialog = false
+                            renglonAEliminar = null
+                        },
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = Color.Red
+                        )
+                    ) {
+                        Text("Eliminar")
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = { 
+                            showDeleteRenglonDialog = false
+                            renglonAEliminar = null
+                        }
                     ) {
                         Text("Cancelar", color = Color.Gray)
                     }

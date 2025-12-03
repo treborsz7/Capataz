@@ -5,10 +5,14 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,6 +28,9 @@ import androidx.compose.ui.platform.LocalConfiguration
 import com.thinkthat.mamusckascaner.utils.AppLogger
 import com.thinkthat.mamusckascaner.utils.QRData
 import com.thinkthat.mamusckascaner.utils.parseQRData
+import com.thinkthat.mamusckascaner.database.RecoleccionRepository
+import com.thinkthat.mamusckascaner.database.PedidoEntity
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,6 +44,19 @@ fun RecolectarByQRScreen(
     val configuration = LocalConfiguration.current
     val screenHeight = configuration.screenHeightDp.dp
     val screenWidth = configuration.screenWidthDp.dp
+    val coroutineScope = rememberCoroutineScope()
+    
+    // Repository de SQLite
+    val repository = remember { RecoleccionRepository(context) }
+    
+    // Estado para pedidos pendientes
+    var pedidosPendientes by remember { mutableStateOf<List<PedidoEntity>>(emptyList()) }
+    var isLoadingPedidos by remember { mutableStateOf(true) }
+    
+    // Estado para diálogos
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var showResumeDialog by remember { mutableStateOf(false) }
+    var pedidoSeleccionado by remember { mutableStateOf<PedidoEntity?>(null) }
     
     // Responsive values
     val horizontalPadding = maxOf(minOf(screenWidth * 0.08f, 32.dp), 16.dp)
@@ -63,6 +83,27 @@ fun RecolectarByQRScreen(
         hasCameraPermission = isGranted
         if (isGranted) {
             onScanQR()
+        }
+    }
+    
+    // Cargar pedidos pendientes no sincronizados al iniciar
+    LaunchedEffect(Unit) {
+        try {
+            isLoadingPedidos = true
+            val pedidos = repository.getAllPedidos()
+            pedidosPendientes = pedidos.filter { it.estado != "sincronizado" }
+            AppLogger.logInfo(
+                tag = "RecolectarByQRScreen",
+                message = "Cargados ${pedidosPendientes.size} pedidos pendientes"
+            )
+        } catch (e: Exception) {
+            AppLogger.logError(
+                tag = "RecolectarByQRScreen",
+                message = "Error al cargar pedidos pendientes",
+                throwable = e
+            )
+        } finally {
+            isLoadingPedidos = false
         }
     }
 
@@ -230,7 +271,118 @@ fun RecolectarByQRScreen(
                     lineHeight = 24.sp
                 )
                 
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(24.dp))
+                
+                // Lista de pedidos pendientes
+                if (isLoadingPedidos) {
+                    CircularProgressIndicator(color = Color.White)
+                } else if (pedidosPendientes.isNotEmpty()) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color.White.copy(alpha = 0.95f)
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = screenHeight * 0.3f)
+                                .verticalScroll(rememberScrollState())
+                                .padding(12.dp)
+                        ) {
+                            Text(
+                                text = "Pedidos Pendientes (${pedidosPendientes.size})",
+                                fontSize = bodyFontSize,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFCD0914)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            
+                            pedidosPendientes.forEach { pedido ->
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 4.dp),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = Color(0xFFF5F5F5)
+                                    ),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(12.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = "Pedido: ${pedido.idPedido}",
+                                                fontSize = (bodyFontSize.value * 0.9f).sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color.Black
+                                            )
+                                            Text(
+                                                text = "Depósito: ${pedido.codDeposito}",
+                                                fontSize = (bodyFontSize.value * 0.8f).sp,
+                                                color = Color.Gray
+                                            )
+                                            Text(
+                                                text = "Fecha: ${pedido.fechaCreacion}",
+                                                fontSize = (bodyFontSize.value * 0.75f).sp,
+                                                color = Color.Gray
+                                            )
+                                        }
+                                        
+                                        Row {
+                                            // Botón Retomar
+                                            IconButton(
+                                                onClick = {
+                                                    pedidoSeleccionado = pedido
+                                                    showResumeDialog = true
+                                                },
+                                                modifier = Modifier.size(36.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Filled.PlayArrow,
+                                                    contentDescription = "Retomar pedido",
+                                                    tint = Color(0xFF4CAF50),
+                                                    modifier = Modifier.size(24.dp)
+                                                )
+                                            }
+                                            
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            
+                                            // Botón Eliminar
+                                            IconButton(
+                                                onClick = {
+                                                    pedidoSeleccionado = pedido
+                                                    showDeleteDialog = true
+                                                },
+                                                modifier = Modifier.size(36.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Filled.Delete,
+                                                    contentDescription = "Eliminar pedido",
+                                                    tint = Color(0xFFD32F2F),
+                                                    modifier = Modifier.size(24.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
                 
                 // Checkbox para optimizar recorrido
                 Card(
@@ -312,6 +464,122 @@ fun RecolectarByQRScreen(
                     }
                 }
             }
+        }
+        
+        // Diálogo de confirmación para eliminar pedido
+        if (showDeleteDialog && pedidoSeleccionado != null) {
+            AlertDialog(
+                onDismissRequest = { showDeleteDialog = false },
+                title = {
+                    Text(
+                        text = "Confirmar eliminación",
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                text = {
+                    Text(
+                        text = "¿Está seguro que desea eliminar el pedido ${pedidoSeleccionado!!.idPedido}? " +
+                                "Se eliminarán todos los datos guardados para este pedido."
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            val pedidoAEliminar = pedidoSeleccionado!!
+                            coroutineScope.launch {
+                                try {
+                                    repository.deletePedidoConRecolecciones(pedidoAEliminar.idPedido)
+                                    AppLogger.logInfo(
+                                        tag = "RecolectarByQRScreen",
+                                        message = "Pedido ${pedidoAEliminar.idPedido} eliminado"
+                                    )
+                                    // Recargar lista
+                                    val pedidos = repository.getAllPedidos()
+                                    pedidosPendientes = pedidos.filter { it.estado != "sincronizado" }
+                                } catch (e: Exception) {
+                                    AppLogger.logError(
+                                        tag = "RecolectarByQRScreen",
+                                        message = "Error al eliminar pedido",
+                                        throwable = e
+                                    )
+                                }
+                            }
+                            showDeleteDialog = false
+                            pedidoSeleccionado = null
+                        },
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = Color(0xFFD32F2F)
+                        )
+                    ) {
+                        Text("Eliminar")
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = {
+                            showDeleteDialog = false
+                            pedidoSeleccionado = null
+                        }
+                    ) {
+                        Text("Cancelar")
+                    }
+                }
+            )
+        }
+        
+        // Diálogo de confirmación para retomar pedido
+        if (showResumeDialog && pedidoSeleccionado != null) {
+            AlertDialog(
+                onDismissRequest = { showResumeDialog = false },
+                title = {
+                    Text(
+                        text = "Retomar pedido",
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                text = {
+                    Text(
+                        text = "¿Desea retomar el pedido ${pedidoSeleccionado!!.idPedido}? " +
+                                "Se consultará la información actualizada del pedido."
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            val pedido = pedidoSeleccionado!!
+                            // Construir el string QR en el formato correcto
+                            // Formato: |pikingsDePedido|Deposito|"codigoDeposito"|"idPedido"|
+                            val qrString = "|pikingsDePedido|Deposito|\"${pedido.codDeposito}\"|\"${pedido.idPedido}\"|"
+                            
+                            AppLogger.logInfo(
+                                tag = "RecolectarByQRScreen",
+                                message = "Retomando pedido: ${pedido.idPedido} con QR: $qrString"
+                            )
+                            
+                            showResumeDialog = false
+                            pedidoSeleccionado = null
+                            
+                            // Navegar a RecolectarScreen con el QR reconstruido
+                            onProceedWithOrder(qrString, optimizaRecorrido)
+                        },
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = Color(0xFF4CAF50)
+                        )
+                    ) {
+                        Text("Retomar")
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = {
+                            showResumeDialog = false
+                            pedidoSeleccionado = null
+                        }
+                    ) {
+                        Text("Cancelar")
+                    }
+                }
+            )
         }
     }
 }

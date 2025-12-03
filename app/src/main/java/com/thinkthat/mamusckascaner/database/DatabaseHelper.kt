@@ -112,6 +112,35 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
     }
 
     /**
+     * Actualiza una recolección existente
+     */
+    fun updateRecoleccion(recoleccion: RecoleccionEntity): Int {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put(COLUMN_ID_PEDIDO, recoleccion.idPedido)
+            put(COLUMN_COD_ARTICULO, recoleccion.codArticulo)
+            put(COLUMN_UBICACION, recoleccion.ubicacion)
+            put(COLUMN_PARTIDA, recoleccion.partida)
+            put(COLUMN_CANTIDAD, recoleccion.cantidad)
+            put(COLUMN_COD_DEPOSITO, recoleccion.codDeposito)
+            put(COLUMN_USUARIO, recoleccion.usuario)
+            put(COLUMN_FECHA_HORA, recoleccion.fechaHora)
+            put(COLUMN_SINCRONIZADO, if (recoleccion.sincronizado) 1 else 0)
+            put(COLUMN_INDICE_SCANEO, recoleccion.indiceScaneo)
+        }
+        
+        val rowsUpdated = db.update(
+            TABLE_RECOLECCIONES,
+            values,
+            "$COLUMN_ID = ?",
+            arrayOf(recoleccion.id.toString())
+        )
+        
+        Log.d("DatabaseHelper", "Recolección ${recoleccion.id} actualizada")
+        return rowsUpdated
+    }
+
+    /**
      * Obtiene todas las recolecciones de un pedido
      */
     fun getRecoleccionesByPedido(idPedido: Int): List<RecoleccionEntity> {
@@ -137,6 +166,90 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         
         Log.d("DatabaseHelper", "Recuperadas ${recolecciones.size} recolecciones para pedido $idPedido")
         return recolecciones
+    }
+
+    /**
+     * Busca una recolección específica por pedido, artículo, ubicación e índice
+     */
+    fun getRecoleccionByDetails(
+        idPedido: Int,
+        codArticulo: String,
+        ubicacion: String,
+        indiceScaneo: Int
+    ): RecoleccionEntity? {
+        val db = readableDatabase
+        val cursor = db.query(
+            TABLE_RECOLECCIONES,
+            null,
+            "$COLUMN_ID_PEDIDO = ? AND $COLUMN_COD_ARTICULO = ? AND $COLUMN_UBICACION = ? AND $COLUMN_INDICE_SCANEO = ?",
+            arrayOf(idPedido.toString(), codArticulo, ubicacion, indiceScaneo.toString()),
+            null,
+            null,
+            null
+        )
+
+        cursor.use {
+            if (it.moveToFirst()) {
+                return cursorToRecoleccion(it)
+            }
+        }
+        
+        return null
+    }
+
+    /**
+     * Busca una recolección por pedido, artículo e índice (ignora ubicación/partida)
+     * Útil para encontrar registros cuando se modifican ubicación o partida
+     */
+    fun getRecoleccionByIndex(
+        idPedido: Int,
+        codArticulo: String,
+        indiceScaneo: Int
+    ): RecoleccionEntity? {
+        val db = readableDatabase
+        val cursor = db.query(
+            TABLE_RECOLECCIONES,
+            null,
+            "$COLUMN_ID_PEDIDO = ? AND $COLUMN_COD_ARTICULO = ? AND $COLUMN_INDICE_SCANEO = ?",
+            arrayOf(idPedido.toString(), codArticulo, indiceScaneo.toString()),
+            null,
+            null,
+            null
+        )
+
+        cursor.use {
+            if (it.moveToFirst()) {
+                return cursorToRecoleccion(it)
+            }
+        }
+        
+        return null
+    }
+
+    /**
+     * Inserta o actualiza una recolección (insert or update)
+     * Busca primero por índice (permite actualizar si cambió ubicación/partida)
+     */
+    fun insertOrUpdateRecoleccion(recoleccion: RecoleccionEntity): Long {
+        // Buscar primero por índice (sin ubicación) para detectar cambios en ubicación/partida
+        val existentePorIndice = getRecoleccionByIndex(
+            recoleccion.idPedido,
+            recoleccion.codArticulo,
+            recoleccion.indiceScaneo
+        )
+        
+        return if (existentePorIndice != null) {
+            // Ya existe un registro para este índice, actualizar
+            val recoleccionActualizada = recoleccion.copy(id = existentePorIndice.id)
+            updateRecoleccion(recoleccionActualizada)
+            Log.d("DatabaseHelper", "Recolección actualizada (cambio de ubicación/partida) con ID: ${existentePorIndice.id}")
+            existentePorIndice.id
+        } else {
+            // No existe, insertar nueva
+            val id = insertRecoleccion(recoleccion)
+            Log.d("DatabaseHelper", "Nueva recolección insertada con ID: $id")
+            id
+        }
     }
 
     /**

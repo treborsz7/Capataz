@@ -75,8 +75,14 @@ class RecolectarActivity : ComponentActivity() {
                                         isLoadingUbicaciones = false
                                         val lista = response.body().orEmpty()
                                         val raw = Gson().toJson(lista)
+                                        
+                                        // Log detallado del JSON
+                                        Log.d("RecolectarActivity", "=== JSON COMPLETO ===")
+                                        Log.d("RecolectarActivity Raw", raw)
+                                        Log.d("RecolectarActivity", "=== FIN JSON ===")
+                                        
                                         ubicacionesRecolectar = raw
-                                        Log.d("RecolectarActivity", "Ubicaciones OK. Cantidad: ${lista.size}\nRAW: $raw")
+                                        Log.d("RecolectarActivity", "Ubicaciones OK. Cantidad: ${lista.size}")
                                     } else {
                                         val code = response.code()
                                         val err = response.errorBody()?.string()

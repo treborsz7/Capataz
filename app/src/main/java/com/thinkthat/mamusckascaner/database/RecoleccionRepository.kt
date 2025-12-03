@@ -16,13 +16,25 @@ class RecoleccionRepository(context: Context) {
     // ===== Operaciones de Recolecciones =====
 
     /**
-     * Guarda una recolección en la base de datos
+     * Guarda una recolección en la base de datos (inserta nueva)
      */
     suspend fun saveRecoleccion(recoleccion: RecoleccionEntity): Long = withContext(Dispatchers.IO) {
         try {
             dbHelper.insertRecoleccion(recoleccion)
         } catch (e: Exception) {
             Log.e("RecoleccionRepository", "Error al guardar recolección", e)
+            -1L
+        }
+    }
+
+    /**
+     * Inserta o actualiza una recolección (evita duplicados)
+     */
+    suspend fun saveOrUpdateRecoleccion(recoleccion: RecoleccionEntity): Long = withContext(Dispatchers.IO) {
+        try {
+            dbHelper.insertOrUpdateRecoleccion(recoleccion)
+        } catch (e: Exception) {
+            Log.e("RecoleccionRepository", "Error al guardar/actualizar recolección", e)
             -1L
         }
     }
@@ -85,6 +97,18 @@ class RecoleccionRepository(context: Context) {
             dbHelper.deleteRecoleccion(id) > 0
         } catch (e: Exception) {
             Log.e("RecoleccionRepository", "Error al eliminar recolección", e)
+            false
+        }
+    }
+
+    /**
+     * Actualiza una recolección existente
+     */
+    suspend fun updateRecoleccion(recoleccion: RecoleccionEntity): Boolean = withContext(Dispatchers.IO) {
+        try {
+            dbHelper.updateRecoleccion(recoleccion) > 0
+        } catch (e: Exception) {
+            Log.e("RecoleccionRepository", "Error al actualizar recolección", e)
             false
         }
     }

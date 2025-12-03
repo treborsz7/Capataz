@@ -2,6 +2,7 @@ package com.thinkthat.mamusckascaner.service.Services
 
 import android.content.Context
 import android.util.Base64
+import android.util.Log
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -57,19 +58,26 @@ data class EstivarResponse(
 
 data class ArticuloResponse(
     val codigo: String,
-    val codigoBarras: String,
+    val codigoBarras: String? = "",
     val descripcion: String,
-    val id: Int,
-    val llevaStock: Boolean,
-    val perfil: String,
+    val id: Int? = 0,
+    val llevaStock: Boolean? = false,
+    val perfil: String? = "",
     val requerido: Int? = null,
-    val saldoDisponible: Int,
-    val sinonimo: String,
-    val unidadMedida: String,
-    val usaEscalas: String,
-    val usaPartidas: Boolean,
-    val usaSeries: Boolean,
-    val userData: Any?
+    val saldoDisponible: Int? = 0,
+    val sinonimo: String? = "",
+    val unidadMedida: String? = "",
+    val usaEscalas: String? = "",
+    val usaPartidas: Boolean? = false,
+    val usaSeries: Boolean? = false,
+    val userData: Any? = null,
+    val nroPartida: String? = null,
+    // Campos adicionales del API
+    val estadoVta: String? = null,
+    val estaloElab: String? = null,
+    val fecha: String? = null,
+    val numDespacho: String? = null,
+    val vencimiento: String? = null
 )
 
 data class UbicacionResponse(
@@ -79,6 +87,11 @@ data class UbicacionResponse(
     val orden: Int,
     val articulos: List<ArticuloResponse>? = null,
     val userData: Any? = null
+)
+
+// Wrapper para la respuesta del API que incluye "body"
+data class UbicacionesWrapper(
+    val body: List<UbicacionResponse>
 )
 
 data class EstibarPartida(
@@ -426,6 +439,26 @@ object ApiClient {
         OkHttpClient.Builder()
             .addInterceptor(authInterceptor)
             .addInterceptor(reAuthInterceptor)
+            .addInterceptor { chain ->
+                val request = chain.request()
+                val response = chain.proceed(request)
+                
+                // Log de la respuesta para debugging
+                if (request.url.encodedPath.contains("UbicacionesParaRecolectar")) {
+                    val responseBody = response.body
+                    val source = responseBody?.source()
+                    source?.request(Long.MAX_VALUE)
+                    val buffer = source?.buffer
+                    val responseBodyString = buffer?.clone()?.readUtf8()
+                    
+                    Log.d("API_RESPONSE", "=== RESPUESTA CRUDA ===")
+                    Log.d("API_RESPONSE", "URL: ${request.url}")
+                    Log.d("API_RESPONSE", "Body: $responseBodyString")
+                    Log.d("API_RESPONSE", "=== FIN RESPUESTA ===")
+                }
+                
+                response
+            }
             .connectTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
             .readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
             .writeTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
