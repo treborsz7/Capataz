@@ -63,7 +63,11 @@ fun EstivacionScreen(
     onBack: () -> Unit = {},
     onStockearClick: (boton: String) -> Unit = {},
     producto: String? = null,
-    ubicacion: String?
+    ubicacion: String?,
+    idEstivacionActual: Long = -1,
+    dbHelper: com.thinkthat.mamusckascaner.database.DatabaseHelper? = null,
+    onProductoChange: (String) -> Unit = {},
+    onUbicacionChange: (String) -> Unit = {}
 ) {
     val context = LocalContext.current
     val configuration = LocalConfiguration.current
@@ -121,6 +125,13 @@ fun EstivacionScreen(
         }
     }
     
+    // Notificar cambios de partidaLocal al Activity
+    LaunchedEffect(partidaLocal) {
+        if (partidaLocal.isNotBlank()) {
+            onProductoChange(partidaLocal)
+        }
+    }
+    
     // Actualizar ubicacionLocal y ubicacionFieldValue cuando cambie ubicacion
     LaunchedEffect(ubicacion) {
         if (ubicacion != null) {
@@ -128,6 +139,13 @@ fun EstivacionScreen(
             ubicacionFieldValue = TextFieldValue(ubicacion)
             // Salir del modo editable si estaba activo
             ubicacionEditable = false
+        }
+    }
+    
+    // Notificar cambios de ubicacionLocal al Activity
+    LaunchedEffect(ubicacionLocal) {
+        if (ubicacionLocal.isNotBlank()) {
+            onUbicacionChange(ubicacionLocal)
         }
     }
     // Estado para ubicaciones
@@ -813,6 +831,16 @@ fun EstivacionScreen(
                                 if (response.isSuccessful) {
                                     val responseBody = response.body()?.string()
                                     AppLogger.logInfo("EstivacionScreen", "Estivación exitosa - Partida: $partidaLocal, Ubicación: $ubicacionLimpia, Response: $responseBody")
+                                    
+                                    // Eliminar de BD si fue una reubicación retomada
+                                    if (idEstivacionActual > 0 && dbHelper != null) {
+                                        try {
+                                            dbHelper.deleteEstivacion(idEstivacionActual)
+                                            AppLogger.logInfo("EstivacionScreen", "Estivación eliminada de BD: $idEstivacionActual")
+                                        } catch (e: Exception) {
+                                            AppLogger.logError("EstivacionScreen", "Error al eliminar estivación de BD", e)
+                                        }
+                                    }
                                     
                                     withContext(Dispatchers.Main) {
                                         isLoading = false

@@ -57,7 +57,12 @@ fun ReubicacionScreen(
     onReubicarClick: (boton: String) -> Unit = {},
     producto: String? = null,
     ubicacionOrigen: String? = null,
-    ubicacionDestino: String? = null
+    ubicacionDestino: String? = null,
+    idReubicacionActual: Long = -1,
+    dbHelper: com.thinkthat.mamusckascaner.database.DatabaseHelper? = null,
+    onProductoChange: (String) -> Unit = {},
+    onUbicacionOrigenChange: (String) -> Unit = {},
+    onUbicacionDestinoChange: (String) -> Unit = {}
 ) {
     val context = LocalContext.current
     val configuration = LocalConfiguration.current
@@ -135,6 +140,25 @@ fun ReubicacionScreen(
             ubicacionDestinoFieldValue = TextFieldValue(ubicacionDestino)
             // Salir del modo editable si estaba activo
             ubicacionDestinoEditable = false
+        }
+    }
+    
+    // Notificar cambios al Activity
+    LaunchedEffect(productoLocal) {
+        if (productoLocal.isNotBlank()) {
+            onProductoChange(productoLocal)
+        }
+    }
+    
+    LaunchedEffect(ubicacionOrigenLocal) {
+        if (ubicacionOrigenLocal.isNotBlank()) {
+            onUbicacionOrigenChange(ubicacionOrigenLocal)
+        }
+    }
+    
+    LaunchedEffect(ubicacionDestinoLocal) {
+        if (ubicacionDestinoLocal.isNotBlank()) {
+            onUbicacionDestinoChange(ubicacionDestinoLocal)
         }
     }
 
@@ -1173,6 +1197,16 @@ fun ReubicacionScreen(
                                         val responseBody = response.body()?.string() ?: "Sin contenido"
                                         AppLogger.logInfo("ReubicacionScreen", "Respuesta exitosa: $responseBody")
                                         AppLogger.logInfo("ReubicacionScreen", "✅ Reubicación completada exitosamente - Partida: $productoLocal")
+                                        
+                                        // Eliminar de BD si fue una reubicación retomada
+                                        if (idReubicacionActual > 0 && dbHelper != null) {
+                                            try {
+                                                dbHelper.deleteReubicacion(idReubicacionActual)
+                                                AppLogger.logInfo("ReubicacionScreen", "Reubicación eliminada de BD: $idReubicacionActual")
+                                            } catch (e: Exception) {
+                                                AppLogger.logError("ReubicacionScreen", "Error al eliminar reubicación de BD", e)
+                                            }
+                                        }
                                         
                                         withContext(Dispatchers.Main) {
                                             isLoading = false

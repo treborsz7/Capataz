@@ -14,7 +14,7 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
 
     companion object {
         private const val DATABASE_NAME = "QRCodeScanner.db"
-        private const val DATABASE_VERSION = 1
+        private const val DATABASE_VERSION = 2
 
         // Tabla de Recolecciones
         const val TABLE_RECOLECCIONES = "recolecciones"
@@ -40,6 +40,25 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         const val COLUMN_PEDIDO_FECHA_CREACION = "fecha_creacion"
         const val COLUMN_PEDIDO_ESTADO = "estado"
         const val COLUMN_PEDIDO_UBICACIONES_JSON = "ubicaciones_json"
+
+        // Tabla de Estivaciones
+        const val TABLE_ESTIVACIONES = "estivaciones"
+        const val COLUMN_ESTIVACION_ID = "id"
+        const val COLUMN_ESTIVACION_PARTIDA = "partida"
+        const val COLUMN_ESTIVACION_UBICACION = "ubicacion"
+        const val COLUMN_ESTIVACION_COD_DEPOSITO = "cod_deposito"
+        const val COLUMN_ESTIVACION_FECHA_CREACION = "fecha_creacion"
+        const val COLUMN_ESTIVACION_ESTADO = "estado"
+
+        // Tabla de Reubicaciones
+        const val TABLE_REUBICACIONES = "reubicaciones"
+        const val COLUMN_REUBICACION_ID = "id"
+        const val COLUMN_REUBICACION_PARTIDA = "partida"
+        const val COLUMN_REUBICACION_UBICACION_ORIGEN = "ubicacion_origen"
+        const val COLUMN_REUBICACION_UBICACION_DESTINO = "ubicacion_destino"
+        const val COLUMN_REUBICACION_COD_DEPOSITO = "cod_deposito"
+        const val COLUMN_REUBICACION_FECHA_CREACION = "fecha_creacion"
+        const val COLUMN_REUBICACION_ESTADO = "estado"
 
         private const val CREATE_TABLE_RECOLECCIONES = """
             CREATE TABLE $TABLE_RECOLECCIONES (
@@ -69,19 +88,48 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
                 $COLUMN_PEDIDO_UBICACIONES_JSON TEXT
             )
         """
+
+        private const val CREATE_TABLE_ESTIVACIONES = """
+            CREATE TABLE $TABLE_ESTIVACIONES (
+                $COLUMN_ESTIVACION_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                $COLUMN_ESTIVACION_PARTIDA TEXT NOT NULL,
+                $COLUMN_ESTIVACION_UBICACION TEXT NOT NULL,
+                $COLUMN_ESTIVACION_COD_DEPOSITO TEXT NOT NULL,
+                $COLUMN_ESTIVACION_FECHA_CREACION TEXT NOT NULL,
+                $COLUMN_ESTIVACION_ESTADO TEXT DEFAULT 'pendiente'
+            )
+        """
+
+        private const val CREATE_TABLE_REUBICACIONES = """
+            CREATE TABLE $TABLE_REUBICACIONES (
+                $COLUMN_REUBICACION_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                $COLUMN_REUBICACION_PARTIDA TEXT NOT NULL,
+                $COLUMN_REUBICACION_UBICACION_ORIGEN TEXT NOT NULL,
+                $COLUMN_REUBICACION_UBICACION_DESTINO TEXT NOT NULL,
+                $COLUMN_REUBICACION_COD_DEPOSITO TEXT NOT NULL,
+                $COLUMN_REUBICACION_FECHA_CREACION TEXT NOT NULL,
+                $COLUMN_REUBICACION_ESTADO TEXT DEFAULT 'pendiente'
+            )
+        """
     }
 
     override fun onCreate(db: SQLiteDatabase?) {
         db?.execSQL(CREATE_TABLE_RECOLECCIONES)
         db?.execSQL(CREATE_TABLE_PEDIDOS)
+        db?.execSQL(CREATE_TABLE_ESTIVACIONES)
+        db?.execSQL(CREATE_TABLE_REUBICACIONES)
         Log.d("DatabaseHelper", "Base de datos creada exitosamente")
     }
 
     override fun onUpgrade(db: SQLiteDatabase?, oldVersion: Int, newVersion: Int) {
-        db?.execSQL("DROP TABLE IF EXISTS $TABLE_RECOLECCIONES")
-        db?.execSQL("DROP TABLE IF EXISTS $TABLE_PEDIDOS")
-        onCreate(db)
+        if (oldVersion < 2) {
+            // Agregar tablas nuevas en la versión 2
+            db?.execSQL(CREATE_TABLE_ESTIVACIONES)
+            db?.execSQL(CREATE_TABLE_REUBICACIONES)
+            Log.d("DatabaseHelper", "Tablas de Estivación y Reubicación agregadas")
+        }
         Log.d("DatabaseHelper", "Base de datos actualizada de versión $oldVersion a $newVersion")
+        ;
     }
 
     // CRUD para Recolecciones
@@ -488,6 +536,235 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         val db = writableDatabase
         db.execSQL("DELETE FROM $TABLE_RECOLECCIONES")
         db.execSQL("DELETE FROM $TABLE_PEDIDOS")
+        db.execSQL("DELETE FROM $TABLE_ESTIVACIONES")
+        db.execSQL("DELETE FROM $TABLE_REUBICACIONES")
         Log.d("DatabaseHelper", "Todas las tablas limpiadas")
+    }
+
+    // ===== CRUD ESTIVACIONES =====
+
+    fun insertEstivacion(estivacion: EstivacionEntity): Long {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put(COLUMN_ESTIVACION_PARTIDA, estivacion.partida)
+            put(COLUMN_ESTIVACION_UBICACION, estivacion.ubicacion)
+            put(COLUMN_ESTIVACION_COD_DEPOSITO, estivacion.codDeposito)
+            put(COLUMN_ESTIVACION_FECHA_CREACION, estivacion.fechaCreacion)
+            put(COLUMN_ESTIVACION_ESTADO, estivacion.estado)
+        }
+        val id = db.insert(TABLE_ESTIVACIONES, null, values)
+        Log.d("DatabaseHelper", "Estivación insertada con ID: $id")
+        return id
+    }
+
+    fun getAllEstivaciones(): List<EstivacionEntity> {
+        val db = readableDatabase
+        val estivaciones = mutableListOf<EstivacionEntity>()
+        val cursor = db.query(
+            TABLE_ESTIVACIONES,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "$COLUMN_ESTIVACION_FECHA_CREACION DESC"
+        )
+
+        cursor.use {
+            while (it.moveToNext()) {
+                estivaciones.add(cursorToEstivacion(it))
+            }
+        }
+        Log.d("DatabaseHelper", "Recuperadas ${estivaciones.size} estivaciones")
+        return estivaciones
+    }
+
+    fun getEstivacionesPendientes(): List<EstivacionEntity> {
+        val db = readableDatabase
+        val estivaciones = mutableListOf<EstivacionEntity>()
+        val cursor = db.query(
+            TABLE_ESTIVACIONES,
+            null,
+            "$COLUMN_ESTIVACION_ESTADO = ?",
+            arrayOf("pendiente"),
+            null,
+            null,
+            "$COLUMN_ESTIVACION_FECHA_CREACION DESC"
+        )
+
+        cursor.use {
+            while (it.moveToNext()) {
+                estivaciones.add(cursorToEstivacion(it))
+            }
+        }
+        return estivaciones
+    }
+
+    fun deleteEstivacion(id: Long): Int {
+        val db = writableDatabase
+        val rowsDeleted = db.delete(
+            TABLE_ESTIVACIONES,
+            "$COLUMN_ESTIVACION_ID = ?",
+            arrayOf(id.toString())
+        )
+        Log.d("DatabaseHelper", "Estivación $id eliminada")
+        return rowsDeleted
+    }
+
+    fun updateEstivacionEstado(id: Long, nuevoEstado: String): Int {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put(COLUMN_ESTIVACION_ESTADO, nuevoEstado)
+        }
+        return db.update(
+            TABLE_ESTIVACIONES,
+            values,
+            "$COLUMN_ESTIVACION_ID = ?",
+            arrayOf(id.toString())
+        )
+    }
+    
+    fun updateEstivacion(estivacion: EstivacionEntity): Int {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put(COLUMN_ESTIVACION_PARTIDA, estivacion.partida)
+            put(COLUMN_ESTIVACION_UBICACION, estivacion.ubicacion)
+            put(COLUMN_ESTIVACION_COD_DEPOSITO, estivacion.codDeposito)
+            put(COLUMN_ESTIVACION_ESTADO, estivacion.estado)
+        }
+        val rowsUpdated = db.update(
+            TABLE_ESTIVACIONES,
+            values,
+            "$COLUMN_ESTIVACION_ID = ?",
+            arrayOf(estivacion.id.toString())
+        )
+        Log.d("DatabaseHelper", "Estivación ${estivacion.id} actualizada")
+        return rowsUpdated
+    }
+
+    private fun cursorToEstivacion(cursor: Cursor): EstivacionEntity {
+        return EstivacionEntity(
+            id = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_ESTIVACION_ID)),
+            partida = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_ESTIVACION_PARTIDA)),
+            ubicacion = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_ESTIVACION_UBICACION)),
+            codDeposito = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_ESTIVACION_COD_DEPOSITO)),
+            fechaCreacion = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_ESTIVACION_FECHA_CREACION)),
+            estado = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_ESTIVACION_ESTADO))
+        )
+    }
+
+    // ===== CRUD REUBICACIONES =====
+
+    fun insertReubicacion(reubicacion: ReubicacionEntity): Long {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put(COLUMN_REUBICACION_PARTIDA, reubicacion.partida)
+            put(COLUMN_REUBICACION_UBICACION_ORIGEN, reubicacion.ubicacionOrigen)
+            put(COLUMN_REUBICACION_UBICACION_DESTINO, reubicacion.ubicacionDestino)
+            put(COLUMN_REUBICACION_COD_DEPOSITO, reubicacion.codDeposito)
+            put(COLUMN_REUBICACION_FECHA_CREACION, reubicacion.fechaCreacion)
+            put(COLUMN_REUBICACION_ESTADO, reubicacion.estado)
+        }
+        val id = db.insert(TABLE_REUBICACIONES, null, values)
+        Log.d("DatabaseHelper", "Reubicación insertada con ID: $id")
+        return id
+    }
+
+    fun getAllReubicaciones(): List<ReubicacionEntity> {
+        val db = readableDatabase
+        val reubicaciones = mutableListOf<ReubicacionEntity>()
+        val cursor = db.query(
+            TABLE_REUBICACIONES,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "$COLUMN_REUBICACION_FECHA_CREACION DESC"
+        )
+
+        cursor.use {
+            while (it.moveToNext()) {
+                reubicaciones.add(cursorToReubicacion(it))
+            }
+        }
+        Log.d("DatabaseHelper", "Recuperadas ${reubicaciones.size} reubicaciones")
+        return reubicaciones
+    }
+
+    fun getReubicacionesPendientes(): List<ReubicacionEntity> {
+        val db = readableDatabase
+        val reubicaciones = mutableListOf<ReubicacionEntity>()
+        val cursor = db.query(
+            TABLE_REUBICACIONES,
+            null,
+            "$COLUMN_REUBICACION_ESTADO = ?",
+            arrayOf("pendiente"),
+            null,
+            null,
+            "$COLUMN_REUBICACION_FECHA_CREACION DESC"
+        )
+
+        cursor.use {
+            while (it.moveToNext()) {
+                reubicaciones.add(cursorToReubicacion(it))
+            }
+        }
+        return reubicaciones
+    }
+
+    fun deleteReubicacion(id: Long): Int {
+        val db = writableDatabase
+        val rowsDeleted = db.delete(
+            TABLE_REUBICACIONES,
+            "$COLUMN_REUBICACION_ID = ?",
+            arrayOf(id.toString())
+        )
+        Log.d("DatabaseHelper", "Reubicación $id eliminada")
+        return rowsDeleted
+    }
+
+    fun updateReubicacionEstado(id: Long, nuevoEstado: String): Int {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put(COLUMN_REUBICACION_ESTADO, nuevoEstado)
+        }
+        return db.update(
+            TABLE_REUBICACIONES,
+            values,
+            "$COLUMN_REUBICACION_ID = ?",
+            arrayOf(id.toString())
+        )
+    }
+    
+    fun updateReubicacion(reubicacion: ReubicacionEntity): Int {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put(COLUMN_REUBICACION_PARTIDA, reubicacion.partida)
+            put(COLUMN_REUBICACION_UBICACION_ORIGEN, reubicacion.ubicacionOrigen)
+            put(COLUMN_REUBICACION_UBICACION_DESTINO, reubicacion.ubicacionDestino)
+            put(COLUMN_REUBICACION_COD_DEPOSITO, reubicacion.codDeposito)
+            put(COLUMN_REUBICACION_ESTADO, reubicacion.estado)
+        }
+        val rowsUpdated = db.update(
+            TABLE_REUBICACIONES,
+            values,
+            "$COLUMN_REUBICACION_ID = ?",
+            arrayOf(reubicacion.id.toString())
+        )
+        Log.d("DatabaseHelper", "Reubicación ${reubicacion.id} actualizada")
+        return rowsUpdated
+    }
+
+    private fun cursorToReubicacion(cursor: Cursor): ReubicacionEntity {
+        return ReubicacionEntity(
+            id = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_REUBICACION_ID)),
+            partida = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_REUBICACION_PARTIDA)),
+            ubicacionOrigen = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_REUBICACION_UBICACION_ORIGEN)),
+            ubicacionDestino = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_REUBICACION_UBICACION_DESTINO)),
+            codDeposito = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_REUBICACION_COD_DEPOSITO)),
+            fechaCreacion = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_REUBICACION_FECHA_CREACION)),
+            estado = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_REUBICACION_ESTADO))
+        )
     }
 }
