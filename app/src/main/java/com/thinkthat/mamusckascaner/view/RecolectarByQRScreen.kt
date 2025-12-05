@@ -74,7 +74,6 @@ fun RecolectarByQRScreen(
         )
     }
     
-    var optimizaRecorrido by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     
     val launcher = rememberLauncherForActivityResult(
@@ -116,7 +115,7 @@ fun RecolectarByQRScreen(
             if (parsedData.deposito.isNotEmpty() && parsedData.pedido.isNotEmpty()) {
                 // QR válido - limpiar error y redirigir automáticamente
                 errorMessage = null
-                onProceedWithOrder(scannedResult, optimizaRecorrido)
+                onProceedWithOrder(scannedResult, false)
             } else {
                 // QR inválido - mostrar error
                 AppLogger.logError(
@@ -382,43 +381,6 @@ fun RecolectarByQRScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                 }
                 
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                // Checkbox para optimizar recorrido
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color.White.copy(alpha = 0.2f)
-                    ),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = "¿Optimizar Recorrido?",
-                            fontSize = bodyFontSize,
-                            color = Color.White,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Checkbox(
-                            checked = optimizaRecorrido,
-                            onCheckedChange = { optimizaRecorrido = it },
-                            colors = CheckboxDefaults.colors(
-                                checkedColor = Color.White,
-                                uncheckedColor = Color.White,
-                                checkmarkColor = Color(0xFFCD0914)
-                            )
-                        )
-                    }
-                }
-                
                 Spacer(modifier = Modifier.height(32.dp))
                 
                 // Botón principal de escanear
@@ -560,7 +522,7 @@ fun RecolectarByQRScreen(
                             pedidoSeleccionado = null
                             
                             // Navegar a RecolectarScreen con el QR reconstruido
-                            onProceedWithOrder(qrString, optimizaRecorrido)
+                            onProceedWithOrder(qrString, false)
                         },
                         colors = ButtonDefaults.textButtonColors(
                             contentColor = Color(0xFF4CAF50)

@@ -59,7 +59,7 @@ class RecolectarByQRActivity : ComponentActivity() {
                             val intent = Intent(this@RecolectarByQRActivity, RecolectarActivity::class.java)
                             intent.putExtra("qrData", qrCode) // Pass the raw QR data
                             intent.putExtra("fromQR", true)
-                            intent.putExtra("optimizaRecorrido", optimizaRecorrido) // Pasar el valor del checkbox
+                            intent.putExtra("optimizaRecorrido", optimizaRecorrido) // Siempre false
                             recolectarLauncher.launch(intent)
                         }
                     )

@@ -40,7 +40,7 @@ class RecolectarActivity : ComponentActivity() {
                     // Obtener datos del QR y orden ID desde los extras
                     val qrData = intent.getStringExtra("qrData")
                     val fromQR = intent.getBooleanExtra("fromQR", false)
-                    val optimizaRecorrido = intent.getBooleanExtra("optimizaRecorrido", true) // Por defecto true
+                    val optimizaRecorrido = false // Siempre false
                     val ordenId = if (fromQR && qrData != null) {
                         // Parsear el QR para obtener el ID del pedido
                         parseQRData(qrData).pedido.toIntOrNull() ?: -1

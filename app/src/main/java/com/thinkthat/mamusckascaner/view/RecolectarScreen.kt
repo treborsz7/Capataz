@@ -542,6 +542,7 @@ fun RecolectarScreen(
                                         "descripcionPartida" to articulo.optString("descripcion", "N/A"),
                                         "codArticulo" to articulo.optString("codigo", "N/A"),
                                         "requerido" to articulo.optInt("requerido", 0),
+                                        "saldoDisponible" to articulo.optInt("saldoDisponible", 0),
                                         "nroPartida" to nroPartida
                                     ))
                                     
@@ -585,12 +586,60 @@ fun RecolectarScreen(
                             var expandedItems by remember { mutableStateOf(setOf<String>()) }
                             
                             ubicacionesGrouped.forEach { (codArticulo, ubicacionesDelArticulo) ->
-                                // Inicializar el primer escaneo si no existe
-                                LaunchedEffect(codArticulo) {
+                                // Inicializar escaneos según disponibilidad vs requerido
+                                LaunchedEffect(codArticulo, ubicacionesDelArticulo.size) {
                                     val listaActual = scaneoIndividual[codArticulo]
-                                    if (listaActual == null || listaActual.isEmpty()) {
-                                        scaneoIndividual = scaneoIndividual + (codArticulo to listOf(emptyMap()))
+                                    
+                                    // Determinar cuántos escaneos necesitamos basado en disponibilidad
+                                    var escaneosPorActivar = 0
+                                    var cantidadAcumulada = 0
+                                    val cantidadRequerida = ubicacionesDelArticulo.firstOrNull()?.get("requerido") as? Int ?: 0
+                                    
+                                    Log.d("RecolectarScreen", "=== Calculando ubicaciones a activar ===")
+                                    Log.d("RecolectarScreen", "Artículo: $codArticulo")
+                                    Log.d("RecolectarScreen", "Cantidad requerida: $cantidadRequerida")
+                                    Log.d("RecolectarScreen", "Ubicaciones disponibles: ${ubicacionesDelArticulo.size}")
+                                    Log.d("RecolectarScreen", "Escaneos actuales: ${listaActual?.size ?: 0}")
+                                    
+                                    // Activar automáticamente ubicaciones hasta alcanzar la cantidad requerida
+                                    for (i in ubicacionesDelArticulo.indices) {
+                                        val saldoDisponible = ubicacionesDelArticulo[i]["saldoDisponible"] as? Int ?: 0
+                                        escaneosPorActivar = i + 1 // Activar esta ubicación
+                                        cantidadAcumulada += saldoDisponible
+                                        
+                                        Log.d("RecolectarScreen", "Ubicación ${i + 1}: Disponible=$saldoDisponible, Acumulado=$cantidadAcumulada")
+                                        
+                                        // Si ya alcanzamos la cantidad requerida, detenemos
+                                        if (cantidadAcumulada >= cantidadRequerida) {
+                                            Log.d("RecolectarScreen", "✓ Cantidad alcanzada con ${i + 1} ubicación(es)")
+                                            break
+                                        }
                                     }
+                                    
+                                    // Asegurar al menos 1 ubicación
+                                    escaneosPorActivar = maxOf(escaneosPorActivar, 1)
+                                    
+                                    // Limitar a la cantidad de ubicaciones disponibles
+                                    escaneosPorActivar = minOf(escaneosPorActivar, ubicacionesDelArticulo.size)
+                                    
+                                    // Si no hay lista actual o necesitamos más ubicaciones de las que tenemos
+                                    if (listaActual == null || listaActual.isEmpty()) {
+                                        // Crear la lista inicial de escaneos vacíos
+                                        val escaneosIniciales = List(escaneosPorActivar) { emptyMap<String, String>() }
+                                        scaneoIndividual = scaneoIndividual + (codArticulo to escaneosIniciales)
+                                        Log.d("RecolectarScreen", "✅ Creadas $escaneosPorActivar ubicaciones para artículo $codArticulo")
+                                    } else if (listaActual.size < escaneosPorActivar) {
+                                        // Agregar más escaneos vacíos a la lista existente
+                                        val escaneosFaltantes = escaneosPorActivar - listaActual.size
+                                        val nuevosEscaneos = List(escaneosFaltantes) { emptyMap<String, String>() }
+                                        val listaActualizada = listaActual + nuevosEscaneos
+                                        scaneoIndividual = scaneoIndividual + (codArticulo to listaActualizada)
+                                        Log.d("RecolectarScreen", "✅ Agregadas $escaneosFaltantes ubicaciones adicionales (total: $escaneosPorActivar)")
+                                    } else {
+                                        Log.d("RecolectarScreen", "ℹ️ Ya hay suficientes ubicaciones activadas: ${listaActual.size}")
+                                    }
+                                    
+                                    Log.d("RecolectarScreen", "==========================================")
                                 }
                                 
                                 Card(
@@ -736,6 +785,7 @@ fun RecolectarScreen(
                                                             Log.d("RecolectarScreen", "nroPartida: ${ubicacionAsignada["nroPartida"]}")
                                                             
                                                             val nroPartida = (ubicacionAsignada["nroPartida"] as? String) ?: "N/A"
+                                                            val saldoDisponible = (ubicacionAsignada["saldoDisponible"] as? Int) ?: 0
                                                             
                                                             Column {
                                                                 Text(
@@ -748,6 +798,12 @@ fun RecolectarScreen(
                                                                     text = "Partida: $nroPartida",
                                                                     fontSize = 12.sp,
                                                                     color = Color(0xFF757575),
+                                                                    fontWeight = androidx.compose.ui.text.font.FontWeight.Normal
+                                                                )
+                                                                Text(
+                                                                    text = "Disponible: $saldoDisponible",
+                                                                    fontSize = 12.sp,
+                                                                    color = Color(0xFF2196F3),
                                                                     fontWeight = androidx.compose.ui.text.font.FontWeight.Normal
                                                                 )
                                                             }
