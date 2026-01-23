@@ -1,5 +1,6 @@
 import android.app.Activity
 import android.content.Intent
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -117,6 +118,7 @@ fun ReubicacionScreen(
     
     var errorEnvio by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
+    var showBackDialog by remember { mutableStateOf(false) }
     // Sincronización de valores de la cámara
     LaunchedEffect(producto) {
         if (producto != null) {
@@ -174,7 +176,7 @@ fun ReubicacionScreen(
                 .align(Alignment.TopStart)
                 .padding(horizontalPadding / 2)
         ) {
-            IconButton(onClick = onBack) {
+            IconButton(onClick = { showBackDialog = true }) {
                 Icon(Icons.Filled.ArrowBack, contentDescription = "Volver", tint = Color.White)
             }
         }
@@ -1197,15 +1199,20 @@ fun ReubicacionScreen(
                                         val responseBody = response.body()?.string() ?: "Sin contenido"
                                         AppLogger.logInfo("ReubicacionScreen", "Respuesta exitosa: $responseBody")
                                         AppLogger.logInfo("ReubicacionScreen", "✅ Reubicación completada exitosamente - Partida: $productoLocal")
+                                        Log.d("DEBUG_REUBICACION", "✅ Envío exitoso - ID a eliminar: $idReubicacionActual")
                                         
-                                        // Eliminar de BD si fue una reubicación retomada
+                                        // Eliminar de BD después de envío exitoso
                                         if (idReubicacionActual > 0 && dbHelper != null) {
                                             try {
-                                                dbHelper.deleteReubicacion(idReubicacionActual)
+                                                val rowsDeleted = dbHelper.deleteReubicacion(idReubicacionActual)
+                                                Log.d("DEBUG_REUBICACION", "Reubicación eliminada de BD - ID: $idReubicacionActual, Filas eliminadas: $rowsDeleted")
                                                 AppLogger.logInfo("ReubicacionScreen", "Reubicación eliminada de BD: $idReubicacionActual")
                                             } catch (e: Exception) {
+                                                Log.e("DEBUG_REUBICACION", "Error al eliminar reubicación de BD: ${e.message}", e)
                                                 AppLogger.logError("ReubicacionScreen", "Error al eliminar reubicación de BD", e)
                                             }
+                                        } else {
+                                            Log.w("DEBUG_REUBICACION", "No se eliminó de BD - ID: $idReubicacionActual, dbHelper: ${dbHelper != null}")
                                         }
                                         
                                         withContext(Dispatchers.Main) {
@@ -1262,6 +1269,32 @@ fun ReubicacionScreen(
                     }
                 }
             }
+        }
+        
+        // Diálogo de confirmación para volver
+        if (showBackDialog) {
+            AlertDialog(
+                onDismissRequest = { showBackDialog = false },
+                title = { Text("Volver al menú") },
+                text = { Text("¿Estás seguro de que quieres volver al menú principal?") },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            showBackDialog = false
+                            onBack()
+                        }
+                    ) {
+                        Text("Sí")
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = { showBackDialog = false }
+                    ) {
+                        Text("No")
+                    }
+                }
+            )
         }
     }
 }

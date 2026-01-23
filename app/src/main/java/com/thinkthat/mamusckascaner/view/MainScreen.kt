@@ -1,5 +1,6 @@
 package com.thinkthat.mamusckascaner.view
 
+import android.content.Context.MODE_PRIVATE
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -37,6 +38,7 @@ import android.net.Uri
 import androidx.core.content.FileProvider
 import java.io.File
 import android.widget.Toast
+import androidx.compose.ui.text.style.TextAlign
 import com.thinkthat.mamusckascaner.utils.AppLogger
 
 @Composable
@@ -48,7 +50,9 @@ fun MainScreen(
     val configuration = LocalConfiguration.current
     val screenHeight = configuration.screenHeightDp.dp
     val screenWidth = configuration.screenWidthDp.dp
-    
+    val prefs = context.getSharedPreferences("QRCodeScannerPrefs", MODE_PRIVATE)
+    val codDeposito = prefs.getString("savedDeposito", "") ?: ""
+                                
     // Responsive values
     val horizontalPadding = maxOf(minOf(screenWidth * 0.08f, 32.dp), 16.dp)
     val logoSize = maxOf(minOf(screenWidth * 0.7f, 450.dp), 300.dp)
@@ -273,6 +277,21 @@ fun MainScreen(
                     )
                 }
             }
+        }
+        
+        // Versión de la app en la esquina inferior derecha
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(bottom = 0.dp, end = 8.dp)
+                 
+        ) {
+            Text(
+                text = "v${context.packageManager.getPackageInfo(context.packageName, 0).versionName} \n Deposito :" +codDeposito ,
+                color = Color.Black,
+                fontSize = 13.sp,
+                textAlign = TextAlign.End
+            )
         }
     }
     

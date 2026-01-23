@@ -45,7 +45,9 @@ class EstivacionActivity : ComponentActivity() {
         val partidaRetomar = intent.getStringExtra("partida")
         val ubicacionRetomar = intent.getStringExtra("ubicacion")
         val idRetomar = intent.getLongExtra("id", -1L)
-        
+        val prefs = getSharedPreferences("QRCodeScannerPrefs", MODE_PRIVATE)
+        val codDeposito = prefs.getString("savedDeposito", "") ?: ""
+
         setContent {
             BarCodeScannerTheme {
                 Surface(modifier = Modifier.fillMaxSize(), color = androidx.compose.ui.graphics.Color.White) {
@@ -54,14 +56,12 @@ class EstivacionActivity : ComponentActivity() {
                     var ubicacion by rememberSaveable { mutableStateOf(ubicacionRetomar) }
                     var tipoScan by rememberSaveable { mutableStateOf<String?>(null) }
                     var idEstivacionActual by remember { mutableStateOf(idRetomar) }
-                    
+
                     // Guardado automático cuando cambien los valores (al menos un campo)
                     LaunchedEffect(producto, ubicacion) {
                         if (!producto.isNullOrBlank() || !ubicacion.isNullOrBlank()) {
                             try {
-                                val prefs = getSharedPreferences("QRCodeScannerPrefs", MODE_PRIVATE)
-                                val codDeposito = prefs.getString("savedDeposito", "") ?: ""
-                                
+
                                 val fechaCreacion = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
                                     .format(Date())
                                 
@@ -103,7 +103,9 @@ class EstivacionActivity : ComponentActivity() {
                             Log.d("DEBUG_ESTIVACION", "Después de asignar - producto: '$producto', ubicacion: '$ubicacion'")
                             if(tipoScan == "producto")
                             {
-                                ApiClient.apiService.ubicacionesParaEstibar(codArticu = producto, codDeposi = "3B", optimizaRecorrido= true)
+                                //var deposito = prefs.getString("savedDeposito", "")?: ""
+                            
+                                ApiClient.apiService.ubicacionesParaEstibar(codArticu = producto, codDeposi = codDeposito, optimizaRecorrido= true)
 
                                     .enqueue(object : retrofit2.Callback<okhttp3.ResponseBody> {
                                     override fun onResponse(

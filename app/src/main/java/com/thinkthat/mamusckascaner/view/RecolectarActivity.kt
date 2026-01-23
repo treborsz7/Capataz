@@ -81,7 +81,7 @@ class RecolectarActivity : ComponentActivity() {
                                         Log.d("RecolectarActivity Raw", raw)
                                         Log.d("RecolectarActivity", "=== FIN JSON ===")
                                         
-                                        ubicacionesRecolectar = raw
+                                            ubicacionesRecolectar = raw
                                         Log.d("RecolectarActivity", "Ubicaciones OK. Cantidad: ${lista.size}")
                                     } else {
                                         val code = response.code()

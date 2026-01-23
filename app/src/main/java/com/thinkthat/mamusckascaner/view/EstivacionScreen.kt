@@ -155,6 +155,7 @@ fun EstivacionScreen(
     var ubicacionSeleccionada by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
     var errorEnvio by remember { mutableStateOf<String?>(null) }
+    var showBackDialog by remember { mutableStateOf(false) }
 
     val launcher = rememberLauncherForActivityResult(contract = ActivityResultContracts.RequestPermission())
     { isGranted: Boolean ->
@@ -173,7 +174,7 @@ fun EstivacionScreen(
                 .align(Alignment.TopStart)
                 .padding(horizontalPadding / 2)
         ) {
-            IconButton(onClick = onBack) {
+            IconButton(onClick = { showBackDialog = true }) {
                 Icon(Icons.Filled.ArrowBack, contentDescription = "Volver", tint = Color.White)
             }
         }
@@ -831,15 +832,20 @@ fun EstivacionScreen(
                                 if (response.isSuccessful) {
                                     val responseBody = response.body()?.string()
                                     AppLogger.logInfo("EstivacionScreen", "Estivación exitosa - Partida: $partidaLocal, Ubicación: $ubicacionLimpia, Response: $responseBody")
+                                    Log.d("DEBUG_ESTIVACION", "✅ Envío exitoso - ID a eliminar: $idEstivacionActual")
                                     
-                                    // Eliminar de BD si fue una reubicación retomada
+                                    // Eliminar de BD después de envío exitoso
                                     if (idEstivacionActual > 0 && dbHelper != null) {
                                         try {
-                                            dbHelper.deleteEstivacion(idEstivacionActual)
+                                            val rowsDeleted = dbHelper.deleteEstivacion(idEstivacionActual)
+                                            Log.d("DEBUG_ESTIVACION", "Estivación eliminada de BD - ID: $idEstivacionActual, Filas eliminadas: $rowsDeleted")
                                             AppLogger.logInfo("EstivacionScreen", "Estivación eliminada de BD: $idEstivacionActual")
                                         } catch (e: Exception) {
+                                            Log.e("DEBUG_ESTIVACION", "Error al eliminar estivación de BD: ${e.message}", e)
                                             AppLogger.logError("EstivacionScreen", "Error al eliminar estivación de BD", e)
                                         }
+                                    } else {
+                                        Log.w("DEBUG_ESTIVACION", "No se eliminó de BD - ID: $idEstivacionActual, dbHelper: ${dbHelper != null}")
                                     }
                                     
                                     withContext(Dispatchers.Main) {
@@ -895,6 +901,32 @@ fun EstivacionScreen(
                     }
                 }
             }
+        }
+        
+        // Diálogo de confirmación para volver
+        if (showBackDialog) {
+            AlertDialog(
+                onDismissRequest = { showBackDialog = false },
+                title = { Text("Volver al menú") },
+                text = { Text("¿Estás seguro de que quieres volver al menú principal?") },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            showBackDialog = false
+                            onBack()
+                        }
+                    ) {
+                        Text("Sí")
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = { showBackDialog = false }
+                    ) {
+                        Text("No")
+                    }
+                }
+            )
         }
     }
 }
