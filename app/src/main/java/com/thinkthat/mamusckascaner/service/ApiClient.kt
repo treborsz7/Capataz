@@ -222,7 +222,7 @@ interface ApiService {
     fun recolectarPedido(
         @Body body: okhttp3.RequestBody,
         @Header("avisosComoError") avisosComoError: Boolean = false,
-        @Header("generaRemitoDePic") generaRemitoDePic: Boolean = false,
+        @Header("generaRemitoDePic") generaRemitoDePic: Boolean = true,
         @Header("RECOLECTAR_PEDIDOS.verifica_id_unico_de_etiqueta") verificaIdUnicoDeEtiqueta: String = "Flexible"
 
     ): retrofit2.Call<okhttp3.ResponseBody>

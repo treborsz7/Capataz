@@ -1408,6 +1408,14 @@ fun RecolectarScreen(
                                                             
                                                             // Campo cantidad (solo si partida y ubicación están completos)
                                                             if (!cantidadGuardada) {
+                                                                // Obtener cantidades para validación
+                                                                val cantidadIngresada = cantidadEscaneo.toIntOrNull() ?: 0
+                                                                val cantidadSolicitadaItem = ubicacionesDelArticulo.firstOrNull()?.get("requerido") as? Int ?: 0
+                                                                val saldoDisponibleUbicacion = ubicacionesDelArticulo.getOrNull(indice)?.get("saldoDisponible") as? Int ?: 0
+                                                                
+                                                                // Validar si la cantidad excede tanto la solicitada como la disponible
+                                                                val cantidadExcedida = cantidadIngresada > cantidadSolicitadaItem || cantidadIngresada > saldoDisponibleUbicacion
+                                                                
                                                                 Row(
                                                                     verticalAlignment = Alignment.CenterVertically,
                                                                     modifier = Modifier.fillMaxWidth()
@@ -1419,23 +1427,23 @@ fun RecolectarScreen(
                                                                             val cantidadesMap = cantidadesArticulo + (indice to filteredValue)
                                                                             cantidadesPorArticulo = cantidadesPorArticulo + (codArticulo to cantidadesMap)
                                                                         },
-                                                                        label = { Text("Cantidad", color = Color.Black) },
+                                                                        label = { Text("Cantidad", color = if (cantidadExcedida) Color.Red else Color.Black) },
                                                                         singleLine = true,
                                                                         modifier = Modifier.weight(1f),
-                                                                        textStyle = LocalTextStyle.current.copy(color = Color.Black),
+                                                                        textStyle = LocalTextStyle.current.copy(color = if (cantidadExcedida) Color.Red else Color.Black),
                                                                         colors = TextFieldDefaults.outlinedTextFieldColors(
-                                                                            cursorColor = Color.Black,
-                                                                            focusedBorderColor = Color.Black,
-                                                                            unfocusedBorderColor = Color.Black,
-                                                                            focusedLabelColor = Color.Black,
-                                                                            unfocusedLabelColor = Color.Black
+                                                                            cursorColor = if (cantidadExcedida) Color.Red else Color.Black,
+                                                                            focusedBorderColor = if (cantidadExcedida) Color.Red else Color.Black,
+                                                                            unfocusedBorderColor = if (cantidadExcedida) Color.Red else Color.Black,
+                                                                            focusedLabelColor = if (cantidadExcedida) Color.Red else Color.Black,
+                                                                            unfocusedLabelColor = if (cantidadExcedida) Color.Red else Color.Black
                                                                         ),
                                                                         placeholder = { Text("Ingrese la cantidad", color = Color.Gray) }
                                                                     )
                                                                     Spacer(modifier = Modifier.width(8.dp))
                                                                     IconButton(
                                                                         onClick = {
-                                                                            if (cantidadEscaneo.isNotEmpty()) {
+                                                                            if (cantidadEscaneo.isNotEmpty() && !cantidadExcedida) {
                                                                                 val cantidadesGuardMap = cantidadesGuardadasArticulo + (indice to true)
                                                                                 cantidadesGuardadas = cantidadesGuardadas + (codArticulo to cantidadesGuardMap)
                                                                                 
@@ -1486,15 +1494,27 @@ fun RecolectarScreen(
                                                                                 }
                                                                             }
                                                                         },
-                                                                        enabled = cantidadEscaneo.isNotEmpty()
+                                                                        enabled = cantidadEscaneo.isNotEmpty() && !cantidadExcedida
                                                                     ) {
                                                                         Icon(
                                                                             Icons.Filled.Save,
                                                                             contentDescription = "Guardar cantidad",
-                                                                            tint = if (cantidadEscaneo.isNotEmpty()) Color(0xFF4CAF50) else Color.Gray,
+                                                                            tint = if (cantidadEscaneo.isNotEmpty() && !cantidadExcedida) Color(0xFF4CAF50) else Color.Gray,
                                                                             modifier = Modifier.size(24.dp)
                                                                         )
                                                                     }
+                                                                }
+                                                                
+                                                                // Mostrar mensaje de error si la cantidad está excedida
+                                                                if (cantidadExcedida && cantidadEscaneo.isNotEmpty()) {
+                                                                    Spacer(modifier = Modifier.height(4.dp))
+                                                                    Text(
+                                                                        text = "La cantidad excede lo solicitado ($cantidadSolicitadaItem) o el saldo disponible ($saldoDisponibleUbicacion)",
+                                                                        color = Color.Red,
+                                                                        fontSize = 12.sp,
+                                                                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                                                        modifier = Modifier.fillMaxWidth()
+                                                                    )
                                                                 }
                                                             } else {
                                                                 Row(
@@ -1686,6 +1706,12 @@ fun RecolectarScreen(
                     val ubicacion = escaneo["ubicacion"]
                     val tieneCantidad = cantidadesArticulo[indice]?.isNotEmpty() == true
                     
+                    // Validar que la cantidad no exceda tanto la solicitada como la disponible
+                    val cantidadIngresada = cantidadesArticulo[indice]?.toIntOrNull() ?: 0
+                    val cantidadSolicitada = ubicacionesDelArticulo.firstOrNull()?.get("requerido") as? Int ?: 0
+                    val saldoDisponible = ubicacionesDelArticulo.getOrNull(indice)?.get("saldoDisponible") as? Int ?: 0
+                    val cantidadValida = !(cantidadIngresada > cantidadSolicitada && cantidadIngresada > saldoDisponible)
+                    
                     // Validar que los datos sean correctos
                     val ubicacionAsignada = ubicacionesDelArticulo.getOrNull(indice)
                     
@@ -1712,19 +1738,33 @@ fun RecolectarScreen(
                         true
                     }
                     
-                    val resultado = !ubicacion.isNullOrEmpty() && tieneCantidad && guardado && ubicacionValida && partidaValida
+                    val resultado = !ubicacion.isNullOrEmpty() && tieneCantidad && guardado && ubicacionValida && partidaValida && cantidadValida
                     
                     Log.d("RecolectarScreen", "Escaneo[$indice]:")
                     Log.d("RecolectarScreen", "  partida=$partida, esperado=$nroPartidaEsperado, requerida=$partidaRequerida, válida=$partidaValida")
                     Log.d("RecolectarScreen", "  ubicacion=$ubicacion, esperado=$nombreUbicacionEsperado, válida=$ubicacionValida")
                     Log.d("RecolectarScreen", "  tieneCantidad=$tieneCantidad, guardado=$guardado")
+                    Log.d("RecolectarScreen", "  cantidad=$cantidadIngresada, solicitada=$cantidadSolicitada, disponible=$saldoDisponible, válida=$cantidadValida")
                     Log.d("RecolectarScreen", "  RESULTADO=$resultado")
                     
                     resultado
                 }
                 
-                val resultadoArticulo = hayEscaneos && todosLosEscaneosCompletos
-                Log.d("RecolectarScreen", "Artículo $codArticulo: hayEscaneos=$hayEscaneos, completos=$todosLosEscaneosCompletos, resultado=$resultadoArticulo")
+                // Calcular la suma total de cantidades guardadas para este artículo
+                val cantidadTotalRecolectada = listaEscaneos.indices.sumOf { indice ->
+                    val guardado = cantidadesGuardadasArticulo[indice] ?: false
+                    if (guardado) {
+                        cantidadesArticulo[indice]?.toIntOrNull() ?: 0
+                    } else {
+                        0
+                    }
+                }
+                
+                val cantidadSolicitadaTotal = ubicacionesDelArticulo.firstOrNull()?.get("requerido") as? Int ?: 0
+                val cantidadSuficiente = cantidadTotalRecolectada >= cantidadSolicitadaTotal
+                
+                val resultadoArticulo = hayEscaneos && todosLosEscaneosCompletos && cantidadSuficiente
+                Log.d("RecolectarScreen", "Artículo $codArticulo: hayEscaneos=$hayEscaneos, completos=$todosLosEscaneosCompletos, cantidadRecolectada=$cantidadTotalRecolectada, cantidadSolicitada=$cantidadSolicitadaTotal, suficiente=$cantidadSuficiente, resultado=$resultadoArticulo")
                 resultadoArticulo
             }
 
@@ -1781,8 +1821,9 @@ fun RecolectarScreen(
                                     val cantidad = cantidadesArticulo[indice]?.toIntOrNull() ?: 0
                                     val cantidadGuardada = cantidadesGuardadasArticulo[indice] ?: false
                                     
-                                    // Solo incluir escaneos que tengan cantidad guardada
-                                    if (cantidadGuardada && partida.isNotEmpty() && ubicacion.isNotEmpty() && cantidad > 0) {
+                                    // Solo incluir escaneos que tengan cantidad guardada y ubicación válida
+                                    // La partida puede estar vacía si no es requerida para esa ubicación
+                                    if (cantidadGuardada && ubicacion.isNotEmpty() && cantidad > 0) {
                                         Log.d("RecolectarScreen", "Artículo: $codArticulo - Escaneo #${indice + 1}")
                                         Log.d("RecolectarScreen", "  - Partida: $partida")
                                         Log.d("RecolectarScreen", "  - Ubicación: $ubicacion")
@@ -1800,13 +1841,16 @@ fun RecolectarScreen(
                                         recoleccionObj.put("userData", usuario)
                                         
                                         recoleccionesArray.put(recoleccionObj)
+                                    } else {
+                                        Log.d("RecolectarScreen", "⚠️ Escaneo NO incluido - Artículo: $codArticulo #${indice + 1}")
+                                        Log.d("RecolectarScreen", "  - cantidadGuardada=$cantidadGuardada, ubicacion='$ubicacion', cantidad=$cantidad")
                                     }
                                 }
                             }
                             
                             json.put("recolecciones", recoleccionesArray)
                             json.put("codDeposito", efectivoCodDeposito)
-                            
+                            //json.put("generaRemitoDePic", true)
                             // Fecha actual en formato ISO
                             val fechaActual = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.getDefault()).format(java.util.Date())
                             json.put("fechaHora", fechaActual)
@@ -1817,12 +1861,13 @@ fun RecolectarScreen(
                             Log.d("RecolectarScreen", "=== JSON FINAL ===")
                             Log.d("RecolectarScreen", json.toString(2))
                             
+                            //val body = RequestBody.create("application/json; charset=utf-8".toMediaTypeOrNull(), json.toString())
                             val body = RequestBody.create("application/json; charset=utf-8".toMediaTypeOrNull(), json.toString())
-                            
+
                             CoroutineScope(Dispatchers.IO).launch {
                                 try {
                                     Log.d("RecolectarScreen", "Enviando request a ApiClient.apiService.recolectarPedido...")
-                                    
+                                    Log.d("RecolectarScreen",json.toString())
                                     val response = ApiClient.apiService.recolectarPedido(body).execute()
                                     
                                     Log.d("RecolectarScreen", "Respuesta recibida:")
