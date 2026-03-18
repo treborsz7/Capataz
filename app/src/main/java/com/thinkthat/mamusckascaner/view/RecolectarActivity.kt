@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import org.json.JSONObject
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -95,14 +96,24 @@ class RecolectarActivity : ComponentActivity() {
                                                 tag = "RecolectarActivity",
                                                 message = "Ubicaciones no encontradas: code=$code message=${response.message()} body=${err ?: "sin cuerpo"}"
                                             )
-                                            errorUbicaciones = "No se encontraron ubicaciones para el pedido."
+                                            val errorDetail = try {
+                                                JSONObject(err ?: "").optString("detail", err ?: "No se encontraron ubicaciones para el pedido.")
+                                            } catch (e: Exception) {
+                                                err ?: "No se encontraron ubicaciones para el pedido."
+                                            }.replace("\n", " ").replace("\r", " ")
+                                            errorUbicaciones = errorDetail
                                         } else {
                                             isLoadingUbicaciones = false
                                             AppLogger.logError(
                                                 tag = "RecolectarActivity",
                                                 message = "Ubicaciones error: code=$code message=${response.message()} body=${err ?: "sin cuerpo"}"
                                             )
-                                            errorUbicaciones = "No se pudieron cargar las ubicaciones. Intenta nuevamente."
+                                            val errorDetail = try {
+                                                JSONObject(err ?: "").optString("detail", err ?: "No se pudieron cargar las ubicaciones. Intenta nuevamente.")
+                                            } catch (e: Exception) {
+                                                err ?: "No se pudieron cargar las ubicaciones. Intenta nuevamente."
+                                            }.replace("\n", " ").replace("\r", " ")
+                                            errorUbicaciones = errorDetail
                                         }
                                     }
                                 }
@@ -114,7 +125,9 @@ class RecolectarActivity : ComponentActivity() {
                                         message = "Fallo ubicaciones: ${t.message}",
                                         throwable = t
                                     )
-                                    errorUbicaciones = "No se pudieron cargar las ubicaciones. Verifica tu conexión."
+                                    val errorDetail = (t.message ?: "No se pudieron cargar las ubicaciones. Verifica tu conexión.")
+                                        .replace("\n", " ").replace("\r", " ")
+                                    errorUbicaciones = errorDetail
                                 }
                             })
                         }

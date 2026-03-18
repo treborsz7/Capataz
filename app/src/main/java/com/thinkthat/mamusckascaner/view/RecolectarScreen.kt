@@ -427,7 +427,8 @@ fun RecolectarScreen(
                 ) {
                     ErrorMessage(
                         message = errorUbicaciones!!,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        onDismiss = { /* errorUbicaciones se maneja en RecolectarActivity */ }
                     )
                     
                     // Botón de reintentar
@@ -1911,9 +1912,15 @@ fun RecolectarScreen(
                                             message = "Error en respuesta: code=${response.code()} body=$errorBody"
                                         )
                                         
+                                        val errorDetail = try {
+                                            JSONObject(errorBody).optString("detail", errorBody)
+                                        } catch (e: Exception) {
+                                            errorBody
+                                        }.replace("\n", " ").replace("\r", " ")
+                                        
                                         withContext(Dispatchers.Main) {
                                             isLoadingEnvio = false
-                                            errorEnvio = "No se pudo enviar la recolección. Intenta nuevamente."
+                                            errorEnvio = errorDetail
                                         }
                                     }
                                 } catch (e: Exception) {
@@ -1923,9 +1930,12 @@ fun RecolectarScreen(
                                         throwable = e
                                     )
                                     
+                                    val errorDetail = (e.message ?: "No se pudo enviar la recolección por un problema de conexión.")
+                                        .replace("\n", " ").replace("\r", " ")
+                                    
                                     withContext(Dispatchers.Main) {
                                         isLoadingEnvio = false
-                                        errorEnvio = "No se pudo enviar la recolección por un problema de conexión."
+                                        errorEnvio = errorDetail
                                     }
                                 }
                             }
@@ -2004,7 +2014,8 @@ fun RecolectarScreen(
                 Spacer(modifier = Modifier.height(8.dp))
                 ErrorMessage(
                     message = errorEnvio!!,
-                    modifier = Modifier.fillMaxWidth(0.8f)
+                    modifier = Modifier.fillMaxWidth(0.8f),
+                    onDismiss = { /* errorEnvio se limpia automáticamente */ }
                 )
             }
             }

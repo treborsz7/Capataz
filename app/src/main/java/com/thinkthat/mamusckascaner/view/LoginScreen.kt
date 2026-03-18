@@ -147,14 +147,6 @@ fun LoginScreen(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Recordar", fontSize = bodyFontSize, color = Color.White)
             }
-
-            // Mostrar mensaje de error si existe
-            if (errorMessage != null) {
-                ErrorMessage(
-                    message = errorMessage,
-                    modifier = Modifier.fillMaxWidth(formWidth)
-                )
-            }
         } // Cierre del Column
 
         // Botón Identificar en posición fija
@@ -204,6 +196,21 @@ fun LoginScreen(
                 } else {
                     Text("Identificar", color = Color.Black, fontSize = bodyFontSize)
                 }
+            }
+        }
+
+        // Mostrar mensaje de error si existe (superpuesto sobre el botón)
+        if (errorMessage != null) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 16.dp)
+            ) {
+                ErrorMessage(
+                    message = errorMessage,
+                    modifier = Modifier.fillMaxWidth(formWidth),
+                    onDismiss = { /* El error se maneja en LoginActivity */ }
+                )
             }
         }
     }

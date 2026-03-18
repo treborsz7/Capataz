@@ -2,6 +2,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import org.json.JSONObject
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
@@ -695,20 +696,6 @@ fun EstivacionScreen(
             // Los botones de escaneo ya están integrados en la lógica secuencial arriba
         }
         
-        // Mostrar error de envío si existe (justo arriba del botón)
-        if (errorEnvio != null && partidaLocal.isNotBlank() && ubicacionLocal.isNotBlank()) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 80.dp) // Arriba del botón (56dp altura + 16dp padding + 8dp espacio)
-            ) {
-                ErrorMessage(
-                    message = errorEnvio!!,
-                    modifier = Modifier.fillMaxWidth(formWidth)
-                )
-            }
-        }
-        
         // Botones de escaneo en posición fija (misma ubicación que botón Enviar)
         if (partidaLocal.isBlank()) {
             // Botón Escanear Partida
@@ -860,9 +847,15 @@ fun EstivacionScreen(
                                         message = "Error al estibar partida: code=${response.code()}, error=$errorBody, partida=$partidaLocal, ubicación=$ubicacionLimpia"
                                     )
                                     
+                                    val errorDetail = try {
+                                        JSONObject(errorBody).optString("detail", errorBody)
+                                    } catch (e: Exception) {
+                                        errorBody
+                                    }.replace("\n", " ").replace("\r", " ")
+                                    
                                     withContext(Dispatchers.Main) {
                                         isLoading = false
-                                        errorEnvio = "No se pudo enviar la estivación. Intenta nuevamente."
+                                        errorEnvio = errorDetail
                                     }
                                 }
                             } catch (e: Exception) {
@@ -872,9 +865,12 @@ fun EstivacionScreen(
                                     throwable = e
                                 )
                                 
+                                val errorDetail = (e.message ?: "No se pudo enviar la estivación por un problema de conexión.")
+                                    .replace("\n", " ").replace("\r", " ")
+                                
                                 withContext(Dispatchers.Main) {
                                     isLoading = false
-                                    errorEnvio = "No se pudo enviar la estivación por un problema de conexión."
+                                    errorEnvio = errorDetail
                                 }
                             }
                         }
@@ -900,6 +896,21 @@ fun EstivacionScreen(
                         Text("Enviar", color = Color.Black, fontSize = bodyFontSize)
                     }
                 }
+            }
+        }
+        
+        // Mostrar error de envío si existe (superpuesto sobre el botón)
+        if (errorEnvio != null && partidaLocal.isNotBlank() && ubicacionLocal.isNotBlank()) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 16.dp)
+            ) {
+                ErrorMessage(
+                    message = errorEnvio!!,
+                    modifier = Modifier.fillMaxWidth(formWidth),
+                    onDismiss = { /* errorEnvio se limpia automáticamente */ }
+                )
             }
         }
         

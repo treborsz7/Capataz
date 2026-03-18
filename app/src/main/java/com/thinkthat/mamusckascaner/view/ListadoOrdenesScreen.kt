@@ -1,6 +1,7 @@
 package com.codegalaxy.barcodescanner.view
 
 import android.util.Log
+import org.json.JSONObject
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -57,7 +58,12 @@ fun ListadoOrdenesScreen(
                         tag = "ListadoOrdenesScreen",
                         message = "Error al cargar órdenes: code=${response.code()} message=${response.message()} body=${errorBody ?: "sin cuerpo"}"
                     )
-                    errorMessage = "No se pudieron cargar las órdenes. Intenta nuevamente."
+                    val errorDetail = try {
+                        JSONObject(errorBody ?: "").optString("detail", errorBody ?: "No se pudieron cargar las órdenes. Intenta nuevamente.")
+                    } catch (e: Exception) {
+                        errorBody ?: "No se pudieron cargar las órdenes. Intenta nuevamente."
+                    }.replace("\n", " ").replace("\r", " ")
+                    errorMessage = errorDetail
                 }
             }
 
@@ -68,7 +74,9 @@ fun ListadoOrdenesScreen(
                     message = "Error de conexión al cargar órdenes: ${t.message}",
                     throwable = t
                 )
-                errorMessage = "No se pudieron cargar las órdenes. Verifica tu conexión."
+                val errorDetail = (t.message ?: "No se pudieron cargar las órdenes. Verifica tu conexión.")
+                    .replace("\n", " ").replace("\r", " ")
+                errorMessage = errorDetail
             }
         })
     }
@@ -136,7 +144,8 @@ fun ListadoOrdenesScreen(
                     ErrorMessage(
                         message = errorMessage!!,
                         onRetry = { cargarOrdenes() },
-                        modifier = Modifier.fillMaxWidth(0.8f)
+                        modifier = Modifier.fillMaxWidth(0.8f),
+                        onDismiss = { /* errorMessage se limpia automáticamente */ }
                     )
                 }
                 

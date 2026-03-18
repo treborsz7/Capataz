@@ -2,6 +2,7 @@ package com.thinkthat.mamusckascaner.view
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
+import org.json.JSONObject
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -17,10 +18,10 @@ import com.thinkthat.mamusckascaner.utils.AppLogger
 
 class LoginActivity : ComponentActivity() {
     // Valores fijos para empresa y depósito
-    //private val EMPRESA_FIJA = "31" //Prueba
-    //private val DEPOSITO_FIJO = "3B" //Prueba
-    private val EMPRESA_FIJA = "3"
-    private val DEPOSITO_FIJO = "4B"// productos terminados
+    private val EMPRESA_FIJA = "31" //Prueba
+    private val DEPOSITO_FIJO = "3B" //Prueba
+    //private val EMPRESA_FIJA = "3"
+    //private val DEPOSITO_FIJO = "4B"// productos terminados
     //private val DEPOSITO_FIJO = "3B"
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -66,9 +67,10 @@ class LoginActivity : ComponentActivity() {
                         startActivity(intent)
                         finish()
                     } else {
+                        val errorBody = response.errorBody()?.string() ?: "Error desconocido"
                         AppLogger.logError(
                             tag = "LoginActivity",
-                            message = "LoginPlano falló en auto login: code=${response.code()} message=${response.message()}"
+                            message = "LoginPlano falló en auto login: code=${response.code()} message=${response.message()} body=$errorBody"
                         )
                         mostrarPantallaLogin(savedUser, savedPass, savedRemember, prefs)
                     }
@@ -155,11 +157,17 @@ class LoginActivity : ComponentActivity() {
                                         finish()
                                     } else {
                                         isLoading = false
+                                        val errorBody = response.errorBody()?.string() ?: "Error desconocido"
                                         AppLogger.logError(
                                             tag = "LoginActivity",
-                                            message = "LoginPlano falló: code=${response.code()} message=${response.message()}"
+                                            message = "LoginPlano falló: code=${response.code()} message=${response.message()} body=$errorBody"
                                         )
-                                        errorMessage = "No se pudo iniciar sesión. Revisa tus credenciales."
+                                        val errorDetail = try {
+                                            JSONObject(errorBody).optString("detail", errorBody)
+                                        } catch (e: Exception) {
+                                            errorBody
+                                        }.replace("\n", " ").replace("\r", " ")
+                                        errorMessage = errorDetail
                                     }
                                 }
                                 override fun onFailure(call: retrofit2.Call<okhttp3.ResponseBody>, t: Throwable) {
@@ -169,7 +177,9 @@ class LoginActivity : ComponentActivity() {
                                         message = "LoginPlano onFailure: ${t.message}",
                                         throwable = t
                                     )
-                                    errorMessage = "No se pudo iniciar sesión por un problema de conexión."
+                                    val errorDetail = (t.message ?: "No se pudo iniciar sesión por un problema de conexión.")
+                                        .replace("\n", " ").replace("\r", " ")
+                                    errorMessage = errorDetail
                                 }
                             })
                         },

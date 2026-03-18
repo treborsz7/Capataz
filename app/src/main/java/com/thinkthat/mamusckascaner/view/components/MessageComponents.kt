@@ -2,7 +2,11 @@ package com.thinkthat.mamusckascaner.view.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -11,6 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
 
 /**
  * Componente para mostrar mensajes de error
@@ -19,29 +24,87 @@ import androidx.compose.ui.unit.sp
 fun ErrorMessage(
     message: String,
     modifier: Modifier = Modifier,
-    onRetry: (() -> Unit)? = null
+    onRetry: (() -> Unit)? = null,
+    onDismiss: (() -> Unit)? = null
 ) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = modifier
-    ) {
-        Text(
-            text = message,
-            color = Color(0xFFD32F2F),
-            fontSize = 14.sp,
-            modifier = Modifier
+    var isVisible by remember { mutableStateOf(true) }
+    
+    // Auto-dismiss después de 10 segundos
+    LaunchedEffect(message) {
+        delay(10000)
+        isVisible = false
+        onDismiss?.invoke()
+    }
+    
+    if (isVisible) {
+        Card(
+            modifier = modifier
                 .fillMaxWidth()
-                .background(Color(0xFFFFEBEE), RoundedCornerShape(8.dp))
-                .padding(12.dp)
-        )
-        
-        if (onRetry != null) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Button(
-                onClick = onRetry,
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2))
+                .heightIn(max = 300.dp),
+            shape = RoundedCornerShape(8.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = Color(0xFFFFEBEE)
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Reintentar", color = Color.White)
+                // Header con botón de cerrar
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFF757575))
+                        .padding(8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Error",
+                        color = Color.White,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.weight(1f)
+                    )
+                    IconButton(
+                        onClick = {
+                            isVisible = false
+                            onDismiss?.invoke()
+                        },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Cerrar",
+                            tint = Color.White
+                        )
+                    }
+                }
+                
+                // Contenido scrolleable
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                        .padding(12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = message,
+                        color = Color(0xFFD32F2F),
+                        fontSize = 14.sp
+                    )
+                    
+                    if (onRetry != null) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Button(
+                            onClick = onRetry,
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2))
+                        ) {
+                            Text("Reintentar", color = Color.White)
+                        }
+                    }
+                }
             }
         }
     }

@@ -1,6 +1,7 @@
 import android.app.Activity
 import android.content.Intent
 import android.util.Log
+import org.json.JSONObject
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -1014,20 +1015,6 @@ fun ReubicacionScreen(
             // Los botones de escaneo ya están integrados en la lógica secuencial arriba
         }
         
-        // Mostrar error de envío si existe (justo arriba del botón)
-        if (errorEnvio != null && productoLocal.isNotBlank() && ubicacionOrigenLocal.isNotBlank() && ubicacionDestinoLocal.isNotBlank()) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = errorBottomPadding) // Arriba del botón (56dp altura + 16dp padding + 8dp espacio)
-            ) {
-                ErrorMessage(
-                    message = errorEnvio!!,
-                    modifier = Modifier.fillMaxWidth(formWidth)
-                )
-            }
-        }
-        
         // Botones de escaneo en posición fija (misma ubicación que botón Enviar)
         if (productoLocal.isBlank()) {
             // Botón Escanear Producto
@@ -1228,9 +1215,15 @@ fun ReubicacionScreen(
                                             message = "Error en respuesta: code=${response.code()} body=$errorBody"
                                         )
                                         
+                                        val errorDetail = try {
+                                            JSONObject(errorBody).optString("detail", errorBody)
+                                        } catch (e: Exception) {
+                                            errorBody
+                                        }.replace("\n", " ").replace("\r", " ")
+                                        
                                         withContext(Dispatchers.Main) {
                                             isLoading = false
-                                            errorEnvio = "No se pudo reubicar la partida. Intenta nuevamente."
+                                            errorEnvio = errorDetail
                                         }
                                     }
                                 } catch (e: Exception) {
@@ -1240,9 +1233,12 @@ fun ReubicacionScreen(
                                         throwable = e
                                     )
                                     
+                                    val errorDetail = (e.message ?: "No se pudo reubicar la partida por un problema de conexión.")
+                                        .replace("\n", " ").replace("\r", " ")
+                                    
                                     withContext(Dispatchers.Main) {
                                         isLoading = false
-                                        errorEnvio = "No se pudo reubicar la partida por un problema de conexión."
+                                        errorEnvio = errorDetail
                                     }
                                 }
                             }
@@ -1268,6 +1264,21 @@ fun ReubicacionScreen(
                         Text("Enviar", color = Color.Black, fontSize = bodyFontSize)
                     }
                 }
+            }
+        }
+        
+        // Mostrar error de envío si existe (superpuesto sobre el botón)
+        if (errorEnvio != null && productoLocal.isNotBlank() && ubicacionOrigenLocal.isNotBlank() && ubicacionDestinoLocal.isNotBlank()) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = horizontalPadding / 2)
+            ) {
+                ErrorMessage(
+                    message = errorEnvio!!,
+                    modifier = Modifier.fillMaxWidth(formWidth),
+                    onDismiss = { /* errorEnvio se limpia automáticamente */ }
+                )
             }
         }
         
