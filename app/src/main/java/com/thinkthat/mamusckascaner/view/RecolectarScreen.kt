@@ -238,7 +238,7 @@ fun RecolectarScreen(
                                         ubicMap[key] = mutableMapOf(
                                             "codArticulo" to codArticulo,
                                             "ubicacion" to ubicacion,
-                                            "requerido" to (obj.optInt("requerido", 0))
+                                            "requerido" to (obj.optDouble("requerido", 0.0))
                                         )
                                     }
                                 }
@@ -269,7 +269,7 @@ fun RecolectarScreen(
                                     repository.deleteRecoleccion(rec.id)
                                 } else {
                                     // Verificar si la cantidad requerida cambió
-                                    val cantidadActual = ubicacionActual["requerido"] as? Int ?: 0
+                                    val cantidadActual = (ubicacionActual["requerido"] as? Number)?.toDouble() ?: 0.0
                                     if (cantidadActual != rec.cantidad && cantidadActual > 0) {
                                         Log.i("RecolectarScreen", "Reconciliación: Cantidad de ${rec.codArticulo} cambió de ${rec.cantidad} a $cantidadActual")
                                         // Actualizar la cantidad en SQLite
@@ -298,7 +298,7 @@ fun RecolectarScreen(
                             val guardadasMap = mutableMapOf<Int, Boolean>()
                             
                             recolecciones.sortedBy { it.indiceScaneo }.forEachIndexed { index, rec ->
-                                cantidadesMap[index] = rec.cantidad.toString()
+                                cantidadesMap[index] = if (rec.cantidad % 1.0 == 0.0) rec.cantidad.toInt().toString() else rec.cantidad.toString()
                                 guardadasMap[index] = true
                             }
                             
@@ -542,8 +542,8 @@ fun RecolectarScreen(
                                         "nombreUbicacion" to nombreUbicacion,
                                         "descripcionPartida" to articulo.optString("descripcion", "N/A"),
                                         "codArticulo" to articulo.optString("codigo", "N/A"),
-                                        "requerido" to articulo.optInt("requerido", 0),
-                                        "saldoDisponible" to articulo.optInt("saldoDisponible", 0),
+                                        "requerido" to articulo.optDouble("requerido", 0.0),
+                                        "saldoDisponible" to articulo.optDouble("saldoDisponible", 0.0),
                                         "nroPartida" to nroPartida
                                     ))
                                     
@@ -593,8 +593,8 @@ fun RecolectarScreen(
                                     
                                     // Determinar cuántos escaneos necesitamos basado en disponibilidad
                                     var escaneosPorActivar = 0
-                                    var cantidadAcumulada = 0
-                                    val cantidadRequerida = ubicacionesDelArticulo.firstOrNull()?.get("requerido") as? Int ?: 0
+                                    var cantidadAcumulada = 0.0
+                                    val cantidadRequerida = (ubicacionesDelArticulo.firstOrNull()?.get("requerido") as? Number)?.toDouble() ?: 0.0
                                     
                                     Log.d("RecolectarScreen", "=== Calculando ubicaciones a activar ===")
                                     Log.d("RecolectarScreen", "Artículo: $codArticulo")
@@ -604,7 +604,7 @@ fun RecolectarScreen(
                                     
                                     // Activar automáticamente ubicaciones hasta alcanzar la cantidad requerida
                                     for (i in ubicacionesDelArticulo.indices) {
-                                        val saldoDisponible = ubicacionesDelArticulo[i]["saldoDisponible"] as? Int ?: 0
+                                        val saldoDisponible = (ubicacionesDelArticulo[i]["saldoDisponible"] as? Number)?.toDouble() ?: 0.0
                                         escaneosPorActivar = i + 1 // Activar esta ubicación
                                         cantidadAcumulada += saldoDisponible
                                         
@@ -674,7 +674,7 @@ fun RecolectarScreen(
                                         Spacer(modifier = Modifier.height(4.dp))
                                         
                                         // Mostrar cantidad solicitada y recolectada
-                                        val cantidadSolicitada = ubicacionesDelArticulo.firstOrNull()?.get("requerido") as? Int ?: 0
+                                        val cantidadSolicitada = (ubicacionesDelArticulo.firstOrNull()?.get("requerido") as? Number)?.toDouble() ?: 0.0
                                         
                                         // Calcular total recolectado de todos los escaneos
                                         val listaEscaneos = scaneoIndividual[codArticulo] ?: emptyList()
@@ -684,9 +684,9 @@ fun RecolectarScreen(
                                         val totalRecolectado = listaEscaneos.indices.sumOf { indice ->
                                             val guardado = cantidadesGuardadasArticulo[indice] ?: false
                                             if (guardado) {
-                                                cantidadesArticulo[indice]?.toIntOrNull() ?: 0
+                                                cantidadesArticulo[indice]?.toDoubleOrNull() ?: 0.0
                                             } else {
-                                                0
+                                                0.0
                                             }
                                         }
                                         
@@ -695,13 +695,13 @@ fun RecolectarScreen(
                                             horizontalArrangement = Arrangement.SpaceBetween
                                         ) {
                                             Text(
-                                                text = "Solicitado: $cantidadSolicitada",
+                                                text = "Solicitado: ${if (cantidadSolicitada % 1.0 == 0.0) cantidadSolicitada.toInt().toString() else cantidadSolicitada.toString()}",
                                                 color = Color.Black,
                                                 fontSize = 14.sp,
                                                 fontWeight = androidx.compose.ui.text.font.FontWeight.Normal
                                             )
                                             Text(
-                                                text = "Recolectado: $totalRecolectado",
+                                                text = "Recolectado: ${if (totalRecolectado % 1.0 == 0.0) totalRecolectado.toInt().toString() else totalRecolectado.toString()}",
                                                 color = if (totalRecolectado >= cantidadSolicitada) Color(0xFF4CAF50) else Color(0xFFFF9800),
                                                 fontSize = 14.sp,
                                                 fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
@@ -730,7 +730,8 @@ fun RecolectarScreen(
                                                     cantidadSolicitada > 0) {
                                                     val restante = cantidadSolicitada - totalRecolectado
                                                     val cantidadAutoLlenar = if (restante > 0) restante else cantidadSolicitada
-                                                    val cantidadesMap = cantidadesArticulo + (indice to cantidadAutoLlenar.toString())
+                                                    val cantidadStr = if (cantidadAutoLlenar % 1.0 == 0.0) cantidadAutoLlenar.toInt().toString() else cantidadAutoLlenar.toString()
+                                                    val cantidadesMap = cantidadesArticulo + (indice to cantidadStr)
                                                     cantidadesPorArticulo = cantidadesPorArticulo + (codArticulo to cantidadesMap)
                                                 }
                                             }
@@ -786,7 +787,7 @@ fun RecolectarScreen(
                                                             Log.d("RecolectarScreen", "nroPartida: ${ubicacionAsignada["nroPartida"]}")
                                                             
                                                             val nroPartida = (ubicacionAsignada["nroPartida"] as? String) ?: "N/A"
-                                                            val saldoDisponible = (ubicacionAsignada["saldoDisponible"] as? Int) ?: 0
+                                                            val saldoDisponible = (ubicacionAsignada["saldoDisponible"] as? Number)?.toDouble() ?: 0.0
                                                             
                                                             Column {
                                                                 Text(
@@ -802,7 +803,7 @@ fun RecolectarScreen(
                                                                     fontWeight = androidx.compose.ui.text.font.FontWeight.Normal
                                                                 )
                                                                 Text(
-                                                                    text = "Disponible: $saldoDisponible",
+                                                                    text = "Disponible: ${if (saldoDisponible % 1.0 == 0.0) saldoDisponible.toInt().toString() else saldoDisponible.toString()}",
                                                                     fontSize = 12.sp,
                                                                     color = Color(0xFF2196F3),
                                                                     fontWeight = androidx.compose.ui.text.font.FontWeight.Normal
@@ -1090,7 +1091,7 @@ fun RecolectarScreen(
                                                                                         
                                                                                         val fechaActual = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
                                                                                         val descripcionArticulo = ubicacionesDelArticulo.firstOrNull()?.get("descripcionPartida") as? String ?: "N/A"
-                                                                                        val cantidadSolicitada = ubicacionesDelArticulo.firstOrNull()?.get("requerido") as? Int ?: 0
+                                                                                        val cantidadSolicitada = (ubicacionesDelArticulo.firstOrNull()?.get("requerido") as? Number)?.toDouble() ?: 0.0
                                                                                         
                                                                                         val recoleccion = RecoleccionEntity(
                                                                                             idPedido = idPedido,
@@ -1099,7 +1100,7 @@ fun RecolectarScreen(
                                                                                             cantidadSolicitada = cantidadSolicitada,
                                                                                             ubicacion = ubicacionEscaneada ?: "",
                                                                                             partida = partidaEscaneado,
-                                                                                            cantidad = cantidadEscaneo.toIntOrNull() ?: 0,
+                                                                                            cantidad = cantidadEscaneo.toDoubleOrNull() ?: 0.0,
                                                                                             codDeposito = efectivoCodDeposito,
                                                                                             usuario = usuario,
                                                                                             fechaHora = fechaActual,
@@ -1368,7 +1369,7 @@ fun RecolectarScreen(
                                                                                             
                                                                                             val fechaActual = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
                                                                                             val descripcionArticulo = ubicacionesDelArticulo.firstOrNull()?.get("descripcionPartida") as? String ?: "N/A"
-                                                                                            val cantidadSolicitada = ubicacionesDelArticulo.firstOrNull()?.get("requerido") as? Int ?: 0
+                                                                                            val cantidadSolicitada = (ubicacionesDelArticulo.firstOrNull()?.get("requerido") as? Number)?.toDouble() ?: 0.0
                                                                                             
                                                                                             val recoleccion = RecoleccionEntity(
                                                                                                 idPedido = idPedido,
@@ -1377,7 +1378,7 @@ fun RecolectarScreen(
                                                                                                 cantidadSolicitada = cantidadSolicitada,
                                                                                                 ubicacion = ubicacionEscaneada,
                                                                                                 partida = partidaEscaneado,
-                                                                                                cantidad = cantidadEscaneo.toIntOrNull() ?: 0,
+                                                                                                cantidad = cantidadEscaneo.toDoubleOrNull() ?: 0.0,
                                                                                                 codDeposito = efectivoCodDeposito,
                                                                                                 usuario = usuario,
                                                                                                 fechaHora = fechaActual,
@@ -1410,9 +1411,9 @@ fun RecolectarScreen(
                                                             // Campo cantidad (solo si partida y ubicación están completos)
                                                             if (!cantidadGuardada) {
                                                                 // Obtener cantidades para validación
-                                                                val cantidadIngresada = cantidadEscaneo.toIntOrNull() ?: 0
-                                                                val cantidadSolicitadaItem = ubicacionesDelArticulo.firstOrNull()?.get("requerido") as? Int ?: 0
-                                                                val saldoDisponibleUbicacion = ubicacionesDelArticulo.getOrNull(indice)?.get("saldoDisponible") as? Int ?: 0
+                                                                val cantidadIngresada = cantidadEscaneo.toDoubleOrNull() ?: 0.0
+                                                                val cantidadSolicitadaItem = (ubicacionesDelArticulo.firstOrNull()?.get("requerido") as? Number)?.toDouble() ?: 0.0
+                                                                val saldoDisponibleUbicacion = (ubicacionesDelArticulo.getOrNull(indice)?.get("saldoDisponible") as? Number)?.toDouble() ?: 0.0
                                                                 
                                                                 // Validar si la cantidad excede tanto la solicitada como la disponible
                                                                 val cantidadExcedida = cantidadIngresada > cantidadSolicitadaItem || cantidadIngresada > saldoDisponibleUbicacion
@@ -1424,12 +1425,22 @@ fun RecolectarScreen(
                                                                     OutlinedTextField(
                                                                         value = cantidadEscaneo,
                                                                         onValueChange = { newValue ->
-                                                                            val filteredValue = newValue.filter { it.isDigit() }
+                                                                            // Permitir dígitos y un solo punto decimal
+                                                                            val filteredValue = buildString {
+                                                                                var hasDot = false
+                                                                                for (c in newValue) {
+                                                                                    when {
+                                                                                        c.isDigit() -> append(c)
+                                                                                        c == '.' && !hasDot -> { append(c); hasDot = true }
+                                                                                    }
+                                                                                }
+                                                                            }
                                                                             val cantidadesMap = cantidadesArticulo + (indice to filteredValue)
                                                                             cantidadesPorArticulo = cantidadesPorArticulo + (codArticulo to cantidadesMap)
                                                                         },
                                                                         label = { Text("Cantidad", color = if (cantidadExcedida) Color.Red else Color.Black) },
                                                                         singleLine = true,
+                                                                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                                                         modifier = Modifier.weight(1f),
                                                                         textStyle = LocalTextStyle.current.copy(color = if (cantidadExcedida) Color.Red else Color.Black),
                                                                         colors = TextFieldDefaults.outlinedTextFieldColors(
@@ -1466,7 +1477,7 @@ fun RecolectarScreen(
                                                                                             
                                                                                             // Obtener nombre del artículo y cantidad solicitada
                                                                                             val descripcionArticulo = ubicacionesDelArticulo.firstOrNull()?.get("descripcionPartida") as? String ?: "N/A"
-                                                                                            val cantidadSolicitada = ubicacionesDelArticulo.firstOrNull()?.get("requerido") as? Int ?: 0
+                                                                                            val cantidadSolicitada = (ubicacionesDelArticulo.firstOrNull()?.get("requerido") as? Number)?.toDouble() ?: 0.0
                                                                                             
                                                                                             if (escaneoActual != null) {
                                                                                                 val recoleccion = RecoleccionEntity(
@@ -1476,7 +1487,7 @@ fun RecolectarScreen(
                                                                                                     cantidadSolicitada = cantidadSolicitada,
                                                                                                     ubicacion = escaneoActual["ubicacion"] ?: "",
                                                                                                     partida = escaneoActual["partida"] ?: "",
-                                                                                                    cantidad = cantidadEscaneo.toIntOrNull() ?: 0,
+                                                                                                    cantidad = cantidadEscaneo.toDoubleOrNull() ?: 0.0,
                                                                                                     codDeposito = efectivoCodDeposito,
                                                                                                     usuario = usuario,
                                                                                                     fechaHora = fechaActual,
@@ -1510,7 +1521,7 @@ fun RecolectarScreen(
                                                                 if (cantidadExcedida && cantidadEscaneo.isNotEmpty()) {
                                                                     Spacer(modifier = Modifier.height(4.dp))
                                                                     Text(
-                                                                        text = "La cantidad excede lo solicitado ($cantidadSolicitadaItem) o el saldo disponible ($saldoDisponibleUbicacion)",
+                                                                        text = "La cantidad excede lo solicitado (${if (cantidadSolicitadaItem % 1.0 == 0.0) cantidadSolicitadaItem.toInt().toString() else cantidadSolicitadaItem.toString()}) o el saldo disponible (${if (saldoDisponibleUbicacion % 1.0 == 0.0) saldoDisponibleUbicacion.toInt().toString() else saldoDisponibleUbicacion.toString()})",
                                                                         color = Color.Red,
                                                                         fontSize = 12.sp,
                                                                         fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
@@ -1663,8 +1674,8 @@ fun RecolectarScreen(
                                     "codArticulo" to articulo.optString("codigo", "N/A"),
                                     "codigoBarras" to articulo.optString("codigoBarras", "N/A"),
                                     "descripcion" to articulo.optString("descripcion", "N/A"),
-                                    "requerido" to articulo.optInt("requerido", 0),
-                                    "saldoDisponible" to articulo.optInt("saldoDisponible", 0),
+                                    "requerido" to articulo.optDouble("requerido", 0.0),
+                                    "saldoDisponible" to articulo.optDouble("saldoDisponible", 0.0),
                                     "usaPartidas" to articulo.optBoolean("usaPartidas", false),
                                     "usaSeries" to articulo.optBoolean("usaSeries", false),
                                     "nroPartida" to articulo.optString("nroPartida", "N/A")
@@ -1708,9 +1719,9 @@ fun RecolectarScreen(
                     val tieneCantidad = cantidadesArticulo[indice]?.isNotEmpty() == true
                     
                     // Validar que la cantidad no exceda tanto la solicitada como la disponible
-                    val cantidadIngresada = cantidadesArticulo[indice]?.toIntOrNull() ?: 0
-                    val cantidadSolicitada = ubicacionesDelArticulo.firstOrNull()?.get("requerido") as? Int ?: 0
-                    val saldoDisponible = ubicacionesDelArticulo.getOrNull(indice)?.get("saldoDisponible") as? Int ?: 0
+                    val cantidadIngresada = cantidadesArticulo[indice]?.toDoubleOrNull() ?: 0.0
+                    val cantidadSolicitada = (ubicacionesDelArticulo.firstOrNull()?.get("requerido") as? Number)?.toDouble() ?: 0.0
+                    val saldoDisponible = (ubicacionesDelArticulo.getOrNull(indice)?.get("saldoDisponible") as? Number)?.toDouble() ?: 0.0
                     val cantidadValida = !(cantidadIngresada > cantidadSolicitada && cantidadIngresada > saldoDisponible)
                     
                     // Validar que los datos sean correctos
@@ -1755,13 +1766,13 @@ fun RecolectarScreen(
                 val cantidadTotalRecolectada = listaEscaneos.indices.sumOf { indice ->
                     val guardado = cantidadesGuardadasArticulo[indice] ?: false
                     if (guardado) {
-                        cantidadesArticulo[indice]?.toIntOrNull() ?: 0
+                        cantidadesArticulo[indice]?.toDoubleOrNull() ?: 0.0
                     } else {
-                        0
+                        0.0
                     }
                 }
                 
-                val cantidadSolicitadaTotal = ubicacionesDelArticulo.firstOrNull()?.get("requerido") as? Int ?: 0
+                val cantidadSolicitadaTotal = (ubicacionesDelArticulo.firstOrNull()?.get("requerido") as? Number)?.toDouble() ?: 0.0
                 val cantidadSuficiente = cantidadTotalRecolectada >= cantidadSolicitadaTotal
                 
                 val resultadoArticulo = hayEscaneos && todosLosEscaneosCompletos && cantidadSuficiente
@@ -1819,7 +1830,7 @@ fun RecolectarScreen(
                                     val ubicacion = escaneo["ubicacion"] ?: ""
                                     val cantidadesArticulo = cantidadesPorArticulo[codArticulo] ?: emptyMap()
                                     val cantidadesGuardadasArticulo = cantidadesGuardadas[codArticulo] ?: emptyMap()
-                                    val cantidad = cantidadesArticulo[indice]?.toIntOrNull() ?: 0
+                                    val cantidad = cantidadesArticulo[indice]?.toDoubleOrNull() ?: 0.0
                                     val cantidadGuardada = cantidadesGuardadasArticulo[indice] ?: false
                                     
                                     // Solo incluir escaneos que tengan cantidad guardada y ubicación válida
@@ -1838,6 +1849,9 @@ fun RecolectarScreen(
                                         recoleccionObj.put("codDeposito", efectivoCodDeposito)
                                         recoleccionObj.put("idEtiqueta", codArticulo)
                                         recoleccionObj.put("numPartida", partida)
+
+                                        recoleccionObj.put("fyH", java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.getDefault()).format(java.util.Date()))
+
                                         //recoleccionObj.put("numSerie", ubicacion)
                                         recoleccionObj.put("userData", usuario)
                                         
@@ -1849,7 +1863,7 @@ fun RecolectarScreen(
                                 }
                             }
                             
-                            json.put("recolecciones", recoleccionesArray)
+                            json.put("renglones", recoleccionesArray)
                             json.put("codDeposito", efectivoCodDeposito)
                             //json.put("generaRemitoDePic", true)
                             // Fecha actual en formato ISO

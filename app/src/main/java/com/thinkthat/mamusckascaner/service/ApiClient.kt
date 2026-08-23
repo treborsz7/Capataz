@@ -63,8 +63,8 @@ data class ArticuloResponse(
     val id: Int? = 0,
     val llevaStock: Boolean? = false,
     val perfil: String? = "",
-    val requerido: Int? = null,
-    val saldoDisponible: Int? = 0,
+    val requerido: Double? = null,
+    val saldoDisponible: Double? = 0.0,
     val sinonimo: String? = "",
     val unidadMedida: String? = "",
     val usaEscalas: String? = "",
@@ -89,9 +89,11 @@ data class UbicacionResponse(
     val userData: Any? = null
 )
 
-// Wrapper para la respuesta del API que incluye "body"
+// Wrapper para la respuesta del API que incluye "resultado"
 data class UbicacionesWrapper(
-    val body: List<UbicacionResponse>
+    val resultado: List<UbicacionResponse> = emptyList(),
+    val mensaje: String? = null,
+    val detalle: String? = null
 )
 
 data class EstibarPartida(
@@ -161,8 +163,8 @@ data class ItemOrdenCompleto(
     val id: Int,
     val nroPartida: String,
     val ubicacion: String,
-    val cantidad: Int,
-    val cantidadRecolectada: Int?,
+    val cantidad: Double,
+    val cantidadRecolectada: Double?,
     val estado: String
 )
 
@@ -232,7 +234,7 @@ interface ApiService {
         @Header("idPed") idPed: Int,
         @Header("optimizaRecorrido") optimizaRecorrido: Boolean = false,
         
-    ): retrofit2.Call<List<UbicacionResponse>>
+    ): retrofit2.Call<UbicacionesWrapper>
 
 
 }

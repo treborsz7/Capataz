@@ -12,5 +12,5 @@ data class OrdenTrabajo(
 data class ItemOrden(
     val nropartida: String,
     val ubicacion: String,
-    val cantidad: Int
+    val cantidad: Double
 ) : Serializable

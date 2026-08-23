@@ -14,7 +14,7 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
 
     companion object {
         private const val DATABASE_NAME = "QRCodeScanner.db"
-        private const val DATABASE_VERSION = 2
+        private const val DATABASE_VERSION = 3
 
         // Tabla de Recolecciones
         const val TABLE_RECOLECCIONES = "recolecciones"
@@ -66,10 +66,10 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
                 $COLUMN_ID_PEDIDO INTEGER NOT NULL,
                 $COLUMN_COD_ARTICULO TEXT NOT NULL,
                 $COLUMN_NOMBRE_ARTICULO TEXT NOT NULL,
-                $COLUMN_CANTIDAD_SOLICITADA INTEGER NOT NULL,
+                $COLUMN_CANTIDAD_SOLICITADA REAL NOT NULL,
                 $COLUMN_UBICACION TEXT NOT NULL,
                 $COLUMN_PARTIDA TEXT NOT NULL,
-                $COLUMN_CANTIDAD INTEGER NOT NULL,
+                $COLUMN_CANTIDAD REAL NOT NULL,
                 $COLUMN_COD_DEPOSITO TEXT NOT NULL,
                 $COLUMN_USUARIO TEXT NOT NULL,
                 $COLUMN_FECHA_HORA TEXT NOT NULL,
@@ -127,6 +127,11 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
             db?.execSQL(CREATE_TABLE_ESTIVACIONES)
             db?.execSQL(CREATE_TABLE_REUBICACIONES)
             Log.d("DatabaseHelper", "Tablas de Estivación y Reubicación agregadas")
+        }
+        if (oldVersion < 3) {
+            // Cantidades cambian de INTEGER a REAL para soportar decimales
+            // SQLite maneja la coerción de tipos automáticamente
+            Log.d("DatabaseHelper", "Versión 3: Cantidades ahora soportan decimales")
         }
         Log.d("DatabaseHelper", "Base de datos actualizada de versión $oldVersion a $newVersion")
         ;
@@ -506,10 +511,10 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
             idPedido = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_ID_PEDIDO)),
             codArticulo = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_COD_ARTICULO)),
             nombreArticulo = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_NOMBRE_ARTICULO)),
-            cantidadSolicitada = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_CANTIDAD_SOLICITADA)),
+            cantidadSolicitada = cursor.getDouble(cursor.getColumnIndexOrThrow(COLUMN_CANTIDAD_SOLICITADA)),
             ubicacion = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_UBICACION)),
             partida = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_PARTIDA)),
-            cantidad = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_CANTIDAD)),
+            cantidad = cursor.getDouble(cursor.getColumnIndexOrThrow(COLUMN_CANTIDAD)),
             codDeposito = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_COD_DEPOSITO)),
             usuario = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_USUARIO)),
             fechaHora = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_FECHA_HORA)),

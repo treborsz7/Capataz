@@ -21,6 +21,7 @@ import com.thinkthat.mamusckascaner.service.Services.ApiClient
 import com.thinkthat.mamusckascaner.service.Services.OrdenLanzada
 import com.thinkthat.mamusckascaner.service.Services.OrdenTrabajoCompleta
 import com.thinkthat.mamusckascaner.service.Services.UbicacionResponse
+import com.thinkthat.mamusckascaner.service.Services.UbicacionesWrapper
 import com.thinkthat.mamusckascaner.ui.theme.BarCodeScannerTheme
 import kotlinx.serialization.json.buildJsonObject
 import okhttp3.ResponseBody
@@ -67,14 +68,14 @@ class RecolectarActivity : ComponentActivity() {
                             ApiClient.apiService.UbicacionesParaRecolectar(
                                 idPed = ordenId,
                                 optimizaRecorrido = optimizaRecorrido
-                            ).enqueue(object : Callback<List<UbicacionResponse>> {
+                            ).enqueue(object : Callback<UbicacionesWrapper> {
                                 override fun onResponse(
-                                    call: Call<List<UbicacionResponse>>,
-                                    response: Response<List<UbicacionResponse>>
+                                    call: Call<UbicacionesWrapper>,
+                                    response: Response<UbicacionesWrapper>
                                 ) {
                                     if (response.isSuccessful) {
                                         isLoadingUbicaciones = false
-                                        val lista = response.body().orEmpty()
+                                        val lista = response.body()?.resultado.orEmpty()
                                         val raw = Gson().toJson(lista)
                                         
                                         // Log detallado del JSON
@@ -118,7 +119,7 @@ class RecolectarActivity : ComponentActivity() {
                                     }
                                 }
 
-                                override fun onFailure(call: Call<List<UbicacionResponse>>, t: Throwable) {
+                                override fun onFailure(call: Call<UbicacionesWrapper>, t: Throwable) {
                                     isLoadingUbicaciones = false
                                     AppLogger.logError(
                                         tag = "RecolectarActivity",
