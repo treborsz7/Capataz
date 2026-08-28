@@ -265,7 +265,7 @@ fun EstivacionScreen(
                                 .weight(1f)
                                 .focusRequester(partidaFocusRequester),
                             textStyle = LocalTextStyle.current.copy(color = Color.White),
-                            colors = TextFieldDefaults.outlinedTextFieldColors(
+                            colors = OutlinedTextFieldDefaults.colors(
                                 cursorColor = Color.White,
                                 focusedBorderColor = Color.White,
                                 unfocusedBorderColor = Color.White,
@@ -360,7 +360,7 @@ fun EstivacionScreen(
                                 .weight(1f)
                                 .focusRequester(partidaFocusRequester),
                             textStyle = LocalTextStyle.current.copy(color = Color.White),
-                            colors = TextFieldDefaults.outlinedTextFieldColors(
+                            colors = OutlinedTextFieldDefaults.colors(
                                 cursorColor = Color.White,
                                 focusedBorderColor = Color.White,
                                 unfocusedBorderColor = Color.White,
@@ -441,7 +441,7 @@ fun EstivacionScreen(
                                 .weight(1f)
                                 .focusRequester(ubicacionFocusRequester),
                             textStyle = LocalTextStyle.current.copy(color = Color.White),
-                            colors = TextFieldDefaults.outlinedTextFieldColors(
+                            colors = OutlinedTextFieldDefaults.colors(
                                 cursorColor = Color.White,
                                 focusedBorderColor = Color.White,
                                 unfocusedBorderColor = Color.White,
@@ -535,7 +535,7 @@ fun EstivacionScreen(
                                 .weight(1f)
                                 .focusRequester(partidaFocusRequester),
                             textStyle = LocalTextStyle.current.copy(color = Color.White),
-                            colors = TextFieldDefaults.outlinedTextFieldColors(
+                            colors = OutlinedTextFieldDefaults.colors(
                                 cursorColor = Color.White,
                                 focusedBorderColor = Color.White,
                                 unfocusedBorderColor = Color.White,
@@ -628,7 +628,7 @@ fun EstivacionScreen(
                                 .weight(1f)
                                 .focusRequester(ubicacionFocusRequester),
                             textStyle = LocalTextStyle.current.copy(color = Color.White),
-                            colors = TextFieldDefaults.outlinedTextFieldColors(
+                            colors = OutlinedTextFieldDefaults.colors(
                                 cursorColor = Color.White,
                                 focusedBorderColor = Color.White,
                                 unfocusedBorderColor = Color.White,

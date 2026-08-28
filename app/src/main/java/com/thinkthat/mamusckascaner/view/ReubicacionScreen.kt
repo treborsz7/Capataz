@@ -264,7 +264,7 @@ fun ReubicacionScreen(
                                 .weight(1f)
                                 .focusRequester(productoFocusRequester),
                             textStyle = LocalTextStyle.current.copy(color = Color.White),
-                            colors = TextFieldDefaults.outlinedTextFieldColors(
+                            colors = OutlinedTextFieldDefaults.colors(
                                 cursorColor = Color.White,
                                 focusedBorderColor = Color(0xFF1976D2),
                                 unfocusedBorderColor = Color(0xFF1976D2),
@@ -359,7 +359,7 @@ fun ReubicacionScreen(
                                 .weight(1f)
                                 .focusRequester(productoFocusRequester),
                             textStyle = LocalTextStyle.current.copy(color = Color.White),
-                            colors = TextFieldDefaults.outlinedTextFieldColors(
+                            colors = OutlinedTextFieldDefaults.colors(
                                 cursorColor = Color.White,
                                 focusedBorderColor = Color(0xFF1976D2),
                                 unfocusedBorderColor = Color(0xFF1976D2),
@@ -437,7 +437,7 @@ fun ReubicacionScreen(
                                 .weight(1f)
                                 .focusRequester(ubicacionOrigenFocusRequester),
                             textStyle = LocalTextStyle.current.copy(color = Color.White),
-                            colors = TextFieldDefaults.outlinedTextFieldColors(
+                            colors = OutlinedTextFieldDefaults.colors(
                                 cursorColor = Color.White,
                                 focusedBorderColor = Color(0xFF1976D2),
                                 unfocusedBorderColor = Color(0xFF1976D2),
@@ -532,7 +532,7 @@ fun ReubicacionScreen(
                                 .weight(1f)
                                 .focusRequester(productoFocusRequester),
                             textStyle = LocalTextStyle.current.copy(color = Color.White),
-                            colors = TextFieldDefaults.outlinedTextFieldColors(
+                            colors = OutlinedTextFieldDefaults.colors(
                                 cursorColor = Color.White,
                                 focusedBorderColor = Color(0xFF1976D2),
                                 unfocusedBorderColor = Color(0xFF1976D2),
@@ -624,7 +624,7 @@ fun ReubicacionScreen(
                                 .weight(1f)
                                 .focusRequester(ubicacionOrigenFocusRequester),
                             textStyle = LocalTextStyle.current.copy(color = Color.White),
-                            colors = TextFieldDefaults.outlinedTextFieldColors(
+                            colors = OutlinedTextFieldDefaults.colors(
                                 cursorColor = Color.White,
                                 focusedBorderColor = Color(0xFF1976D2),
                                 unfocusedBorderColor = Color(0xFF1976D2),
@@ -702,7 +702,7 @@ fun ReubicacionScreen(
                                 .weight(1f)
                                 .focusRequester(ubicacionDestinoFocusRequester),
                             textStyle = LocalTextStyle.current.copy(color = Color.White),
-                            colors = TextFieldDefaults.outlinedTextFieldColors(
+                            colors = OutlinedTextFieldDefaults.colors(
                                 cursorColor = Color.White,
                                 focusedBorderColor = Color(0xFF1976D2),
                                 unfocusedBorderColor = Color(0xFF1976D2),
@@ -797,7 +797,7 @@ fun ReubicacionScreen(
                                 .weight(1f)
                                 .focusRequester(productoFocusRequester),
                             textStyle = LocalTextStyle.current.copy(color = Color.White),
-                            colors = TextFieldDefaults.outlinedTextFieldColors(
+                            colors = OutlinedTextFieldDefaults.colors(
                                 cursorColor = Color.White,
                                 focusedBorderColor = Color(0xFF1976D2),
                                 unfocusedBorderColor = Color(0xFF1976D2),
@@ -889,7 +889,7 @@ fun ReubicacionScreen(
                                 .weight(1f)
                                 .focusRequester(ubicacionOrigenFocusRequester),
                             textStyle = LocalTextStyle.current.copy(color = Color.White),
-                            colors = TextFieldDefaults.outlinedTextFieldColors(
+                            colors = OutlinedTextFieldDefaults.colors(
                                 cursorColor = Color.White,
                                 focusedBorderColor = Color(0xFF1976D2),
                                 unfocusedBorderColor = Color(0xFF1976D2),
@@ -981,7 +981,7 @@ fun ReubicacionScreen(
                                 .weight(1f)
                                 .focusRequester(ubicacionDestinoFocusRequester),
                             textStyle = LocalTextStyle.current.copy(color = Color.White),
-                            colors = TextFieldDefaults.outlinedTextFieldColors(
+                            colors = OutlinedTextFieldDefaults.colors(
                                 cursorColor = Color.White,
                                 focusedBorderColor = Color(0xFF1976D2),
                                 unfocusedBorderColor = Color(0xFF1976D2),

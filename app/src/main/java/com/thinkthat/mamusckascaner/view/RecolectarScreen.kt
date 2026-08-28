@@ -906,7 +906,7 @@ fun RecolectarScreen(
                                                                     singleLine = true,
                                                                     modifier = Modifier.weight(1f),
                                                                     textStyle = LocalTextStyle.current.copy(color = Color.Black),
-                                                                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                                                                    colors = OutlinedTextFieldDefaults.colors(
                                                                         cursorColor = Color.Black,
                                                                         focusedBorderColor = if (partidaEscaneado.isNullOrEmpty()) Color.Black 
                                                                                              else if (partidaValida) Color(0xFF4CAF50) 
@@ -1061,7 +1061,7 @@ fun RecolectarScreen(
                                                                     singleLine = true,
                                                                     modifier = Modifier.weight(1f),
                                                                     textStyle = LocalTextStyle.current.copy(color = Color.Black),
-                                                                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                                                                    colors = OutlinedTextFieldDefaults.colors(
                                                                         cursorColor = Color.Black,
                                                                         focusedBorderColor = if (partidaValida) Color(0xFF4CAF50) else Color(0xFFFF5252),
                                                                         unfocusedBorderColor = if (partidaValida) Color(0xFF4CAF50) else Color(0xFFFF5252),
@@ -1192,7 +1192,7 @@ fun RecolectarScreen(
                                                                         singleLine = true,
                                                                         modifier = Modifier.weight(1f),
                                                                         textStyle = LocalTextStyle.current.copy(color = Color.Black),
-                                                                        colors = TextFieldDefaults.outlinedTextFieldColors(
+                                                                        colors = OutlinedTextFieldDefaults.colors(
                                                                             cursorColor = Color.Black,
                                                                             focusedBorderColor = if (ubicacionEscaneada.isNullOrEmpty()) Color.Black 
                                                                                                  else if (ubicacionValida) Color(0xFF4CAF50) 
@@ -1339,7 +1339,7 @@ fun RecolectarScreen(
                                                                         singleLine = true,
                                                                         modifier = Modifier.weight(1f),
                                                                         textStyle = LocalTextStyle.current.copy(color = Color.Black),
-                                                                        colors = TextFieldDefaults.outlinedTextFieldColors(
+                                                                        colors = OutlinedTextFieldDefaults.colors(
                                                                             cursorColor = Color.Black,
                                                                             focusedBorderColor = if (ubicacionValida) Color(0xFF4CAF50) else Color(0xFFFF5252),
                                                                             unfocusedBorderColor = if (ubicacionValida) Color(0xFF4CAF50) else Color(0xFFFF5252),
@@ -1443,7 +1443,7 @@ fun RecolectarScreen(
                                                                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                                                         modifier = Modifier.weight(1f),
                                                                         textStyle = LocalTextStyle.current.copy(color = if (cantidadExcedida) Color.Red else Color.Black),
-                                                                        colors = TextFieldDefaults.outlinedTextFieldColors(
+                                                                        colors = OutlinedTextFieldDefaults.colors(
                                                                             cursorColor = if (cantidadExcedida) Color.Red else Color.Black,
                                                                             focusedBorderColor = if (cantidadExcedida) Color.Red else Color.Black,
                                                                             unfocusedBorderColor = if (cantidadExcedida) Color.Red else Color.Black,
@@ -1540,7 +1540,7 @@ fun RecolectarScreen(
                                                                         singleLine = true,
                                                                         modifier = Modifier.weight(1f),
                                                                         textStyle = LocalTextStyle.current.copy(color = Color.Black),
-                                                                        colors = TextFieldDefaults.outlinedTextFieldColors(
+                                                                        colors = OutlinedTextFieldDefaults.colors(
                                                                             cursorColor = Color.Black,
                                                                             focusedBorderColor = Color.Black,
                                                                             unfocusedBorderColor = Color.Black,

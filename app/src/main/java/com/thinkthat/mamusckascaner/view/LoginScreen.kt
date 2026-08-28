@@ -102,7 +102,7 @@ fun LoginScreen(
                 textStyle = LocalTextStyle.current.copy(
                     color = Color.White
                 ),
-                colors = TextFieldDefaults.outlinedTextFieldColors(
+                colors = OutlinedTextFieldDefaults.colors(
                     cursorColor = Color.White,
                     focusedBorderColor = Color.White,
                     unfocusedBorderColor = Color.White,
@@ -126,7 +126,7 @@ fun LoginScreen(
                 textStyle = LocalTextStyle.current.copy(
                     color = Color.White
                 ),
-                colors = TextFieldDefaults.outlinedTextFieldColors(
+                colors = OutlinedTextFieldDefaults.colors(
                     cursorColor = Color.White,
                     focusedBorderColor = Color.White,
                     unfocusedBorderColor = Color.White,
