@@ -4,89 +4,70 @@ import ReubicacionScreen
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.*
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import com.thinkthat.mamusckascaner.di.ViewModelFactories
+import com.thinkthat.mamusckascaner.presentation.reubicacion.CampoReubicacion
+import com.thinkthat.mamusckascaner.presentation.reubicacion.ReubicacionEvent
+import com.thinkthat.mamusckascaner.presentation.reubicacion.ReubicacionListViewModel
+import com.thinkthat.mamusckascaner.presentation.reubicacion.ReubicacionPantalla
+import com.thinkthat.mamusckascaner.presentation.reubicacion.ReubicacionViewModel
 import com.thinkthat.mamusckascaner.ui.theme.BarCodeScannerTheme
-import com.thinkthat.mamusckascaner.database.DatabaseHelper
-import com.thinkthat.mamusckascaner.database.ReubicacionEntity
-import com.thinkthat.mamusckascaner.utils.AppLogger
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
+/**
+ * Contenedor Android del flujo de reubicación: Intents, escáner y navegación.
+ * La lógica vive en [ReubicacionViewModel].
+ */
 class ReubicacionActivity : ComponentActivity() {
-    private lateinit var dbHelper: DatabaseHelper
-    
+
+    private val viewModel: ReubicacionViewModel by viewModels { ViewModelFactories.reubicacion }
+    private val listViewModel: ReubicacionListViewModel by viewModels {
+        ViewModelFactories.reubicacionList
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
-        dbHelper = DatabaseHelper(this)
-        
-        // Verificar si hay reubicaciones pendientes
-        val reubicacionesPendientes = dbHelper.getReubicacionesPendientes()
-        val showListScreen = reubicacionesPendientes.isNotEmpty()
-        
-        Log.d("DEBUG_REUBICACION", "onCreate - Pendientes encontradas: ${reubicacionesPendientes.size}")
-        Log.d("DEBUG_REUBICACION", "onCreate - Mostrar lista: $showListScreen")
-        
-        // Si viene una reubicación a retomar desde el intent
-        val retomar = intent.getBooleanExtra("retomar", false)
-        val partidaRetomar = intent.getStringExtra("partida")
-        val ubicacionOrigenRetomar = intent.getStringExtra("ubicacionOrigen")
-        val ubicacionDestinoRetomar = intent.getStringExtra("ubicacionDestino")
-        val idRetomar = intent.getLongExtra("id", -1L)
-        
+
+        viewModel.iniciar(
+            retomar = intent.getBooleanExtra(EXTRA_RETOMAR, false),
+            id = intent.getLongExtra(EXTRA_ID, -1L),
+            partida = intent.getStringExtra(EXTRA_PARTIDA),
+            ubicacionOrigen = intent.getStringExtra(EXTRA_UBICACION_ORIGEN),
+            ubicacionDestino = intent.getStringExtra(EXTRA_UBICACION_DESTINO)
+        )
+
         setContent {
             BarCodeScannerTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    var mostrarLista by remember { mutableStateOf(showListScreen && !retomar) }
-                    var producto by remember { mutableStateOf(partidaRetomar) }
-                    var ubicacionOrigen by remember { mutableStateOf(ubicacionOrigenRetomar) }
-                    var ubicacionDestino by remember { mutableStateOf(ubicacionDestinoRetomar) }
-                    var tipoScan by remember { mutableStateOf<String?>(null) }
-                    var idReubicacionActual by remember { mutableStateOf(idRetomar) }
-                    
-                    // Guardado automático cuando cambien los valores (al menos un campo)
-                    LaunchedEffect(producto, ubicacionOrigen, ubicacionDestino) {
-                        if (!producto.isNullOrBlank() || 
-                            !ubicacionOrigen.isNullOrBlank() || 
-                            !ubicacionDestino.isNullOrBlank()) {
-                            try {
-                                val prefs = getSharedPreferences("QRCodeScannerPrefs", MODE_PRIVATE)
-                                val codDeposito = prefs.getString("savedDeposito", "") ?: ""
-                                
-                                val fechaCreacion = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
-                                    .format(Date())
-                                
-                                val reubicacion = ReubicacionEntity(
-                                    id = if (idReubicacionActual > 0) idReubicacionActual else 0,
-                                    partida = producto ?: "",
-                                    ubicacionOrigen = ubicacionOrigen ?: "",
-                                    ubicacionDestino = ubicacionDestino ?: "",
-                                    codDeposito = codDeposito,
-                                    fechaCreacion = fechaCreacion,
-                                    estado = "pendiente"
-                                )
-                                
-                                if (idReubicacionActual > 0) {
-                                    // Actualizar existente
-                                    dbHelper.updateReubicacion(reubicacion)
-                                    Log.d("DEBUG_REUBICACION", "Actualizando reubicación ID: ${idReubicacionActual}")
-                                } else {
-                                    // Insertar nueva y guardar el ID
-                                    val id = dbHelper.insertReubicacion(reubicacion)
-                                    idReubicacionActual = id
-                                    Log.d("DEBUG_REUBICACION", "Reubicación guardada automáticamente con ID: $id")
+                    val state by viewModel.state.collectAsState()
+                    val listState by listViewModel.state.collectAsState()
+
+                    var campoEscaneado by rememberSaveable { mutableStateOf<String?>(null) }
+
+                    LaunchedEffect(Unit) {
+                        viewModel.events.collect { evento ->
+                            when (evento) {
+                                ReubicacionEvent.EnvioExitoso -> {
+                                    startActivity(
+                                        Intent(
+                                            this@ReubicacionActivity,
+                                            EstivacionSuccessActivity::class.java
+                                        )
+                                    )
+                                    finish()
                                 }
-                            } catch (e: Exception) {
-                                Log.e("DEBUG_REUBICACION", "Error al guardar automáticamente", e)
                             }
                         }
                     }
@@ -95,54 +76,51 @@ class ReubicacionActivity : ComponentActivity() {
                         contract = ActivityResultContracts.StartActivityForResult()
                     ) { result ->
                         if (result.resultCode == Activity.RESULT_OK) {
-                            val value = result.data?.getStringExtra("scanResult")
-                            Log.d("DEBUG_REUBICACION", "Scanner result - tipo: $tipoScan, value: '$value'")
-                            when (tipoScan) {
-                                "producto" -> producto = value
-                                "ubicacion_origen" -> ubicacionOrigen = value
-                                "ubicacion_destino" -> ubicacionDestino = value
-                            }
-                            Log.d("DEBUG_REUBICACION", "Después de asignar - producto: '$producto', ubicacionOrigen: '$ubicacionOrigen', ubicacionDestino: '$ubicacionDestino'")
+                            viewModel.onScanResult(
+                                campo = CampoReubicacion.desdeClave(campoEscaneado),
+                                valor = result.data?.getStringExtra("scanResult")
+                            )
                         }
                     }
 
-                    if (mostrarLista) {
-                        ReubicacionListScreen(
+                    when (state.pantalla) {
+                        ReubicacionPantalla.CARGANDO -> Unit
+
+                        ReubicacionPantalla.LISTA_PENDIENTES -> ReubicacionListScreen(
+                            state = listState,
                             onBack = { finish() },
-                            onNewReubicacion = { mostrarLista = false },
-                            onResumeReubicacion = { reubicacion ->
-                                producto = reubicacion.partida
-                                ubicacionOrigen = reubicacion.ubicacionOrigen
-                                ubicacionDestino = reubicacion.ubicacionDestino
-                                idReubicacionActual = reubicacion.id
-                                mostrarLista = false
-                            }
+                            onNewReubicacion = { viewModel.nuevaReubicacion() },
+                            onResumeReubicacion = { viewModel.retomarReubicacion(it) },
+                            onDeleteReubicacion = { listViewModel.eliminar(it) }
                         )
-                    } else {
-                        ReubicacionScreen(
-                            onBack = {
-                                // El guardado ya se hizo automáticamente
-                                Log.d("DEBUG_REUBICACION", "onBack - cerrando Activity")
-                                finish()
-                            },
+
+                        ReubicacionPantalla.FORMULARIO -> ReubicacionScreen(
+                            state = state,
+                            onBack = { finish() },
                             onReubicarClick = { tipo ->
-                                tipoScan = tipo
-                                val intent = Intent(this, BarcodeScannerActivity::class.java)
-                                intent.putExtra("modo", tipo)
-                                scannerLauncher.launch(intent)
+                                campoEscaneado = tipo
+                                scannerLauncher.launch(
+                                    Intent(this, BarcodeScannerActivity::class.java)
+                                        .putExtra("modo", tipo)
+                                )
                             },
-                            producto = producto,
-                            ubicacionOrigen = ubicacionOrigen,
-                            ubicacionDestino = ubicacionDestino,
-                            idReubicacionActual = idReubicacionActual,
-                            dbHelper = dbHelper,
-                            onProductoChange = { newValue -> producto = newValue },
-                            onUbicacionOrigenChange = { newValue -> ubicacionOrigen = newValue },
-                            onUbicacionDestinoChange = { newValue -> ubicacionDestino = newValue }
+                            onProductoChange = viewModel::onPartidaChange,
+                            onUbicacionOrigenChange = viewModel::onUbicacionOrigenChange,
+                            onUbicacionDestinoChange = viewModel::onUbicacionDestinoChange,
+                            onEnviar = viewModel::enviar,
+                            onDismissError = viewModel::limpiarError
                         )
                     }
                 }
             }
         }
+    }
+
+    companion object {
+        const val EXTRA_RETOMAR = "retomar"
+        const val EXTRA_PARTIDA = "partida"
+        const val EXTRA_UBICACION_ORIGEN = "ubicacionOrigen"
+        const val EXTRA_UBICACION_DESTINO = "ubicacionDestino"
+        const val EXTRA_ID = "id"
     }
 }

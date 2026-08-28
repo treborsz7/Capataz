@@ -4,88 +4,74 @@ import EstivacionScreen
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.material3.Surface
-import androidx.compose.ui.Modifier
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.runtime.*
+import androidx.activity.viewModels
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
-import com.thinkthat.mamusckascaner.service.Services.ApiClient
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import com.thinkthat.mamusckascaner.di.ViewModelFactories
+import com.thinkthat.mamusckascaner.presentation.estivacion.CampoEstivacion
+import com.thinkthat.mamusckascaner.presentation.estivacion.EstivacionEvent
+import com.thinkthat.mamusckascaner.presentation.estivacion.EstivacionListViewModel
+import com.thinkthat.mamusckascaner.presentation.estivacion.EstivacionPantalla
+import com.thinkthat.mamusckascaner.presentation.estivacion.EstivacionViewModel
 import com.thinkthat.mamusckascaner.ui.theme.BarCodeScannerTheme
-import com.thinkthat.mamusckascaner.utils.AppLogger
-import com.thinkthat.mamusckascaner.database.DatabaseHelper
-import com.thinkthat.mamusckascaner.database.EstivacionEntity
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
+/**
+ * Contenedor Android del flujo de estivación. Solo resuelve lo que es propio de
+ * la plataforma: Intents, escáner y navegación. La lógica está en
+ * [EstivacionViewModel], que se reutiliza tal cual en iOS.
+ */
 class EstivacionActivity : ComponentActivity() {
-    private lateinit var dbHelper: DatabaseHelper
-    
+
+    private val viewModel: EstivacionViewModel by viewModels { ViewModelFactories.estivacion }
+    private val listViewModel: EstivacionListViewModel by viewModels {
+        ViewModelFactories.estivacionList
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        
-        dbHelper = DatabaseHelper(this)
-        
-        // Verificar si hay estivaciones pendientes
-        val estivacionesPendientes = dbHelper.getEstivacionesPendientes()
-        val showListScreen = estivacionesPendientes.isNotEmpty()
-        
-        Log.d("DEBUG_ESTIVACION", "onCreate - Pendientes encontradas: ${estivacionesPendientes.size}")
-        Log.d("DEBUG_ESTIVACION", "onCreate - Mostrar lista: $showListScreen")
-        
-        // Si viene una estivación a retomar desde el intent
-        val retomar = intent.getBooleanExtra("retomar", false)
-        val partidaRetomar = intent.getStringExtra("partida")
-        val ubicacionRetomar = intent.getStringExtra("ubicacion")
-        val idRetomar = intent.getLongExtra("id", -1L)
-        val prefs = getSharedPreferences("QRCodeScannerPrefs", MODE_PRIVATE)
-        val codDeposito = prefs.getString("savedDeposito", "") ?: ""
+
+        viewModel.iniciar(
+            retomar = intent.getBooleanExtra(EXTRA_RETOMAR, false),
+            id = intent.getLongExtra(EXTRA_ID, -1L),
+            partida = intent.getStringExtra(EXTRA_PARTIDA),
+            ubicacion = intent.getStringExtra(EXTRA_UBICACION)
+        )
 
         setContent {
             BarCodeScannerTheme {
-                Surface(modifier = Modifier.fillMaxSize(), color = androidx.compose.ui.graphics.Color.White) {
-                    var mostrarLista by remember { mutableStateOf(showListScreen && !retomar) }
-                    var producto by rememberSaveable { mutableStateOf(partidaRetomar) }
-                    var ubicacion by rememberSaveable { mutableStateOf(ubicacionRetomar) }
-                    var tipoScan by rememberSaveable { mutableStateOf<String?>(null) }
-                    var idEstivacionActual by remember { mutableStateOf(idRetomar) }
+                Surface(modifier = Modifier.fillMaxSize(), color = Color.White) {
+                    val state by viewModel.state.collectAsState()
+                    val listState by listViewModel.state.collectAsState()
 
-                    // Guardado automático cuando cambien los valores (al menos un campo)
-                    LaunchedEffect(producto, ubicacion) {
-                        if (!producto.isNullOrBlank() || !ubicacion.isNullOrBlank()) {
-                            try {
+                    // El campo en curso sobrevive a la recreación por rotación.
+                    var campoEscaneado by rememberSaveable { mutableStateOf<String?>(null) }
 
-                                val fechaCreacion = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
-                                    .format(Date())
-                                
-                                val estivacion = EstivacionEntity(
-                                    id = if (idEstivacionActual > 0) idEstivacionActual else 0,
-                                    partida = producto ?: "",
-                                    ubicacion = ubicacion ?: "",
-                                    codDeposito = codDeposito,
-                                    fechaCreacion = fechaCreacion,
-                                    estado = "pendiente"
-                                )
-                                
-                                if (idEstivacionActual > 0) {
-                                    // Actualizar existente
-                                    dbHelper.updateEstivacion(estivacion)
-                                    Log.d("DEBUG_ESTIVACION", "Actualizando estivación ID: ${idEstivacionActual}")
-                                } else {
-                                    // Insertar nueva y guardar el ID
-                                    val id = dbHelper.insertEstivacion(estivacion)
-                                    idEstivacionActual = id
-                                    Log.d("DEBUG_ESTIVACION", "Estivación guardada automáticamente con ID: $id")
+                    LaunchedEffect(Unit) {
+                        viewModel.events.collect { evento ->
+                            when (evento) {
+                                EstivacionEvent.EnvioExitoso -> {
+                                    startActivity(
+                                        Intent(
+                                            this@EstivacionActivity,
+                                            EstivacionSuccessActivity::class.java
+                                        )
+                                    )
+                                    finish()
                                 }
-                            } catch (e: Exception) {
-                                Log.e("DEBUG_ESTIVACION", "Error al guardar automáticamente", e)
                             }
                         }
                     }
@@ -93,94 +79,50 @@ class EstivacionActivity : ComponentActivity() {
                     val scannerLauncher = rememberLauncherForActivityResult(
                         contract = ActivityResultContracts.StartActivityForResult()
                     ) { result ->
-                        if (result.resultCode == RESULT_OK) {
-                            val value = result.data?.getStringExtra("scanResult")
-                            Log.d("DEBUG_ESTIVACION", "Scanner result - tipo: $tipoScan, value: '$value'")
-                            when (tipoScan) {
-                                "producto" -> producto = value
-                                "ubicacion" -> ubicacion = value
-                            }
-                            Log.d("DEBUG_ESTIVACION", "Después de asignar - producto: '$producto', ubicacion: '$ubicacion'")
-                            if(tipoScan == "producto")
-                            {
-                                //var deposito = prefs.getString("savedDeposito", "")?: ""
-                            
-                                ApiClient.apiService.ubicacionesParaEstibar(codArticu = producto, codDeposi = codDeposito, optimizaRecorrido= true)
-
-                                    .enqueue(object : retrofit2.Callback<okhttp3.ResponseBody> {
-                                    override fun onResponse(
-                                        call: retrofit2.Call<okhttp3.ResponseBody>,
-                                        response: retrofit2.Response<okhttp3.ResponseBody>
-                                    ) {
-                                        val rawBody = response.body()?.string()
-                                        if (response.isSuccessful && rawBody != null) {
-                                           // prefs.edit().putString("token", rawBody).apply()
-                                            android.util.Log.d("EstivacionActivity", "Body: $rawBody")
-                                            /*runOnUiThread {
-                                                val intent = Intent(this@LoginActivity, MainActivity::class.java)
-                                                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                                                startActivity(intent)
-                                                finish()
-                                            }*/
-                                        } else {
-                                            AppLogger.logError(
-                                                tag = "EstivacionActivity",
-                                                message = "ubicacion fallida: respuesta no exitosa"
-                                            )
-                                            // Si falla el login automático, mostrar pantalla de login
-                                            //mostrarPantallaLogin(savedUser, savedPass, savedRemember)
-                                        }
-                                    }
-                                    override fun onFailure(call: retrofit2.Call<okhttp3.ResponseBody>, t: Throwable) {
-                                        AppLogger.logError(
-                                            tag = "EstivacionActivity",
-                                            message = "ubicacion onFailure: ${t.message}",
-                                            throwable = t
-                                        )
-                                        // Si falla el login automático, mostrar pantalla de login
-                                        //mostrarPantallaLogin(savedUser, savedPass, savedRemember)
-                                    }
-                                })
-
-                            }
+                        if (result.resultCode == Activity.RESULT_OK) {
+                            viewModel.onScanResult(
+                                campo = CampoEstivacion.desdeClave(campoEscaneado),
+                                valor = result.data?.getStringExtra("scanResult")
+                            )
                         }
                     }
 
-                    if (mostrarLista) {
-                        EstivacionListScreen(
+                    when (state.pantalla) {
+                        EstivacionPantalla.CARGANDO -> Unit
+
+                        EstivacionPantalla.LISTA_PENDIENTES -> EstivacionListScreen(
+                            state = listState,
                             onBack = { finish() },
-                            onNewEstivacion = { mostrarLista = false },
-                            onResumeEstivacion = { estivacion ->
-                                producto = estivacion.partida
-                                ubicacion = estivacion.ubicacion
-                                idEstivacionActual = estivacion.id
-                                mostrarLista = false
-                            }
+                            onNewEstivacion = { viewModel.nuevaEstivacion() },
+                            onResumeEstivacion = { viewModel.retomarEstivacion(it) },
+                            onDeleteEstivacion = { listViewModel.eliminar(it) }
                         )
-                    } else {
-                        EstivacionScreen(
-                            onBack = {
-                                // El guardado ya se hizo automáticamente
-                                Log.d("DEBUG_ESTIVACION", "onBack - cerrando Activity")
-                                finish()
-                            },
+
+                        EstivacionPantalla.FORMULARIO -> EstivacionScreen(
+                            state = state,
+                            onBack = { finish() },
                             onStockearClick = { tipo ->
-                                Log.d("EstivacionActivity", "Tipo de escaneo: $tipo")
-                                tipoScan = tipo
-                                val intent = Intent(this, BarcodeScannerActivity::class.java)
-                                intent.putExtra("modo", tipo)
-                                scannerLauncher.launch(intent)
+                                campoEscaneado = tipo
+                                scannerLauncher.launch(
+                                    Intent(this, BarcodeScannerActivity::class.java)
+                                        .putExtra("modo", tipo)
+                                )
                             },
-                            producto = producto,
-                            ubicacion = ubicacion,
-                            idEstivacionActual = idEstivacionActual,
-                            dbHelper = dbHelper,
-                            onProductoChange = { newValue -> producto = newValue },
-                            onUbicacionChange = { newValue -> ubicacion = newValue }
+                            onProductoChange = viewModel::onPartidaChange,
+                            onUbicacionChange = viewModel::onUbicacionChange,
+                            onEnviar = viewModel::enviar,
+                            onDismissError = viewModel::limpiarError
                         )
                     }
                 }
             }
         }
+    }
+
+    companion object {
+        const val EXTRA_RETOMAR = "retomar"
+        const val EXTRA_PARTIDA = "partida"
+        const val EXTRA_UBICACION = "ubicacion"
+        const val EXTRA_ID = "id"
     }
 }

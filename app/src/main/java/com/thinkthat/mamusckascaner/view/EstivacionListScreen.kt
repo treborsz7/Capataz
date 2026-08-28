@@ -15,66 +15,39 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalConfiguration
-import com.thinkthat.mamusckascaner.database.DatabaseHelper
-import com.thinkthat.mamusckascaner.database.EstivacionEntity
-import com.thinkthat.mamusckascaner.utils.AppLogger
-import kotlinx.coroutines.launch
+import com.thinkthat.mamusckascaner.domain.model.Estivacion
+import com.thinkthat.mamusckascaner.presentation.estivacion.EstivacionListUiState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EstivacionListScreen(
+    state: EstivacionListUiState,
     onBack: () -> Unit = {},
     onNewEstivacion: () -> Unit = {},
-    onResumeEstivacion: (EstivacionEntity) -> Unit = {}
+    onResumeEstivacion: (Estivacion) -> Unit = {},
+    onDeleteEstivacion: (Long) -> Unit = {}
 ) {
-    val context = LocalContext.current
     val configuration = LocalConfiguration.current
     val screenHeight = configuration.screenHeightDp.dp
     val screenWidth = configuration.screenWidthDp.dp
-    val coroutineScope = rememberCoroutineScope()
-    
-    // Database Helper
-    val dbHelper = remember { DatabaseHelper(context) }
-    
-    // Estado para estivaciones pendientes
-    var estivacionesPendientes by remember { mutableStateOf<List<EstivacionEntity>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
-    
+
+    val estivacionesPendientes = state.pendientes
+    val isLoading = state.isLoading
+
     // Estado para diálogos
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showResumeDialog by remember { mutableStateOf(false) }
-    var estivacionSeleccionada by remember { mutableStateOf<EstivacionEntity?>(null) }
-    
+    var estivacionSeleccionada by remember { mutableStateOf<Estivacion?>(null) }
+
     // Responsive values
     val horizontalPadding = maxOf(minOf(screenWidth * 0.08f, 32.dp), 16.dp)
     val titleFontSize = maxOf(minOf((screenWidth * 0.06f).value, 28f), 20f).sp
     val bodyFontSize = maxOf(minOf((screenWidth * 0.04f).value, 18f), 14f).sp
     val buttonHeight = maxOf(minOf(screenHeight * 0.07f, 64.dp), 48.dp)
-    
-    // Cargar estivaciones pendientes al iniciar
-    LaunchedEffect(Unit) {
-        try {
-            isLoading = true
-            estivacionesPendientes = dbHelper.getEstivacionesPendientes()
-            AppLogger.logInfo(
-                tag = "EstivacionListScreen",
-                message = "Cargadas ${estivacionesPendientes.size} estivaciones pendientes"
-            )
-        } catch (e: Exception) {
-            AppLogger.logError(
-                tag = "EstivacionListScreen",
-                message = "Error al cargar estivaciones pendientes",
-                throwable = e
-            )
-        } finally {
-            isLoading = false
-        }
-    }
 
     Box(
         modifier = Modifier
@@ -292,24 +265,7 @@ fun EstivacionListScreen(
                 confirmButton = {
                     TextButton(
                         onClick = {
-                            val estivacionAEliminar = estivacionSeleccionada!!
-                            coroutineScope.launch {
-                                try {
-                                    dbHelper.deleteEstivacion(estivacionAEliminar.id)
-                                    AppLogger.logInfo(
-                                        tag = "EstivacionListScreen",
-                                        message = "Estivación ${estivacionAEliminar.id} eliminada"
-                                    )
-                                    // Recargar lista
-                                    estivacionesPendientes = dbHelper.getEstivacionesPendientes()
-                                } catch (e: Exception) {
-                                    AppLogger.logError(
-                                        tag = "EstivacionListScreen",
-                                        message = "Error al eliminar estivación",
-                                        throwable = e
-                                    )
-                                }
-                            }
+                            onDeleteEstivacion(estivacionSeleccionada!!.id)
                             showDeleteDialog = false
                             estivacionSeleccionada = null
                         },

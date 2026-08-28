@@ -1,7 +1,3 @@
-import android.app.Activity
-import android.content.Intent
-import android.util.Log
-import org.json.JSONObject
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -38,34 +34,27 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import com.thinkthat.mamusckascaner.service.Services.ApiClient
-import com.thinkthat.mamusckascaner.service.Services.ReubicarPartida
-import com.thinkthat.mamusckascaner.service.Services.ReubicarPartidasRequest
-import com.thinkthat.mamusckascaner.view.EstivacionSuccessActivity
-import com.thinkthat.mamusckascaner.utils.AppLogger
+import com.thinkthat.mamusckascaner.presentation.reubicacion.ReubicacionPantalla
+import com.thinkthat.mamusckascaner.presentation.reubicacion.ReubicacionUiState
 import com.thinkthat.mamusckascaner.view.components.ErrorMessage
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReubicacionScreen(
+    state: ReubicacionUiState,
     onBack: () -> Unit = {},
     onReubicarClick: (boton: String) -> Unit = {},
-    producto: String? = null,
-    ubicacionOrigen: String? = null,
-    ubicacionDestino: String? = null,
-    idReubicacionActual: Long = -1,
-    dbHelper: com.thinkthat.mamusckascaner.database.DatabaseHelper? = null,
     onProductoChange: (String) -> Unit = {},
     onUbicacionOrigenChange: (String) -> Unit = {},
-    onUbicacionDestinoChange: (String) -> Unit = {}
+    onUbicacionDestinoChange: (String) -> Unit = {},
+    onEnviar: () -> Unit = {},
+    onDismissError: () -> Unit = {}
 ) {
+    // La pantalla solo dibuja: los datos y el estado de envío vienen del ViewModel.
+    val producto: String? = state.partida.takeIf { it.isNotBlank() }
+    val ubicacionOrigen: String? = state.ubicacionOrigen.takeIf { it.isNotBlank() }
+    val ubicacionDestino: String? = state.ubicacionDestino.takeIf { it.isNotBlank() }
+
     val context = LocalContext.current
     val configuration = LocalConfiguration.current
     val screenHeight = configuration.screenHeightDp.dp
@@ -97,10 +86,8 @@ fun ReubicacionScreen(
     ) { isGranted: Boolean ->
         hasCameraPermission = isGranted
     }
-    // Leer depósito desde SharedPreferences (guardado en login) - solo para uso en API
-    val prefs = context.getSharedPreferences("QRCodeScannerPrefs", android.content.Context.MODE_PRIVATE)
-    val deposito = prefs.getString("savedDeposito", "") ?: ""
-    
+    val deposito = state.codDeposito
+
     // Estados para campos editables
     var productoLocal by remember { mutableStateOf(producto ?: "") }
     var productoEditable by remember { mutableStateOf(false) }
@@ -117,8 +104,8 @@ fun ReubicacionScreen(
     var ubicacionDestinoFieldValue by remember { mutableStateOf(TextFieldValue(ubicacionDestino ?: "")) }
     val ubicacionDestinoFocusRequester = remember { FocusRequester() }
     
-    var errorEnvio by remember { mutableStateOf<String?>(null) }
-    var isLoading by remember { mutableStateOf(false) }
+    val errorEnvio = state.error
+    val isLoading = state.isEnviando
     var showBackDialog by remember { mutableStateOf(false) }
     // Sincronización de valores de la cámara
     LaunchedEffect(producto) {
@@ -1149,101 +1136,7 @@ fun ReubicacionScreen(
                     .padding(bottom = horizontalPadding / 2)
             ) {
                 Button(
-                    onClick = {
-                        if (!isLoading) {
-                            errorEnvio = null
-                            isLoading = true
-                            
-                            val fechaHora = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault()).format(
-                                Date()
-                            )
-
-                            val reubicacion = ReubicarPartida(
-                                    nombreUbiOrigen = ubicacionOrigenLocal,
-                                    nombreUbiDestino = ubicacionDestinoLocal,
-                                    numPartida = productoLocal
-                                )
-
-                            val request = ReubicarPartidasRequest(
-                                reubicaciones = mutableListOf(reubicacion),
-                                fechaHora = fechaHora,
-                                codDeposito = deposito,
-                                observacion = "",
-                                reubicacion = 0
-                            )
-
-                            AppLogger.logInfo("ReubicacionScreen", "Iniciando reubicación - Partida: $productoLocal, Origen: $ubicacionOrigenLocal, Destino: $ubicacionDestinoLocal, Depósito: $deposito")
-                            
-                            CoroutineScope(Dispatchers.IO).launch {
-                                try {
-                                    AppLogger.logInfo("ReubicacionScreen", "Enviando request a ApiClient.apiService.reubicarPartidas...")
-                                    
-                                    val response = ApiClient.apiService.reubicarPartidas(request).execute()
-                                    
-                                    AppLogger.logInfo("ReubicacionScreen", "Respuesta recibida - Código: ${response.code()}, Exitoso: ${response.isSuccessful}")
-                                    
-                                    if (response.isSuccessful) {
-                                        val responseBody = response.body()?.string() ?: "Sin contenido"
-                                        AppLogger.logInfo("ReubicacionScreen", "Respuesta exitosa: $responseBody")
-                                        AppLogger.logInfo("ReubicacionScreen", "✅ Reubicación completada exitosamente - Partida: $productoLocal")
-                                        Log.d("DEBUG_REUBICACION", "✅ Envío exitoso - ID a eliminar: $idReubicacionActual")
-                                        
-                                        // Eliminar de BD después de envío exitoso
-                                        if (idReubicacionActual > 0 && dbHelper != null) {
-                                            try {
-                                                val rowsDeleted = dbHelper.deleteReubicacion(idReubicacionActual)
-                                                Log.d("DEBUG_REUBICACION", "Reubicación eliminada de BD - ID: $idReubicacionActual, Filas eliminadas: $rowsDeleted")
-                                                AppLogger.logInfo("ReubicacionScreen", "Reubicación eliminada de BD: $idReubicacionActual")
-                                            } catch (e: Exception) {
-                                                Log.e("DEBUG_REUBICACION", "Error al eliminar reubicación de BD: ${e.message}", e)
-                                                AppLogger.logError("ReubicacionScreen", "Error al eliminar reubicación de BD", e)
-                                            }
-                                        } else {
-                                            Log.w("DEBUG_REUBICACION", "No se eliminó de BD - ID: $idReubicacionActual, dbHelper: ${dbHelper != null}")
-                                        }
-                                        
-                                        withContext(Dispatchers.Main) {
-                                            isLoading = false
-                                            errorEnvio = null
-                                            context.startActivity(Intent(context, EstivacionSuccessActivity::class.java))
-                                            (context as? Activity)?.finish()
-                                        }
-                                    } else {
-                                        val errorBody = response.errorBody()?.string() ?: "Error desconocido"
-                                        AppLogger.logError(
-                                            tag = "ReubicacionScreen",
-                                            message = "Error en respuesta: code=${response.code()} body=$errorBody"
-                                        )
-                                        
-                                        val errorDetail = try {
-                                            JSONObject(errorBody).optString("detail", errorBody)
-                                        } catch (e: Exception) {
-                                            errorBody
-                                        }.replace("\n", " ").replace("\r", " ")
-                                        
-                                        withContext(Dispatchers.Main) {
-                                            isLoading = false
-                                            errorEnvio = errorDetail
-                                        }
-                                    }
-                                } catch (e: Exception) {
-                                    AppLogger.logError(
-                                        tag = "ReubicacionScreen",
-                                        message = "Excepción durante el envío: ${e.message}",
-                                        throwable = e
-                                    )
-                                    
-                                    val errorDetail = (e.message ?: "No se pudo reubicar la partida por un problema de conexión.")
-                                        .replace("\n", " ").replace("\r", " ")
-                                    
-                                    withContext(Dispatchers.Main) {
-                                        isLoading = false
-                                        errorEnvio = errorDetail
-                                    }
-                                }
-                            }
-                        }
-                    },
+                    onClick = onEnviar,
                     enabled = !isLoading,
                     shape = RoundedCornerShape(24.dp),
                     colors = ButtonDefaults.buttonColors(
@@ -1277,7 +1170,7 @@ fun ReubicacionScreen(
                 ErrorMessage(
                     message = errorEnvio!!,
                     modifier = Modifier.fillMaxWidth(formWidth),
-                    onDismiss = { /* errorEnvio se limpia automáticamente */ }
+                    onDismiss = onDismissError
                 )
             }
         }
@@ -1314,11 +1207,13 @@ fun ReubicacionScreen(
 @Composable
 fun ReubicacionScreenPreview() {
     ReubicacionScreen(
-        onBack = {},
-        onReubicarClick = {},
-        producto = "123456789",
-        ubicacionOrigen = "A-01",
-        ubicacionDestino = "B-02"
+        state = ReubicacionUiState(
+            pantalla = ReubicacionPantalla.FORMULARIO,
+            partida = "123456789",
+            ubicacionOrigen = "A-01",
+            ubicacionDestino = "B-02",
+            codDeposito = "3B"
+        )
     )
 }
 

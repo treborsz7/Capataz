@@ -2,7 +2,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import org.json.JSONObject
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
@@ -30,46 +29,30 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.systemBars
-import android.app.Activity
-import android.content.Context
-import android.content.Intent
-import android.util.Log
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
-import com.thinkthat.mamusckascaner.service.Services.ApiClient
-import com.thinkthat.mamusckascaner.service.Services.EstibarPartida
-import com.thinkthat.mamusckascaner.service.Services.EstibarPartidasRequest
-import com.thinkthat.mamusckascaner.service.Services.UbicacionResponse
-import com.thinkthat.mamusckascaner.utils.AppLogger
-import com.thinkthat.mamusckascaner.view.EstivacionSuccessActivity
+import com.thinkthat.mamusckascaner.presentation.estivacion.EstivacionPantalla
+import com.thinkthat.mamusckascaner.presentation.estivacion.EstivacionUiState
 import com.thinkthat.mamusckascaner.view.components.ErrorMessage
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EstivacionScreen(
+    state: EstivacionUiState,
     onBack: () -> Unit = {},
     onStockearClick: (boton: String) -> Unit = {},
-    producto: String? = null,
-    ubicacion: String?,
-    idEstivacionActual: Long = -1,
-    dbHelper: com.thinkthat.mamusckascaner.database.DatabaseHelper? = null,
     onProductoChange: (String) -> Unit = {},
-    onUbicacionChange: (String) -> Unit = {}
+    onUbicacionChange: (String) -> Unit = {},
+    onEnviar: () -> Unit = {},
+    onDismissError: () -> Unit = {}
 ) {
+    // La pantalla solo dibuja: partida, ubicación, carga y error vienen del ViewModel.
+    val producto: String? = state.partida.takeIf { it.isNotBlank() }
+    val ubicacion: String? = state.ubicacion.takeIf { it.isNotBlank() }
+
     val context = LocalContext.current
     val configuration = LocalConfiguration.current
     val screenHeight = configuration.screenHeightDp.dp
@@ -91,10 +74,6 @@ fun EstivacionScreen(
             ) == PackageManager.PERMISSION_GRANTED
         )
     }
-    // Leer depósito desde SharedPreferences (guardado en login) - solo para uso en API
-    val prefs = context.getSharedPreferences("QRCodeScannerPrefs", Context.MODE_PRIVATE)
-    val deposito = prefs.getString("savedDeposito", "") ?: ""
-    
     // Estado para productos (lista)
     var productos by remember { mutableStateOf(listOf<String>()) }
     var productosEditables by remember { mutableStateOf(mapOf<Int, Boolean>()) }
@@ -149,13 +128,11 @@ fun EstivacionScreen(
             onUbicacionChange(ubicacionLocal)
         }
     }
-    // Estado para ubicaciones
-    var ubicaciones by remember { mutableStateOf(listOf<UbicacionResponse>()) }
-    //var ubicacionSeleccionada by remember { mutableStateOf<String?>(null) }
-    var expandedUbicaciones by remember { mutableStateOf(false) }
+    // Ubicaciones sugeridas y estado de envío: los provee el ViewModel
+    val ubicaciones = state.ubicacionesSugeridas
     var ubicacionSeleccionada by remember { mutableStateOf<String?>(null) }
-    var isLoading by remember { mutableStateOf(false) }
-    var errorEnvio by remember { mutableStateOf<String?>(null) }
+    val isLoading = state.isEnviando
+    val errorEnvio = state.error
     var showBackDialog by remember { mutableStateOf(false) }
 
     val launcher = rememberLauncherForActivityResult(contract = ActivityResultContracts.RequestPermission())
@@ -789,93 +766,7 @@ fun EstivacionScreen(
                     .padding(bottom = 16.dp)
             ) {
             Button(
-                onClick = {
-                    if (!isLoading) {
-                        errorEnvio = null
-                        isLoading = true
-                        
-                        val ubicacionLimpia = ubicacionLocal
-                        
-                        val partidas = listOf(
-                            EstibarPartida(
-                                nombreUbicacion = ubicacionLimpia,
-                                numPartida = partidaLocal
-                            )
-                        )
-                        val fechaHora = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault()).format(Date())
-                        val request = EstibarPartidasRequest(
-                            partidas = partidas,
-                            fechaHora = fechaHora,
-                            codDeposito = deposito,
-                            observacion = ""
-                        )
-                        
-                        AppLogger.logInfo("EstivacionScreen", "Iniciando estivación - Partida: $partidaLocal, Ubicación: $ubicacionLimpia, Depósito: $deposito")
-                        
-                        CoroutineScope(Dispatchers.IO).launch {
-                            try {
-                                val response = ApiClient.apiService.estibarPartidas(request).execute()
-                                
-                                if (response.isSuccessful) {
-                                    val responseBody = response.body()?.string()
-                                    AppLogger.logInfo("EstivacionScreen", "Estivación exitosa - Partida: $partidaLocal, Ubicación: $ubicacionLimpia, Response: $responseBody")
-                                    Log.d("DEBUG_ESTIVACION", "✅ Envío exitoso - ID a eliminar: $idEstivacionActual")
-                                    
-                                    // Eliminar de BD después de envío exitoso
-                                    if (idEstivacionActual > 0 && dbHelper != null) {
-                                        try {
-                                            val rowsDeleted = dbHelper.deleteEstivacion(idEstivacionActual)
-                                            Log.d("DEBUG_ESTIVACION", "Estivación eliminada de BD - ID: $idEstivacionActual, Filas eliminadas: $rowsDeleted")
-                                            AppLogger.logInfo("EstivacionScreen", "Estivación eliminada de BD: $idEstivacionActual")
-                                        } catch (e: Exception) {
-                                            Log.e("DEBUG_ESTIVACION", "Error al eliminar estivación de BD: ${e.message}", e)
-                                            AppLogger.logError("EstivacionScreen", "Error al eliminar estivación de BD", e)
-                                        }
-                                    } else {
-                                        Log.w("DEBUG_ESTIVACION", "No se eliminó de BD - ID: $idEstivacionActual, dbHelper: ${dbHelper != null}")
-                                    }
-                                    
-                                    withContext(Dispatchers.Main) {
-                                        isLoading = false
-                                        context.startActivity(Intent(context, EstivacionSuccessActivity::class.java))
-                                        (context as? Activity)?.finish()
-                                    }
-                                } else {
-                                    val errorBody = response.errorBody()?.string() ?: "Error desconocido"
-                                    AppLogger.logError(
-                                        tag = "EstivacionScreen",
-                                        message = "Error al estibar partida: code=${response.code()}, error=$errorBody, partida=$partidaLocal, ubicación=$ubicacionLimpia"
-                                    )
-                                    
-                                    val errorDetail = try {
-                                        JSONObject(errorBody).optString("detail", errorBody)
-                                    } catch (e: Exception) {
-                                        errorBody
-                                    }.replace("\n", " ").replace("\r", " ")
-                                    
-                                    withContext(Dispatchers.Main) {
-                                        isLoading = false
-                                        errorEnvio = errorDetail
-                                    }
-                                }
-                            } catch (e: Exception) {
-                                AppLogger.logError(
-                                    tag = "EstivacionScreen",
-                                    message = "Excepción al estibar partida: ${e.message}, partida=$partidaLocal, ubicación=$ubicacionLimpia",
-                                    throwable = e
-                                )
-                                
-                                val errorDetail = (e.message ?: "No se pudo enviar la estivación por un problema de conexión.")
-                                    .replace("\n", " ").replace("\r", " ")
-                                
-                                withContext(Dispatchers.Main) {
-                                    isLoading = false
-                                    errorEnvio = errorDetail
-                                }
-                            }
-                        }
-                    }
-                },
+                onClick = onEnviar,
                 enabled = !isLoading,
                 shape = RoundedCornerShape(24.dp),
                 colors = ButtonDefaults.buttonColors(
@@ -909,7 +800,7 @@ fun EstivacionScreen(
                 ErrorMessage(
                     message = errorEnvio!!,
                     modifier = Modifier.fillMaxWidth(formWidth),
-                    onDismiss = { /* errorEnvio se limpia automáticamente */ }
+                    onDismiss = onDismissError
                 )
             }
         }
@@ -946,9 +837,10 @@ fun EstivacionScreen(
 @Composable
 fun EstivacionScreenPreview() {
     EstivacionScreen(
-        onBack = {},
-        onStockearClick = {},
-        producto = "123456789",
-        ubicacion = "A-01"
+        state = EstivacionUiState(
+            pantalla = EstivacionPantalla.FORMULARIO,
+            partida = "123456789",
+            ubicacion = "A-01"
+        )
     )
 }

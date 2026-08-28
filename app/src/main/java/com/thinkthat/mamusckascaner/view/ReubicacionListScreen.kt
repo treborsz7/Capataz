@@ -15,66 +15,39 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalConfiguration
-import com.thinkthat.mamusckascaner.database.DatabaseHelper
-import com.thinkthat.mamusckascaner.database.ReubicacionEntity
-import com.thinkthat.mamusckascaner.utils.AppLogger
-import kotlinx.coroutines.launch
+import com.thinkthat.mamusckascaner.domain.model.Reubicacion
+import com.thinkthat.mamusckascaner.presentation.reubicacion.ReubicacionListUiState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReubicacionListScreen(
+    state: ReubicacionListUiState,
     onBack: () -> Unit = {},
     onNewReubicacion: () -> Unit = {},
-    onResumeReubicacion: (ReubicacionEntity) -> Unit = {}
+    onResumeReubicacion: (Reubicacion) -> Unit = {},
+    onDeleteReubicacion: (Long) -> Unit = {}
 ) {
-    val context = LocalContext.current
     val configuration = LocalConfiguration.current
     val screenHeight = configuration.screenHeightDp.dp
     val screenWidth = configuration.screenWidthDp.dp
-    val coroutineScope = rememberCoroutineScope()
-    
-    // Database Helper
-    val dbHelper = remember { DatabaseHelper(context) }
-    
-    // Estado para reubicaciones pendientes
-    var reubicacionesPendientes by remember { mutableStateOf<List<ReubicacionEntity>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
-    
+
+    val reubicacionesPendientes = state.pendientes
+    val isLoading = state.isLoading
+
     // Estado para diálogos
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showResumeDialog by remember { mutableStateOf(false) }
-    var reubicacionSeleccionada by remember { mutableStateOf<ReubicacionEntity?>(null) }
-    
+    var reubicacionSeleccionada by remember { mutableStateOf<Reubicacion?>(null) }
+
     // Responsive values
     val horizontalPadding = maxOf(minOf(screenWidth * 0.08f, 32.dp), 16.dp)
     val titleFontSize = maxOf(minOf((screenWidth * 0.06f).value, 28f), 20f).sp
     val bodyFontSize = maxOf(minOf((screenWidth * 0.04f).value, 18f), 14f).sp
     val buttonHeight = maxOf(minOf(screenHeight * 0.07f, 64.dp), 48.dp)
-    
-    // Cargar reubicaciones pendientes al iniciar
-    LaunchedEffect(Unit) {
-        try {
-            isLoading = true
-            reubicacionesPendientes = dbHelper.getReubicacionesPendientes()
-            AppLogger.logInfo(
-                tag = "ReubicacionListScreen",
-                message = "Cargadas ${reubicacionesPendientes.size} reubicaciones pendientes"
-            )
-        } catch (e: Exception) {
-            AppLogger.logError(
-                tag = "ReubicacionListScreen",
-                message = "Error al cargar reubicaciones pendientes",
-                throwable = e
-            )
-        } finally {
-            isLoading = false
-        }
-    }
 
     Box(
         modifier = Modifier
@@ -297,24 +270,7 @@ fun ReubicacionListScreen(
                 confirmButton = {
                     TextButton(
                         onClick = {
-                            val reubicacionAEliminar = reubicacionSeleccionada!!
-                            coroutineScope.launch {
-                                try {
-                                    dbHelper.deleteReubicacion(reubicacionAEliminar.id)
-                                    AppLogger.logInfo(
-                                        tag = "ReubicacionListScreen",
-                                        message = "Reubicación ${reubicacionAEliminar.id} eliminada"
-                                    )
-                                    // Recargar lista
-                                    reubicacionesPendientes = dbHelper.getReubicacionesPendientes()
-                                } catch (e: Exception) {
-                                    AppLogger.logError(
-                                        tag = "ReubicacionListScreen",
-                                        message = "Error al eliminar reubicación",
-                                        throwable = e
-                                    )
-                                }
-                            }
+                            onDeleteReubicacion(reubicacionSeleccionada!!.id)
                             showDeleteDialog = false
                             reubicacionSeleccionada = null
                         },
