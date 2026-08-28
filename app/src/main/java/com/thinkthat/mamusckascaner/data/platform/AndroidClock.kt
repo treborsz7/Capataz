@@ -8,19 +8,19 @@ import java.util.Locale
 /** Implementación JVM/Android de [Clock]. */
 class AndroidClock : Clock {
 
-    override fun nowIso(): String = isoFormat().format(Date())
+    override fun nowIso(): String = formatear(FORMATO_ISO)
 
-    override fun nowLocal(): String = localFormat().format(Date())
+    override fun nowIsoCorto(): String = formatear(FORMATO_ISO_CORTO)
+
+    override fun nowLocal(): String = formatear(FORMATO_LOCAL)
 
     // SimpleDateFormat no es thread-safe: se crea una instancia por llamada.
-    private fun isoFormat() =
-        SimpleDateFormat(FORMATO_ISO, Locale.getDefault())
-
-    private fun localFormat() =
-        SimpleDateFormat(FORMATO_LOCAL, Locale.getDefault())
+    private fun formatear(patron: String) =
+        SimpleDateFormat(patron, Locale.getDefault()).format(Date())
 
     private companion object {
         const val FORMATO_ISO = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
+        const val FORMATO_ISO_CORTO = "yyyy-MM-dd'T'HH:mm:ss"
         const val FORMATO_LOCAL = "yyyy-MM-dd HH:mm:ss"
     }
 }

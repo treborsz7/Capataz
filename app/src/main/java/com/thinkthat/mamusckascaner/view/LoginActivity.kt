@@ -1,194 +1,84 @@
 package com.thinkthat.mamusckascaner.view
+
 import android.content.Intent
-import android.content.SharedPreferences
 import android.os.Bundle
-import org.json.JSONObject
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.*
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import com.codegalaxy.barcodescanner.view.LoginScreen
-import com.thinkthat.mamusckascaner.service.Services.ApiClient
-import com.thinkthat.mamusckascaner.service.Services.LoginEmpresaResponse
+import com.thinkthat.mamusckascaner.R
+import com.thinkthat.mamusckascaner.di.ViewModelFactories
+import com.thinkthat.mamusckascaner.presentation.login.LoginEvent
+import com.thinkthat.mamusckascaner.presentation.login.LoginPantalla
+import com.thinkthat.mamusckascaner.presentation.login.LoginViewModel
 import com.thinkthat.mamusckascaner.ui.theme.BarCodeScannerTheme
-import com.thinkthat.mamusckascaner.utils.AppLogger
 
+/**
+ * Pantalla de entrada. El auto-login y la validación viven en [LoginViewModel];
+ * acá solo queda el splash, el tema y la navegación a [MainActivity].
+ */
 class LoginActivity : ComponentActivity() {
-    // Valores fijos para empresa y depósito
-    private val EMPRESA_FIJA = "31" //Prueba
-    private val DEPOSITO_FIJO = "3B" //Prueba
-    //private val EMPRESA_FIJA = "3"
-    //private val DEPOSITO_FIJO = "4B"// productos terminados
-    //private val DEPOSITO_FIJO = "3B"
+
+    private val viewModel: LoginViewModel by viewModels { ViewModelFactories.login }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
-        // Mantener el splash visible por 4 segundos
-        Thread.sleep(2000)
-        
-        // Cambiar del tema Splash al tema normal antes de setContent
-        setTheme(com.thinkthat.mamusckascaner.R.style.Theme_BarCodeScanner)
-        
-        AppLogger.init(applicationContext)
-        ApiClient.init(applicationContext)
-        enableEdgeToEdge()
-        android.util.Log.d("LoginActivity", "LoginActivity is being created")
-        val prefs = getSharedPreferences("QRCodeScannerPrefs", MODE_PRIVATE)
-        val savedUser = prefs.getString("savedUser", "") ?: ""
-        val savedPass = prefs.getString("savedPass", "") ?: ""
-        val savedRemember = prefs.getBoolean("savedRemember", false)
-        
-        // Asegurar que empresa y depósito siempre estén guardados
-        prefs.edit()
-            .putString("savedEmpresa", EMPRESA_FIJA)
-            .putString("savedDeposito", DEPOSITO_FIJO)
-            .apply()
-        
-        // Auto-login si recordar está activado y hay credenciales
-        if (savedRemember && savedUser.isNotBlank() && savedPass.isNotBlank()) {
-            // Llamar automáticamente a loginPlano
-            ApiClient.apiService.loginPlano(nombreUsuario = savedUser, pass = savedPass).enqueue(object : retrofit2.Callback<okhttp3.ResponseBody> {
-                override fun onResponse(
-                    call: retrofit2.Call<okhttp3.ResponseBody>,
-                    response: retrofit2.Response<okhttp3.ResponseBody>
-                ) {
-                    val rawBody = response.body()?.string()
-                    if (response.isSuccessful && rawBody != null) {
-                        prefs.edit()
-                            .putString("token", rawBody)
-                            .apply()
-                        
-                        // Ir directo a MainActivity
-                        val intent = Intent(this@LoginActivity, MainActivity::class.java)
-                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                        startActivity(intent)
-                        finish()
-                    } else {
-                        val errorBody = response.errorBody()?.string() ?: "Error desconocido"
-                        AppLogger.logError(
-                            tag = "LoginActivity",
-                            message = "LoginPlano falló en auto login: code=${response.code()} message=${response.message()} body=$errorBody"
-                        )
-                        mostrarPantallaLogin(savedUser, savedPass, savedRemember, prefs)
-                    }
-                }
-                override fun onFailure(call: retrofit2.Call<okhttp3.ResponseBody>, t: Throwable) {
-                    AppLogger.logError(
-                        tag = "LoginActivity",
-                        message = "LoginPlano onFailure en auto login: ${t.message}",
-                        throwable = t
-                    )
-                    mostrarPantallaLogin(savedUser, savedPass, savedRemember, prefs)
-                }
-            })
-        } else {
-            mostrarPantallaLogin(savedUser, savedPass, savedRemember, prefs)
-        }
-    }
 
-    private fun mostrarPantallaLogin(
-        savedUser: String,
-        savedPass: String,
-        savedRemember: Boolean,
-        prefs: SharedPreferences
-    ) {
+        // Mantener el splash visible un momento antes de cambiar de tema
+        Thread.sleep(SPLASH_MILLIS)
+        setTheme(R.style.Theme_BarCodeScanner)
+
+        enableEdgeToEdge()
+        viewModel.iniciar()
+
         setContent {
-            var isLoading by remember { mutableStateOf(false) }
-            var errorMessage by remember { mutableStateOf<String?>(null) }
-            
             BarCodeScannerTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    LoginScreen(
-                        onLoginSuccess = {
-                            android.util.Log.d("LoginActivity", "Login successful, navigating to MainActivity")
-                            val intent = Intent(this, MainActivity::class.java)
-                            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                            startActivity(intent)
-                            finish()
-                        },
-                        prefs = prefs,
-                        isLoading = isLoading,
-                        errorMessage = errorMessage,
-                        onLogin = { nombreUsuario, pass, recordar ->
-                            isLoading = true
-                            errorMessage = null
-                            
-                            if (nombreUsuario.isBlank()) {
-                                errorMessage = "El usuario no puede estar vacío."
-                                isLoading = false
-                                return@LoginScreen
+                    val state by viewModel.state.collectAsState()
+
+                    LaunchedEffect(Unit) {
+                        viewModel.events.collect { evento ->
+                            when (evento) {
+                                LoginEvent.LoginExitoso -> irAlMenu()
                             }
-                            
-                            ApiClient.apiService.loginPlano(nombreUsuario = nombreUsuario, pass = pass).enqueue(object : retrofit2.Callback<okhttp3.ResponseBody> {
-                                override fun onResponse(
-                                    call: retrofit2.Call<okhttp3.ResponseBody>,
-                                    response: retrofit2.Response<okhttp3.ResponseBody>
-                                ) {
-                                    val rawBody = response.body()?.string()
-                                    if (response.isSuccessful && rawBody != null) {
-                                        val editor = prefs.edit()
-                                            .putString("token", rawBody)
-                                            .putString("savedEmpresa", EMPRESA_FIJA)
-                                            .putString("savedDeposito", DEPOSITO_FIJO)
-                                            
-                                        if (recordar) {
-                                            // Guardar credenciales si recordar está activado
-                                            editor
-                                                .putString("savedUser", nombreUsuario)
-                                                .putString("savedPass", pass)
-                                                .putBoolean("savedRemember", true)
-                                        } else {
-                                            // Solo limpiar usuario, contraseña y recordar
-                                            editor
-                                                .remove("savedUser")
-                                                .remove("savedPass")
-                                                .putBoolean("savedRemember", false)
-                                        }
-                                        editor.apply()
-                                        
-                                        isLoading = false
-                                        // Ir directo a MainActivity
-                                        val intent = Intent(this@LoginActivity, MainActivity::class.java)
-                                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                                        startActivity(intent)
-                                        finish()
-                                    } else {
-                                        isLoading = false
-                                        val errorBody = response.errorBody()?.string() ?: "Error desconocido"
-                                        AppLogger.logError(
-                                            tag = "LoginActivity",
-                                            message = "LoginPlano falló: code=${response.code()} message=${response.message()} body=$errorBody"
-                                        )
-                                        val errorDetail = try {
-                                            JSONObject(errorBody).optString("detail", errorBody)
-                                        } catch (e: Exception) {
-                                            errorBody
-                                        }.replace("\n", " ").replace("\r", " ")
-                                        errorMessage = errorDetail
-                                    }
-                                }
-                                override fun onFailure(call: retrofit2.Call<okhttp3.ResponseBody>, t: Throwable) {
-                                    isLoading = false
-                                    AppLogger.logError(
-                                        tag = "LoginActivity",
-                                        message = "LoginPlano onFailure: ${t.message}",
-                                        throwable = t
-                                    )
-                                    val errorDetail = (t.message ?: "No se pudo iniciar sesión por un problema de conexión.")
-                                        .replace("\n", " ").replace("\r", " ")
-                                    errorMessage = errorDetail
-                                }
-                            })
-                        },
-                        savedUser = savedUser,
-                        savedPass = savedPass,
-                        savedRemember = savedRemember
-                    )
+                        }
+                    }
+
+                    when (state.pantalla) {
+                        // Mientras se resuelve el auto-login no se muestra el formulario.
+                        LoginPantalla.AUTENTICANDO -> Unit
+
+                        LoginPantalla.FORMULARIO -> LoginScreen(
+                            state = state,
+                            onUsuarioChange = viewModel::onUsuarioChange,
+                            onContrasenaChange = viewModel::onContrasenaChange,
+                            onRecordarChange = viewModel::onRecordarChange,
+                            onLogin = viewModel::login,
+                            onDismissError = viewModel::limpiarError
+                        )
+                    }
                 }
             }
         }
+    }
+
+    private fun irAlMenu() {
+        startActivity(
+            Intent(this, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            }
+        )
+        finish()
+    }
+
+    private companion object {
+        const val SPLASH_MILLIS = 2000L
     }
 }

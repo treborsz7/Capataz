@@ -28,12 +28,15 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.runtime.key
 import com.thinkthat.mamusckascaner.ui.theme.BarCodeScannerTheme
-import com.thinkthat.mamusckascaner.utils.AppLogger
+import com.thinkthat.mamusckascaner.di.ViewModelFactories
+import com.thinkthat.mamusckascaner.presentation.main.MainViewModel
 import com.thinkthat.mamusckascaner.viewmodel.BarCodeScannerViewModel
+import androidx.compose.runtime.collectAsState
 
 class MainActivity : ComponentActivity() {
 
     private val viewModel: BarCodeScannerViewModel by viewModels()
+    private val mainViewModel: MainViewModel by viewModels { ViewModelFactories.main }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -77,7 +80,10 @@ class MainActivity : ComponentActivity() {
                                 targetOffsetX = { -navigationDirection * it },
                                 animationSpec = tween(durationMillis = 500)
                             ) + fadeOut(animationSpec = tween(500))
-                        ) {                            MainScreen(
+                        ) {
+                            val sesion by mainViewModel.sesion.collectAsState()
+                            MainScreen(
+                                sesion = sesion,
                                 onScanRequest = { operationType ->
                                     when (operationType) {
                                         OperationType.ESTIVAR -> {
@@ -96,31 +102,13 @@ class MainActivity : ComponentActivity() {
                                     }
                                 },
                                 onLogout = {
-                                    try {
-                                        android.util.Log.d("MainActivity", "Logout button pressed")
-                                        // Limpiar solo credenciales (usuario, contraseña, token y recordar)
-                                        // Mantener empresa y depósito ya que son fijos
-                                        val prefs = getSharedPreferences("QRCodeScannerPrefs", MODE_PRIVATE)
-                                        prefs.edit()
-                                            .remove("savedUser")
-                                            .remove("savedPass")
-                                            .remove("token")
-                                            .putBoolean("savedRemember", false)
-                                            .apply()
-                                        
-                                        android.util.Log.d("MainActivity", "Credentials cleared (empresa y depósito se mantienen), navigating to LoginActivity")
-                                        // Navegar al LoginActivity
-                                        val intent = Intent(this@MainActivity,LoginActivity::class.java)
-                                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                                        startActivity(intent)
-                                        android.util.Log.d("MainActivity", "LoginActivity started")
-                                    } catch (e: Exception) {
-                                        AppLogger.logError(
-                                            tag = "MainActivity",
-                                            message = "Error durante logout: ${e.message}",
-                                            throwable = e
-                                        )
-                                    }
+                                    mainViewModel.cerrarSesion()
+                                    startActivity(
+                                        Intent(this@MainActivity, LoginActivity::class.java).apply {
+                                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                                                Intent.FLAG_ACTIVITY_CLEAR_TASK
+                                        }
+                                    )
                                 }
                             )
                         }

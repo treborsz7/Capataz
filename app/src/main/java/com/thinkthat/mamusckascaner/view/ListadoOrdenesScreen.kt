@@ -1,7 +1,5 @@
 package com.codegalaxy.barcodescanner.view
 
-import android.util.Log
-import org.json.JSONObject
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -21,70 +19,23 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.systemBars
-import androidx.compose.ui.platform.LocalContext
-import com.thinkthat.mamusckascaner.service.Services.ApiClient
-import com.thinkthat.mamusckascaner.service.Services.OrdenLanzada
+import com.thinkthat.mamusckascaner.domain.model.OrdenTrabajoLanzada
+import com.thinkthat.mamusckascaner.presentation.ordenes.ListadoOrdenesUiState
 import com.thinkthat.mamusckascaner.view.components.ErrorMessage
 import com.thinkthat.mamusckascaner.view.components.LoadingMessage
-import com.thinkthat.mamusckascaner.utils.AppLogger
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ListadoOrdenesScreen(
+    state: ListadoOrdenesUiState,
     onBack: () -> Unit = {},
-    onTomaOrden: (OrdenLanzada) -> Unit = {}
+    onRecargar: () -> Unit = {},
+    onTomaOrden: (OrdenTrabajoLanzada) -> Unit = {}
 ) {
-    val context = LocalContext.current
-    var ordenes by remember { mutableStateOf<List<OrdenLanzada>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+    val ordenes = state.ordenes
+    val isLoading = state.isLoading
+    val errorMessage = state.error
 
-    // Función para cargar las órdenes desde la API
-    fun cargarOrdenes() {
-        isLoading = true
-        errorMessage = null
-        
-        ApiClient.apiService.obtenerOrdenesLanzadas().enqueue(object : Callback<List<OrdenLanzada>> {
-            override fun onResponse(call: Call<List<OrdenLanzada>>, response: Response<List<OrdenLanzada>>) {
-                isLoading = false
-                 if (response.isSuccessful) {
-                    ordenes = response.body() ?: emptyList()
-                } else {
-                    val errorBody = response.errorBody()?.string()
-                    AppLogger.logError(
-                        tag = "ListadoOrdenesScreen",
-                        message = "Error al cargar órdenes: code=${response.code()} message=${response.message()} body=${errorBody ?: "sin cuerpo"}"
-                    )
-                    val errorDetail = try {
-                        JSONObject(errorBody ?: "").optString("detail", errorBody ?: "No se pudieron cargar las órdenes. Intenta nuevamente.")
-                    } catch (e: Exception) {
-                        errorBody ?: "No se pudieron cargar las órdenes. Intenta nuevamente."
-                    }.replace("\n", " ").replace("\r", " ")
-                    errorMessage = errorDetail
-                }
-            }
-
-            override fun onFailure(call: Call<List<OrdenLanzada>>, t: Throwable) {
-                isLoading = false
-                AppLogger.logError(
-                    tag = "ListadoOrdenesScreen",
-                    message = "Error de conexión al cargar órdenes: ${t.message}",
-                    throwable = t
-                )
-                val errorDetail = (t.message ?: "No se pudieron cargar las órdenes. Verifica tu conexión.")
-                    .replace("\n", " ").replace("\r", " ")
-                errorMessage = errorDetail
-            }
-        })
-    }
-
-    // Cargar órdenes al inicializar la pantalla
-    LaunchedEffect(Unit) {
-        cargarOrdenes()
-    }
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -111,7 +62,7 @@ fun ListadoOrdenesScreen(
                 .align(Alignment.TopEnd)
                 .padding(16.dp)
             ) {
-                IconButton(onClick = { cargarOrdenes() }) {
+                IconButton(onClick = onRecargar) {
                     Icon(Icons.Filled.Refresh, contentDescription = "Refrescar", tint = Color.White)
                 }
             }
@@ -143,7 +94,7 @@ fun ListadoOrdenesScreen(
                 errorMessage != null -> {
                     ErrorMessage(
                         message = errorMessage!!,
-                        onRetry = { cargarOrdenes() },
+                        onRetry = onRecargar,
                         modifier = Modifier.fillMaxWidth(0.8f),
                         onDismiss = { /* errorMessage se limpia automáticamente */ }
                     )
@@ -193,7 +144,7 @@ fun ListadoOrdenesScreen(
                                                 )
 
                                                 Text(
-                                                    text = "Producto: ${orden.producto.descripcion}",
+                                                    text = "Producto: ${orden.descripcionProducto}",
                                                     color = Color.Gray,
                                                     fontSize = 14.sp,
                                                     modifier = Modifier.padding(top = 2.dp)
@@ -230,5 +181,5 @@ fun ListadoOrdenesScreen(
 @Preview(showBackground = true)
 @Composable
 fun ListadoOrdenesScreenPreview() {
-    ListadoOrdenesScreen()
+    ListadoOrdenesScreen(state = ListadoOrdenesUiState(isLoading = false))
 }

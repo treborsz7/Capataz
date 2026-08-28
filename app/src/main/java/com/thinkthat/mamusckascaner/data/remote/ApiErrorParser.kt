@@ -11,8 +11,8 @@ import org.json.JSONObject
 object ApiErrorParser {
     private const val MENSAJE_POR_DEFECTO = "Error desconocido"
 
-    fun parse(errorBody: String?): String {
-        val body = errorBody?.takeIf { it.isNotBlank() } ?: MENSAJE_POR_DEFECTO
+    fun parse(errorBody: String?, porDefecto: String = MENSAJE_POR_DEFECTO): String {
+        val body = errorBody?.takeIf { it.isNotBlank() } ?: porDefecto
         val detalle = try {
             JSONObject(body).optString("detail", body)
         } catch (e: Exception) {

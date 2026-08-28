@@ -1,7 +1,6 @@
 // src/main/java/com/codegalaxy/barcodescanner/view/LoginScreen.kt
 package com.codegalaxy.barcodescanner.view
 
-import android.content.SharedPreferences
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -16,20 +15,25 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.platform.LocalConfiguration
+import com.thinkthat.mamusckascaner.presentation.login.LoginUiState
 import com.thinkthat.mamusckascaner.view.components.ErrorMessage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
-    onLoginSuccess: () -> Unit,
-    isLoading: Boolean,
-    errorMessage: String?,
-    onLogin: (String, String, Boolean) -> Unit,
-    savedUser: String = "",
-    savedPass: String = "",
-    savedRemember: Boolean = false,
-    prefs: SharedPreferences?
+    state: LoginUiState,
+    onUsuarioChange: (String) -> Unit = {},
+    onContrasenaChange: (String) -> Unit = {},
+    onRecordarChange: (Boolean) -> Unit = {},
+    onLogin: () -> Unit = {},
+    onDismissError: () -> Unit = {}
 ) {
+    val usuario = state.usuario
+    val contrasena = state.contrasena
+    val recordar = state.recordar
+    val isLoading = state.isLoading
+    val errorMessage = state.error
+
     val configuration = LocalConfiguration.current
     val screenHeight = configuration.screenHeightDp.dp
     val screenWidth = configuration.screenWidthDp.dp
@@ -44,10 +48,6 @@ fun LoginScreen(
     val topOffset = -maxOf(minOf(screenHeight * 0.05f, 50.dp), 30.dp)
     val buttonWidth = maxOf(minOf(screenWidth * 0.6f, 250.dp), 150.dp)
     
-    android.util.Log.d("LoginScreen", "LoginScreen composable is being rendered")
-    var usuario by remember { mutableStateOf(savedUser) }
-    var contrasena by remember { mutableStateOf(savedPass) }
-    var recordar by remember { mutableStateOf(savedRemember) }
 
     Box(
         modifier = Modifier
@@ -91,10 +91,7 @@ fun LoginScreen(
             // Usuario editable
             OutlinedTextField(
                 value = usuario,
-                onValueChange = {
-                    usuario = it
-                    android.util.Log.d("LoginScreen", "User input updated: $usuario")
-                },
+                onValueChange = onUsuarioChange,
                 label = { Text("Usuario", color = Color.White) },
                 placeholder = { Text("Ingrese su usuario", color = Color.White) },
                 singleLine = true,
@@ -114,10 +111,7 @@ fun LoginScreen(
             // Contraseña
             OutlinedTextField(
                 value = contrasena,
-                onValueChange = {
-                    contrasena = it
-                    android.util.Log.d("LoginScreen", "Password input updated")
-                },
+                onValueChange = onContrasenaChange,
                 label = { Text("Contraseña", color = Color.White) },
                 placeholder = { Text("Ingrese su contraseña", color = Color.White) },
                 singleLine = true,
@@ -142,7 +136,7 @@ fun LoginScreen(
             ) {
                 Checkbox(
                     checked = recordar,
-                    onCheckedChange = { recordar = it }
+                    onCheckedChange = onRecordarChange
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Recordar", fontSize = bodyFontSize, color = Color.White)
@@ -156,32 +150,8 @@ fun LoginScreen(
                 .padding(bottom = 16.dp)
         ) {
             Button(
-                onClick = {
-                    android.util.Log.d("LoginScreen", "Identificar button clicked")
-                    
-                    if (prefs != null) {
-                        if (recordar) {
-                            // Guardar usuario, contraseña y recordar
-                            prefs.edit()
-                                .putString("savedUser", usuario)
-                                .putString("savedPass", contrasena)
-                                .putBoolean("savedRemember", true)
-                                .apply()
-                            android.util.Log.d("LoginScreen", "Guardadas credenciales para auto-login")
-                        } else {
-                            // Limpiar solo usuario, contraseña y recordar
-                            prefs.edit()
-                                .remove("savedUser")
-                                .remove("savedPass")
-                                .putBoolean("savedRemember", false)
-                                .apply()
-                            android.util.Log.d("LoginScreen", "Limpiadas credenciales")
-                        }
-                    }
-                    
-                    onLogin(usuario, contrasena, recordar)
-                },
-                enabled = !isLoading && usuario.isNotBlank(),
+                onClick = onLogin,
+                enabled = state.puedeIniciarSesion,
                 modifier = Modifier
                     .width(buttonWidth)
                     .height(buttonHeight),
@@ -209,7 +179,7 @@ fun LoginScreen(
                 ErrorMessage(
                     message = errorMessage,
                     modifier = Modifier.fillMaxWidth(formWidth),
-                    onDismiss = { /* El error se maneja en LoginActivity */ }
+                    onDismiss = onDismissError
                 )
             }
         }

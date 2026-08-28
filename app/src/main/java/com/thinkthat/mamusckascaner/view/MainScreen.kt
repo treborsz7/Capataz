@@ -39,10 +39,12 @@ import androidx.core.content.FileProvider
 import java.io.File
 import android.widget.Toast
 import androidx.compose.ui.text.style.TextAlign
+import com.thinkthat.mamusckascaner.domain.model.Sesion
 import com.thinkthat.mamusckascaner.utils.AppLogger
 
 @Composable
 fun MainScreen(
+    sesion: Sesion,
     onScanRequest: (OperationType) -> Unit = {},
     onLogout: () -> Unit = {}
 ) {
@@ -50,8 +52,7 @@ fun MainScreen(
     val configuration = LocalConfiguration.current
     val screenHeight = configuration.screenHeightDp.dp
     val screenWidth = configuration.screenWidthDp.dp
-    val prefs = context.getSharedPreferences("QRCodeScannerPrefs", MODE_PRIVATE)
-    val codDeposito = prefs.getString("savedDeposito", "") ?: ""
+    val codDeposito = sesion.codDeposito
                                 
     // Responsive values
     val horizontalPadding = maxOf(minOf(screenWidth * 0.08f, 32.dp), 16.dp)
@@ -305,7 +306,7 @@ fun MainScreen(
                 TextButton(
                     onClick = {
                         showSendLogDialog = false
-                        sendLogEmail(context)
+                        sendLogEmail(context, sesion)
                     }
                 ) {
                     Text("Enviar")
@@ -320,7 +321,7 @@ fun MainScreen(
     }
 }
 
-private fun sendLogEmail(context: android.content.Context) {
+private fun sendLogEmail(context: android.content.Context, sesion: Sesion) {
     try {
         // Obtener todos los archivos de log
         val infoLogFile = File(context.getExternalFilesDir(null), "logs/${AppLogger.LOG_FILE_INFO}")
@@ -362,9 +363,8 @@ private fun sendLogEmail(context: android.content.Context) {
         }
         
         // Obtener información del usuario desde SharedPreferences
-        val prefs = context.getSharedPreferences("QRCodeScannerPrefs", android.content.Context.MODE_PRIVATE)
-        val username = prefs.getString("savedUser", "Usuario desconocido") ?: "Usuario desconocido"
-        val empresa = prefs.getString("savedEmpresa", "Empresa desconocida") ?: "Empresa desconocida"
+        val username = sesion.usuario.ifBlank { "Usuario desconocido" }
+        val empresa = sesion.empresa.ifBlank { "Empresa desconocida" }
         
         // Crear el intent de email con múltiples archivos adjuntos
         val emailIntent = Intent(Intent.ACTION_SEND_MULTIPLE).apply {
@@ -420,6 +420,7 @@ private fun sendLogEmail(context: android.content.Context) {
 fun MainScreenTallPreview() {
     BarCodeScannerTheme {
         MainScreen(
+            sesion = Sesion(usuario = "operario", empresa = "31", codDeposito = "3B"),
             onScanRequest = {},
             onLogout = {}
         )

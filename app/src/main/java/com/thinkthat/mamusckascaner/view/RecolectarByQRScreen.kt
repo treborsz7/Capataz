@@ -25,39 +25,32 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.compose.ui.platform.LocalConfiguration
-import com.thinkthat.mamusckascaner.utils.AppLogger
-import com.thinkthat.mamusckascaner.utils.QRData
-import com.thinkthat.mamusckascaner.utils.parseQRData
-import com.thinkthat.mamusckascaner.database.RecoleccionRepository
-import com.thinkthat.mamusckascaner.database.PedidoEntity
-import kotlinx.coroutines.launch
+import com.thinkthat.mamusckascaner.domain.model.PedidoRecoleccion
+import com.thinkthat.mamusckascaner.presentation.recolectar.RecolectarQrUiState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecolectarByQRScreen(
+    state: RecolectarQrUiState,
     onBack: () -> Unit = {},
     onScanQR: () -> Unit = {},
-    scannedResult: String? = null,
-    onProceedWithOrder: (String, Boolean) -> Unit = { _, _ -> }
+    onDeletePedido: (Int) -> Unit = {},
+    onResumePedido: (PedidoRecoleccion) -> Unit = {}
 ) {
     val context = LocalContext.current
     val configuration = LocalConfiguration.current
     val screenHeight = configuration.screenHeightDp.dp
     val screenWidth = configuration.screenWidthDp.dp
-    val coroutineScope = rememberCoroutineScope()
-    
-    // Repository de SQLite
-    val repository = remember { RecoleccionRepository(context) }
-    
-    // Estado para pedidos pendientes
-    var pedidosPendientes by remember { mutableStateOf<List<PedidoEntity>>(emptyList()) }
-    var isLoadingPedidos by remember { mutableStateOf(true) }
-    
+
+    val pedidosPendientes = state.pedidosPendientes
+    val isLoadingPedidos = state.isLoading
+    val errorMessage = state.error
+
     // Estado para diálogos
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showResumeDialog by remember { mutableStateOf(false) }
-    var pedidoSeleccionado by remember { mutableStateOf<PedidoEntity?>(null) }
-    
+    var pedidoSeleccionado by remember { mutableStateOf<PedidoRecoleccion?>(null) }
+
     // Responsive values
     val horizontalPadding = maxOf(minOf(screenWidth * 0.08f, 32.dp), 16.dp)
     val iconSize = maxOf(minOf(screenWidth * 0.3f, 140.dp), 80.dp)
@@ -74,7 +67,6 @@ fun RecolectarByQRScreen(
         )
     }
     
-    var errorMessage by remember { mutableStateOf<String?>(null) }
     
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -85,50 +77,6 @@ fun RecolectarByQRScreen(
         }
     }
     
-    // Cargar pedidos pendientes no sincronizados al iniciar
-    LaunchedEffect(Unit) {
-        try {
-            isLoadingPedidos = true
-            val pedidos = repository.getAllPedidos()
-            pedidosPendientes = pedidos.filter { it.estado != "sincronizado" }
-            AppLogger.logInfo(
-                tag = "RecolectarByQRScreen",
-                message = "Cargados ${pedidosPendientes.size} pedidos pendientes"
-            )
-        } catch (e: Exception) {
-            AppLogger.logError(
-                tag = "RecolectarByQRScreen",
-                message = "Error al cargar pedidos pendientes",
-                throwable = e
-            )
-        } finally {
-            isLoadingPedidos = false
-        }
-    }
-
-    // Auto-redirigir cuando se escanea un QR válido
-    LaunchedEffect(scannedResult) {
-        if (scannedResult != null) {
-            val parsedData = parseQRData(scannedResult)
-            
-            // Validar que el QR tenga los datos esperados
-            if (parsedData.deposito.isNotEmpty() && parsedData.pedido.isNotEmpty()) {
-                // QR válido - limpiar error y redirigir automáticamente
-                errorMessage = null
-                onProceedWithOrder(scannedResult, false)
-            } else {
-                // QR inválido - mostrar error
-                AppLogger.logError(
-                    tag = "RecolectarByQRScreen",
-                    message = "QR inválido sin datos esperados: $scannedResult"
-                )
-                errorMessage = "No se pudo procesar el QR escaneado."
-            }
-        } else {
-            // Limpiar error cuando se resetea el resultado escaneado
-            errorMessage = null
-        }
-    }
 
     Box(
         modifier = Modifier
@@ -219,7 +167,7 @@ fun RecolectarByQRScreen(
                 // Botón para intentar escanear de nuevo
                 Button(
                     onClick = {
-                        errorMessage = null
+                        // El error se limpia al llegar un QR nuevo
                         if (hasCameraPermission) {
                             onScanQR()
                         } else {
@@ -447,25 +395,7 @@ fun RecolectarByQRScreen(
                 confirmButton = {
                     TextButton(
                         onClick = {
-                            val pedidoAEliminar = pedidoSeleccionado!!
-                            coroutineScope.launch {
-                                try {
-                                    repository.deletePedidoConRecolecciones(pedidoAEliminar.idPedido)
-                                    AppLogger.logInfo(
-                                        tag = "RecolectarByQRScreen",
-                                        message = "Pedido ${pedidoAEliminar.idPedido} eliminado"
-                                    )
-                                    // Recargar lista
-                                    val pedidos = repository.getAllPedidos()
-                                    pedidosPendientes = pedidos.filter { it.estado != "sincronizado" }
-                                } catch (e: Exception) {
-                                    AppLogger.logError(
-                                        tag = "RecolectarByQRScreen",
-                                        message = "Error al eliminar pedido",
-                                        throwable = e
-                                    )
-                                }
-                            }
+                            onDeletePedido(pedidoSeleccionado!!.idPedido)
                             showDeleteDialog = false
                             pedidoSeleccionado = null
                         },
@@ -509,20 +439,9 @@ fun RecolectarByQRScreen(
                     TextButton(
                         onClick = {
                             val pedido = pedidoSeleccionado!!
-                            // Construir el string QR en el formato correcto
-                            // Formato: |pikingsDePedido|Deposito|"codigoDeposito"|"idPedido"|
-                            val qrString = "|pikingsDePedido|Deposito|\"${pedido.codDeposito}\"|\"${pedido.idPedido}\"|"
-                            
-                            AppLogger.logInfo(
-                                tag = "RecolectarByQRScreen",
-                                message = "Retomando pedido: ${pedido.idPedido} con QR: $qrString"
-                            )
-                            
                             showResumeDialog = false
                             pedidoSeleccionado = null
-                            
-                            // Navegar a RecolectarScreen con el QR reconstruido
-                            onProceedWithOrder(qrString, false)
+                            onResumePedido(pedido)
                         },
                         colors = ButtonDefaults.textButtonColors(
                             contentColor = Color(0xFF4CAF50)
@@ -550,6 +469,7 @@ fun RecolectarByQRScreen(
 @Composable
 fun RecolectarByQRScreenPreview() {
     RecolectarByQRScreen(
+        state = RecolectarQrUiState(isLoading = false),
         onBack = {},
         onScanQR = {}
     )
