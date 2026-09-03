@@ -3,6 +3,7 @@ package com.thinkthat.mamusckascaner.service.Services
 import android.content.Context
 import android.util.Base64
 import android.util.Log
+import com.thinkthat.mamusckascaner.core.AppConfig
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -242,7 +243,8 @@ interface ApiService {
 // --- SINGLETON DE RETROFIT ---
 
 object ApiClient {
-    private const val BASE_URL = "http://191.235.41.83:18001/"
+    // El servidor se configura en AppConfig.BASE_URL (único lugar a editar).
+    private const val BASE_URL = AppConfig.BASE_URL
     private var context: Context? = null
 
     fun init(context: Context) {
